@@ -34,6 +34,22 @@ function parseDealer(text) {
   return "Telegram";
 }
 
+function isImportMessage(text) {
+  const dealer = pickLineValue(text, ["DEALER", "DEALER 名字", "代理"]) || text.match(/#dealer\s+(.+)/i);
+  if (!dealer) return false;
+
+  const importantFields = [
+    pickLineValue(text, ["NAMA", "NAME"]),
+    pickLineValue(text, ["IC NO", "IC"]),
+    pickLineValue(text, ["BANK", "NAMA BANK"]),
+    pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
+    pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]),
+    pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
+  ].filter(Boolean);
+
+  return importantFields.length >= 2;
+}
+
 function parseCardNumber(text) {
   return pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
 }
@@ -123,6 +139,10 @@ exports.telegramWebhook = onRequest({ secrets: [telegramBotToken] }, async (req,
   }
 
   try {
+    if (!isImportMessage(text)) {
+      res.status(200).send("ignored");
+      return;
+    }
     const result = await saveTelegramRecord(text);
     await reply(chatId, `已导入 ${result.dealerName}`);
     res.status(200).send("ok");
