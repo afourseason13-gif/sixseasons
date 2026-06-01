@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dealer 资料</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="Dealer 资料">
+        <div>
+          <p class="eyebrow"><a class="back-link" href="./index.html">返回 Dealer 名单</a></p>
+          <h1 id="dealerTitle">Dealer 资料</h1>
+        </div>
+        <div class="sync-card" id="syncStatus">
+          <span class="dot"></span>
+          <span>正在检查同步</span>
+        </div>
+      </section>
+
+      <section class="dealer-overview" aria-label="Dealer 概览">
+        <div class="metric-card rate-card">
+          <span>单价</span>
+          <select id="dealerRate">
+            <option value="500">RM500</option>
+            <option value="300">RM300</option>
+          </select>
+        </div>
+        <div class="metric-card expense-card">
+          <span>开销</span>
+          <input id="dealerExpense" type="number" min="0" step="1" placeholder="0" />
+        </div>
+        <div class="metric-card extra-pay-card">
+          <span>加工资</span>
+          <input id="dealerExtraPay" type="number" step="1" placeholder="RM0" />
+        </div>
+        <div class="metric-card">
+          <span>总记录</span>
+          <strong id="metricTotal">0</strong>
+        </div>
+        <div class="metric-card">
+          <span>计薪数量</span>
+          <strong id="metricExpired">0</strong>
+        </div>
+        <div class="metric-card">
+          <span>累计工资</span>
+          <strong id="metricSalary">RM0</strong>
+        </div>
+        <div class="metric-card salary-breakdown">
+          <span>工资明细</span>
+          <strong id="metricSalaryNote">-</strong>
+        </div>
+        <div class="metric-card">
+          <span>最近更新</span>
+          <strong id="metricUpdated">-</strong>
+        </div>
+      </section>
+
+      <section class="panel form-panel feature-panel" aria-label="添加记录">
+        <div class="panel-title">
+          <div>
+            <p class="eyebrow">Record</p>
+            <h2>添加资料</h2>
+          </div>
+        </div>
+        <form id="recordForm" autocomplete="off">
+          <input type="hidden" id="recordId" />
+          <label class="parser-field">
+            <span>标准格式资料</span>
+            <textarea id="formattedDetails" rows="8" placeholder="*NAMA* :&#10;&#10;*IC NO*：&#10;&#10;*BANK* :&#10;&#10;*NO AKAUN* :&#10;----------------------&#10;*NO KAD* :  &#10;&#10;*PIN KAD ATM* :&#10;----------------------"></textarea>
+          </label>
+          <label>
+            <span>卡号</span>
+            <input id="cardNumber" required placeholder="例如: 4059 9861 4613 8914" />
+          </label>
+          <label>
+            <span>包裹公司</span>
+            <select id="carrier" required></select>
+          </label>
+          <label>
+            <span>尾号码</span>
+            <input id="tailNumber" required placeholder="例如: 8899" />
+          </label>
+          <label>
+            <span>开保日期</span>
+            <input id="warrantyDate" type="date" />
+          </label>
+          <label>
+            <span>状态</span>
+            <select id="status"></select>
+          </label>
+          <label class="wide">
+            <span>备注</span>
+            <input id="notes" placeholder="可选" />
+          </label>
+          <div class="actions wide">
+            <button class="primary" type="submit" id="submitButton">添加记录</button>
+            <button class="ghost" type="button" id="resetButton">清空</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel status-panel" aria-label="状态选项">
+        <div class="panel-title compact">
+          <div>
+            <p class="eyebrow">Status</p>
+            <h2>状态选项</h2>
+          </div>
+        </div>
+        <form id="statusOptionForm" class="status-option-form" autocomplete="off">
+          <label>
+            <span>新增状态选项</span>
+            <input id="newStatusOption" placeholder="例如: 已签收 / 等待付款 / 问题件" />
+          </label>
+          <button class="primary" type="submit">添加状态</button>
+        </form>
+        <div class="status-option-list" id="statusOptionList"></div>
+      </section>
+
+      <section class="toolbar" aria-label="记录工具">
+        <div class="search-wrap">
+          <span aria-hidden="true">⌕</span>
+          <input id="searchInput" placeholder="搜索这个 dealer 的卡号、公司、尾号码、开保日期或备注" />
+        </div>
+        <button class="ghost" type="button" id="copyDealerLink">复制这个 Dealer 链接</button>
+        <button class="danger" type="button" id="payrollClearButton">已出工资</button>
+        <div class="summary">
+          <strong id="totalCount">0</strong>
+          <span>条记录</span>
+        </div>
+      </section>
+
+      <section class="stale-alert" id="staleAlert" hidden aria-label="资料提醒">
+        <strong>提醒</strong>
+        <span id="staleAlertText">有资料超过 5 天没有更新。</span>
+      </section>
+
+      <section class="records" aria-label="记录列表">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>卡号</th>
+                <th>完整资料</th>
+                <th>包裹公司</th>
+                <th>尾号码</th>
+                <th>开保日期</th>
+                <th>状态</th>
+                <th>备注</th>
+                <th>更新时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="recordsBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="emptyState">
+          <h2>还没有记录</h2>
+          <p>这个 Dealer 目前没有资料，可以在上面添加。</p>
+        </div>
+      </section>
+    </main>
+
+    <template id="recordRowTemplate">
+      <tr>
+        <td data-label="卡号"></td>
+        <td data-label="完整资料"></td>
+        <td data-label="包裹公司"></td>
+        <td data-label="尾号码"></td>
+        <td data-label="开保日期"></td>
+        <td data-label="状态"></td>
+        <td data-label="备注"></td>
+        <td data-label="更新时间"></td>
+        <td data-label="操作" class="row-actions"></td>
+      </tr>
+    </template>
+
+    <dialog id="detailsDialog" class="details-dialog">
+      <div class="dialog-head">
+        <h2>完整资料</h2>
+        <button class="ghost" type="button" id="closeDetailsDialog">关闭</button>
+      </div>
+      <pre id="detailsContent"></pre>
+      <button class="primary" type="button" id="copyDetailsButton">复制资料</button>
+    </dialog>
+
+    <div class="success-toast" id="successToast" hidden>
+      <strong>WELL DONE</strong>
+      <span>再接再厉</span>
+    </div>
+
+    <script src="./firebase-config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
