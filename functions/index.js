@@ -44,11 +44,16 @@ function detectBank(text) {
   const tokens = source.split(/[^A-Z0-9]+/).filter(Boolean);
   const hasToken = (...items) => items.some((item) => tokens.includes(item));
   if (source.includes("BANK ISLAM") || compact.includes("BANKISLAM") || source.includes("ISLAM")) return "BANK ISLAM";
-  if (source.includes("MUAMALAT") || hasToken("MUA")) return "MUAMALAT";
-  if (source.includes("RAKYAT") || hasToken("RYT", "RKT")) return "RAKYAT";
+  if (source.includes("MAYBANK") || source.includes("MAY BANK") || source.includes("MALAYAN BANKING") || hasToken("MBB")) return "MBB";
+  if (source.includes("CIMB") || compact.includes("CIMBBANK")) return "CIMB";
+  if (source.includes("AFFIN")) return "AFFIN";
+  if (source.includes("AGRO") || source.includes("AGROBANK") || source.includes("AGRO BANK")) return "AGRO";
+  if (source.includes("MUAMALAT") || source.includes("BANK MUAMALAT") || hasToken("MUA")) return "MUAMALAT";
+  if (source.includes("RAKYAT") || source.includes("BANK RAKYAT") || hasToken("RYT", "RKT")) return "RAKYAT";
   if (source.includes("AMBANK") || source.includes("AM BANK") || compact.includes("AMBANK") || hasToken("AM")) return "AMBANK";
   if (source.includes("ALLIANCE") || hasToken("ALL")) return "ALLIANCE";
-  for (const bank of ["MBB", "CIMB", "AFFIN", "AGRO", "RHB", "HLB", "BSN"]) {
+  if (source.includes("HONG LEONG") || compact.includes("HONGLEONG") || hasToken("HLB")) return "HLB";
+  for (const bank of ["RHB", "BSN"]) {
     if (source.includes(bank)) return bank;
   }
   return "";

@@ -198,16 +198,16 @@ function detectSalaryBank(record) {
   const tokens = source.split(/[^A-Z0-9]+/).filter(Boolean);
   const hasToken = (...items) => items.some((item) => tokens.includes(item));
   if (source.includes("BANK ISLAM") || compactSource.includes("BANKISLAM") || source.includes("ISLAM")) return "BANK ISLAM";
-  if (source.includes("MUAMALAT") || hasToken("MUA")) return "MUAMALAT";
-  if (source.includes("CIMB")) return "CIMB";
+  if (source.includes("MAYBANK") || source.includes("MAY BANK") || source.includes("MALAYAN BANKING") || hasToken("MBB")) return "MBB";
+  if (source.includes("CIMB") || compactSource.includes("CIMBBANK")) return "CIMB";
   if (source.includes("AFFIN")) return "AFFIN";
-  if (source.includes("AGRO")) return "AGRO";
-  if (source.includes("RAKYAT") || hasToken("RYT", "RKT")) return "RAKYAT";
+  if (source.includes("AGRO") || source.includes("AGROBANK") || source.includes("AGRO BANK")) return "AGRO";
+  if (source.includes("MUAMALAT") || source.includes("BANK MUAMALAT") || hasToken("MUA")) return "MUAMALAT";
+  if (source.includes("RAKYAT") || source.includes("BANK RAKYAT") || hasToken("RYT", "RKT")) return "RAKYAT";
   if (source.includes("AMBANK") || source.includes("AM BANK") || compactSource.includes("AMBANK") || hasToken("AM")) return "AMBANK";
   if (source.includes("ALLIANCE") || hasToken("ALL")) return "ALLIANCE";
   if (source.includes("RHB")) return "RHB";
-  if (source.includes("HLB")) return "HLB";
-  if (source.includes("MBB") || source.includes("MAYBANK")) return "MBB";
+  if (source.includes("HONG LEONG") || compactSource.includes("HONGLEONG") || hasToken("HLB")) return "HLB";
   if (source.includes("BSN")) return "BSN";
   return "";
 }
