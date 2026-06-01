@@ -3,6 +3,7 @@ const dealerListKey = "dealer-card-tracker-dealers";
 const statusOptionsKey = "dealer-card-tracker-status-options";
 const noticeKey = "dealer-card-tracker-notice";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关"];
+const defaultNewRecordStatus = "寄";
 const salaryStatuses = new Set(["过保", "开保"]);
 const payrollClearStatuses = new Set(["过保", "开保", "弹卡", "人头关"]);
 const malaysiaCouriers = [
@@ -275,7 +276,7 @@ function dealerStats(name) {
 
 function normalizeRecord(data, id = createId()) {
   const now = new Date().toISOString();
-  const firstStatus = statusOptions[0] || "";
+  const firstStatus = statusOptions.includes(defaultNewRecordStatus) ? defaultNewRecordStatus : statusOptions[0] || "";
   return {
     id,
     dealerName: data.dealerName,
@@ -502,14 +503,14 @@ function initDealerPage() {
     }
   });
   populateCarrierSelect(carrier);
-  populateStatusSelect(statusInput);
+  populateStatusSelect(statusInput, defaultNewRecordStatus);
 
   function resetForm() {
     form.reset();
     recordId.value = "";
     parsedDetailsDraft = {};
     populateCarrierSelect(carrier);
-    populateStatusSelect(statusInput);
+    populateStatusSelect(statusInput, defaultNewRecordStatus);
     submitButton.textContent = "添加记录";
     formattedDetails.focus();
   }

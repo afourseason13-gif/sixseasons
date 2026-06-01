@@ -202,7 +202,7 @@ async function saveTelegramRecord(text) {
     carrier: shipment.carrier || detectCarrier(text, shipment.carrierCode),
     tailNumber: shipment.tailNumber,
     warrantyDate: "",
-    status: "未处理",
+    status: "寄",
     notes: "Telegram 自动导入",
     updatedAt: now,
     createdAt: now
