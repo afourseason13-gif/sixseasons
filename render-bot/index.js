@@ -41,11 +41,83 @@ function parseDealer(text) {
   if (value) return value;
   const hashMatch = text.match(/#dealer\s+(.+)/i);
   if (hashMatch) return clean(hashMatch[1]);
+  const firstLine = clean(text.split(/\r?\n/).find(Boolean));
+  if (/^dealer\s+/i.test(firstLine)) return clean(firstLine.replace(/^dealer\s+/i, "Dealer "));
   return "Telegram";
+}
+
+function parseShipmentCode(text) {
+  const lines = text.split(/\r?\n/).map(clean).filter(Boolean);
+  for (const line of lines) {
+    if (/^(DEALER|NAME|NAMA|IC|BANK|NO AKAUN|NO KAD|PIN|\*)/i.test(line)) continue;
+    if (line.includes(":") || line.includes("：") || /^-+$/.test(line)) continue;
+    const compact = line.replace(/[^A-Za-z0-9&]/g, "").toUpperCase();
+    const match = compact.match(/^([A-Z&]+)(\d{3,})$/);
+    if (match) {
+      const carrierCode = normalizeCarrierCode(match[1]);
+      return {
+        carrier: carrierNameFromCode(carrierCode),
+        carrierCode,
+        tailNumber: match[2].slice(-4)
+      };
+    }
+  }
+  return { carrier: "", carrierCode: "", tailNumber: "" };
+}
+
+function normalizeCarrierCode(value) {
+  return String(value || "").replace(/[^A-Z0-9]/g, "").toUpperCase();
+}
+
+function carrierNameFromCode(code) {
+  const normalized = normalizeCarrierCode(code);
+  const groups = [
+    ["J&T Express", ["JNT", "JT"]],
+    ["Pos Laju", ["POS", "POSLAJU"]],
+    ["DHL Express", ["DHL"]],
+    ["Ninja Van", ["NINJA", "NINJAVAN"]],
+    ["GDEX", ["GDEX"]],
+    ["City-Link Express", ["CITY", "CITYLINK"]],
+    ["Flash Express", ["FLASH"]],
+    ["SPX Express", ["SPX", "SHOPEE", "SHOPEEXPRESS"]],
+    ["Lazada Logistics", ["LAZ", "LEX", "LAZADA"]],
+    ["Skynet Express", ["SKYNET"]],
+    ["ABX Express", ["ABX"]],
+    ["KEX Express", ["KEX"]],
+    ["BEST Express", ["BEST"]],
+    ["FedEx", ["FEDEX"]],
+    ["UPS", ["UPS"]],
+    ["Aramex", ["ARAMEX"]]
+  ];
+  const found = groups.find(([, keys]) => keys.includes(normalized));
+  return found ? found[0] : "";
+}
+
+async function resolveDealerName(name) {
+  const wanted = clean(name);
+  const snapshot = await db.ref("dealer-card-tracker/dealers").get();
+  const dealers = Object.values(snapshot.val() || {});
+  const existing = dealers.find((dealer) => {
+    return clean(dealer.name).toLowerCase() === wanted.toLowerCase();
+  });
+  return existing?.name || wanted;
 }
 
 function parseCardNumber(text) {
   return pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
+}
+
+function bankAlias(bankName) {
+  const map = {
+    "BANK ISLAM": "ISLAM",
+    "BSN": "BSN",
+    "MUAMALAT": "MUA",
+    "RAKYAT": "RAKYAT",
+    "AMBANK": "AM",
+    "ALLIANCE": "ALL",
+    "MAYBANK": "MBB"
+  };
+  return map[bankName] || bankName || "";
 }
 
 function detectBank(text) {
@@ -69,9 +141,46 @@ function lastFour(value) {
   return digits.length >= 4 ? digits.slice(-4) : "";
 }
 
+function displayCardNumber(text, bankName) {
+  const rawCard = parseCardNumber(text);
+  const last = lastFour(rawCard) || "XXXX";
+  const alias = bankAlias(bankName);
+  return alias ? `${alias}${last}` : last;
+}
+
+function detectCarrier(text, carrierCode = "") {
+  const source = `${carrierCode} ${text}`.toUpperCase();
+  const compact = source.replace(/[^A-Z0-9]/g, "");
+  const checks = [
+    ["J&T Express", ["J&T", "JNT", "JT"]],
+    ["Pos Laju", ["POSLAJU", "POS LAJU", "POS"]],
+    ["DHL Express", ["DHL"]],
+    ["Ninja Van", ["NINJA"]],
+    ["GDEX", ["GDEX", "GDex"]],
+    ["City-Link Express", ["CITYLINK", "CITY-LINK", "CITY LINK"]],
+    ["Flash Express", ["FLASH"]],
+    ["SPX Express", ["SPX", "SHOPEE XPRESS", "SHOPEE EXPRESS"]],
+    ["Lazada Logistics", ["LAZADA", "LEX"]],
+    ["Skynet Express", ["SKYNET"]],
+    ["ABX Express", ["ABX"]],
+    ["KEX Express", ["KEX"]],
+    ["BEST Express", ["BEST"]],
+    ["FedEx", ["FEDEX"]],
+    ["UPS", ["UPS"]],
+    ["Aramex", ["ARAMEX"]]
+  ];
+  for (const [carrier, keys] of checks) {
+    if (keys.some((key) => source.includes(key) || compact.includes(key.replace(/[^A-Z0-9]/g, "")))) return carrier;
+  }
+  return "其他";
+}
+
 async function saveTelegramRecord(text) {
-  const dealerName = parseDealer(text);
-  const cardNumber = parseCardNumber(text);
+  const dealerName = await resolveDealerName(parseDealer(text));
+  const rawCardNumber = parseCardNumber(text);
+  const bankName = detectBank(text);
+  const shipment = parseShipmentCode(text);
+  const cardNumber = displayCardNumber(text, bankName);
   const now = new Date().toISOString();
   const recordRef = db.ref("dealer-card-tracker/records").push();
 
@@ -85,13 +194,13 @@ async function saveTelegramRecord(text) {
     dealerName,
     customerName: pickLineValue(text, ["NAMA", "NAME"]),
     icNumber: pickLineValue(text, ["IC NO", "IC"]),
-    bankName: detectBank(text),
+    bankName,
     bankAccount: pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
     cardNumber,
     atmPin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]),
     formattedDetails: text,
-    carrier: "其他",
-    tailNumber: lastFour(cardNumber),
+    carrier: shipment.carrier || detectCarrier(text, shipment.carrierCode),
+    tailNumber: shipment.tailNumber,
     warrantyDate: "",
     status: "未处理",
     notes: "Telegram 自动导入",
@@ -116,15 +225,20 @@ app.get("/", (_req, res) => {
 
 app.post("/telegram", async (req, res) => {
   const message = req.body.message || req.body.edited_message;
-  const text = message?.text || message?.caption || "";
+  const messageText = message?.text || message?.caption || "";
   const chatId = message?.chat?.id;
 
-  if (!text || !chatId) {
+  if (!chatId) {
     res.status(200).send("ignored");
     return;
   }
 
   try {
+    const text = messageText;
+    if (!text) {
+      res.status(200).send("ignored");
+      return;
+    }
     const result = await saveTelegramRecord(text);
     await reply(chatId, `已导入 ${result.dealerName}`);
     res.status(200).send("ok");

@@ -78,6 +78,8 @@ https://api.telegram.org/bot你的新TOKEN/setWebhook?url=https://你的服务.o
 
 成功后，Telegram 群里发资料，Bot 会自动导入网站。
 
+如果群消息带照片，请把要导入的文字放在 caption 或另外发一条文字消息。
+
 ## 群消息格式
 
 建议加 Dealer：
