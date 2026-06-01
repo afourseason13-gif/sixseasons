@@ -84,7 +84,7 @@ async function saveTelegramRecord(text) {
     carrier: "其他",
     tailNumber: lastFour(cardNumber),
     warrantyDate: "",
-    status: "未处理",
+    status: "寄",
     notes: "Telegram 自动导入",
     updatedAt: now,
     createdAt: now
