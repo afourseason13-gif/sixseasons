@@ -24,19 +24,24 @@ function pickLineValue(text, labels) {
   return "";
 }
 
-function parseDealer(text) {
+function telegramSenderName(message) {
+  const from = message?.from || {};
+  const fullName = [from.first_name, from.last_name].map(clean).filter(Boolean).join(" ");
+  return clean(fullName || from.username || "");
+}
+
+function parseDealer(text, fallbackName = "") {
   const value = pickLineValue(text, ["DEALER", "DEALER 名字", "代理"]);
   if (value) return value;
   const hashMatch = text.match(/#dealer\s+(.+)/i);
   if (hashMatch) return clean(hashMatch[1]);
   const firstLine = clean(text.split(/\r?\n/).find(Boolean));
   if (/^dealer\s+/i.test(firstLine)) return clean(firstLine.replace(/^dealer\s+/i, ""));
-  return "Telegram";
+  return clean(fallbackName) || "Telegram";
 }
 
-function isImportMessage(text) {
+function isImportMessage(text, fallbackName = "") {
   const dealer = pickLineValue(text, ["DEALER", "DEALER 名字", "代理"]) || text.match(/#dealer\s+(.+)/i);
-  if (!dealer) return false;
 
   const importantFields = [
     pickLineValue(text, ["NAMA", "NAME"]),
@@ -47,7 +52,7 @@ function isImportMessage(text) {
     pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
   ].filter(Boolean);
 
-  return importantFields.length >= 2;
+  return Boolean(dealer || clean(fallbackName)) && importantFields.length >= 2;
 }
 
 function parseCardNumber(text) {
@@ -80,8 +85,8 @@ function lastFour(value) {
   return digits.length >= 4 ? digits.slice(-4) : "";
 }
 
-async function saveTelegramRecord(text) {
-  const dealerName = parseDealer(text);
+async function saveTelegramRecord(text, fallbackDealerName = "") {
+  const dealerName = parseDealer(text, fallbackDealerName);
   const cardNumber = parseCardNumber(text);
   const bankName = detectBank(text);
   const now = new Date().toISOString();
@@ -132,6 +137,7 @@ exports.telegramWebhook = onRequest({ secrets: [telegramBotToken] }, async (req,
   const message = req.body.message || req.body.edited_message;
   const text = message?.text || message?.caption || "";
   const chatId = message?.chat?.id;
+  const senderName = telegramSenderName(message);
 
   if (!text || !chatId) {
     res.status(200).send("ignored");
@@ -139,11 +145,11 @@ exports.telegramWebhook = onRequest({ secrets: [telegramBotToken] }, async (req,
   }
 
   try {
-    if (!isImportMessage(text)) {
+    if (!isImportMessage(text, senderName)) {
       res.status(200).send("ignored");
       return;
     }
-    const result = await saveTelegramRecord(text);
+    const result = await saveTelegramRecord(text, senderName);
     await reply(chatId, `已导入 ${result.dealerName}`);
     res.status(200).send("ok");
   } catch (error) {
