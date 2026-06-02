@@ -174,6 +174,143 @@ function displayCardNumber(text, bankName) {
   return alias ? `${alias}${last}` : last;
 }
 
+function parseCommandDate(text) {
+  const isoMatch = text.match(/\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
+  if (isoMatch) return formatDateParts(isoMatch[1], isoMatch[2], isoMatch[3]);
+
+  const localMatch = text.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})\b/);
+  if (localMatch) return formatDateParts(localMatch[3], localMatch[2], localMatch[1]);
+
+  return "";
+}
+
+function formatDateParts(year, month, day) {
+  const yyyy = String(year);
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  const date = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
+  if (date.getUTCFullYear() !== Number(yyyy) || date.getUTCMonth() + 1 !== Number(mm) || date.getUTCDate() !== Number(dd)) {
+    return "";
+  }
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function hasRejectedMark(text) {
+  return /[❌✕×]/.test(text);
+}
+
+function parseBulkRecordCommands(text) {
+  const warrantyDate = parseCommandDate(text);
+  if (!warrantyDate || !/(开保|保\d*)/.test(text)) return [];
+
+  const commands = [];
+  const seen = new Set();
+  for (const line of text.split(/\r?\n/)) {
+    const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
+    for (const cardToken of cardTokens) {
+      if (seen.has(cardToken)) continue;
+      seen.add(cardToken);
+      commands.push({
+        action: "status",
+        status: hasRejectedMark(line) ? "炸" : "开保",
+        cardToken,
+        warrantyDate
+      });
+    }
+  }
+  return commands;
+}
+
+function parseRecordCommand(text) {
+  const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "炸"];
+  const deleteWords = ["删除", "刪除", "撤回", "取消导入", "取消導入"];
+  const status = statuses.find((item) => text.includes(item)) || (hasRejectedMark(text) ? "炸" : "");
+  const shouldDelete = deleteWords.some((item) => text.includes(item));
+  if (!status && !shouldDelete) return null;
+
+  const compact = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const cardMatch = compact.match(/([A-Z]{2,12}\d{4}|\d{4})/);
+  if (!cardMatch) return null;
+
+  return {
+    action: shouldDelete ? "delete" : "status",
+    status,
+    cardToken: cardMatch[1],
+    warrantyDate: parseCommandDate(text)
+  };
+}
+
+function recordMatchesCard(record, cardToken) {
+  const wanted = clean(cardToken).toUpperCase();
+  const card = clean(record.cardNumber).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!wanted || !card) return false;
+  if (/^\d{4}$/.test(wanted)) return card.endsWith(wanted);
+  return card === wanted;
+}
+
+async function findLatestRecordByCard(cardToken) {
+  const snapshot = await db.ref("dealer-card-tracker/records").get();
+  const records = Object.entries(snapshot.val() || {})
+    .map(([key, record]) => ({ key, ...record }))
+    .filter((record) => recordMatchesCard(record, cardToken))
+    .sort((a, b) => clean(b.createdAt || b.updatedAt).localeCompare(clean(a.createdAt || a.updatedAt)));
+  return records[0] || null;
+}
+
+async function applyRecordCommand(command) {
+  const record = await findLatestRecordByCard(command.cardToken);
+  if (!record) {
+    return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
+  }
+
+  if (command.action === "delete") {
+    await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
+    return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: "删除" };
+  }
+
+  const updateData = {
+    status: command.status,
+    updatedAt: new Date().toISOString()
+  };
+  if (command.status === "开保" && command.warrantyDate) updateData.warrantyDate = command.warrantyDate;
+
+  await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
+  return {
+    ok: true,
+    cardNumber: record.cardNumber || command.cardToken,
+    status: command.status,
+    warrantyDate: updateData.warrantyDate || ""
+  };
+}
+
+async function handleRecordCommand(text) {
+  const bulkCommands = parseBulkRecordCommands(text);
+  if (bulkCommands.length) {
+    const results = [];
+    for (const command of bulkCommands) {
+      results.push(await applyRecordCommand(command));
+    }
+    const opened = results.filter((item) => item.ok && item.status === "开保").length;
+    const rejected = results.filter((item) => item.ok && item.status === "炸").length;
+    const missing = results.filter((item) => !item.ok).map((item) => item.cardToken);
+    const missingText = missing.length ? `\n找不到：${missing.join(", ")}` : "";
+    return {
+      handled: true,
+      message: `批量更新完成：开保${opened}，炸${rejected}${missingText}`
+    };
+  }
+
+  const command = parseRecordCommand(text);
+  if (!command) return { handled: false };
+
+  const result = await applyRecordCommand(command);
+  if (!result.ok) return { handled: true, message: result.message };
+  if (result.status === "删除") return { handled: true, message: `已删除 ${result.cardNumber}` };
+  const dateText = result.warrantyDate ? ` 日期：${result.warrantyDate}` : "";
+  return { handled: true, message: `已更新 ${result.cardNumber}：${result.status}${dateText}` };
+}
+
 function detectCarrier(text, carrierCode = "") {
   const source = `${carrierCode} ${text}`.toUpperCase();
   const compact = source.replace(/[^A-Z0-9]/g, "");
@@ -264,6 +401,12 @@ app.post("/telegram", async (req, res) => {
     const text = messageText;
     if (!text) {
       res.status(200).send("ignored");
+      return;
+    }
+    const commandResult = await handleRecordCommand(text);
+    if (commandResult.handled) {
+      await reply(chatId, commandResult.message);
+      res.status(200).send("ok");
       return;
     }
     if (!isImportMessage(text, senderName)) {

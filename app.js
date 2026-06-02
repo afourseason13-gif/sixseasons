@@ -2,10 +2,10 @@ const localKey = "dealer-card-tracker-records";
 const dealerListKey = "dealer-card-tracker-dealers";
 const statusOptionsKey = "dealer-card-tracker-status-options";
 const noticeKey = "dealer-card-tracker-notice";
-const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关"];
+const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "炸"];
 const defaultNewRecordStatus = "寄";
 const salaryStatuses = new Set(["过保", "开保"]);
-const payrollClearStatuses = new Set(["过保", "开保", "弹卡", "人头关"]);
+const payrollClearStatuses = new Set(["过保", "开保", "弹卡", "人头关", "炸"]);
 const malaysiaCouriers = [
   "Pos Laju",
   "Pos Malaysia",
