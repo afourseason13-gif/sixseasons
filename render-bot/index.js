@@ -422,7 +422,6 @@ app.post("/telegram", async (req, res) => {
     res.status(200).send("ok");
   } catch (error) {
     console.error(error);
-    if (chatId) await reply(chatId, "导入失败，请检查格式。");
     res.status(200).send("error handled");
   }
 });
