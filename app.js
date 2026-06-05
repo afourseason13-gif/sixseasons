@@ -89,6 +89,10 @@ function getDealerNameFromUrl() {
   return new URLSearchParams(location.search).get("name") || "";
 }
 
+function firebaseKey(value) {
+  return encodeURIComponent(String(value || "").trim()).replace(/[.#$\[\]]/g, "_");
+}
+
 function dealerUrl(name) {
   return `./dealer.html?name=${encodeURIComponent(name)}`;
 }
@@ -935,27 +939,27 @@ async function initFirebaseMode() {
     const noticeRef = ref(db, "dealer-card-tracker/notice");
 
     saveDealer = async (name) => {
-      await update(ref(db, `dealer-card-tracker/dealers/${encodeURIComponent(name)}`), {
+      await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {
         name,
         createdAt: getDealerInfo(name).createdAt || new Date().toISOString()
       });
     };
     saveDealerRate = async (name, rate) => {
-      await update(ref(db, `dealer-card-tracker/dealers/${encodeURIComponent(name)}`), {
+      await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {
         name,
         rate,
         updatedAt: new Date().toISOString()
       });
     };
     saveDealerExpense = async (name, expenseCards) => {
-      await update(ref(db, `dealer-card-tracker/dealers/${encodeURIComponent(name)}`), {
+      await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {
         name,
         expenseCards,
         updatedAt: new Date().toISOString()
       });
     };
     saveDealerExtraPay = async (name, extraPay) => {
-      await update(ref(db, `dealer-card-tracker/dealers/${encodeURIComponent(name)}`), {
+      await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {
         name,
         extraPay,
         updatedAt: new Date().toISOString()
@@ -965,7 +969,7 @@ async function initFirebaseMode() {
       const deleteTasks = records
         .filter((record) => record.dealerName === name)
         .map((record) => remove(ref(db, `dealer-card-tracker/records/${record.id}`)));
-      deleteTasks.push(remove(ref(db, `dealer-card-tracker/dealers/${encodeURIComponent(name)}`)));
+      deleteTasks.push(remove(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`)));
       await Promise.all(deleteTasks);
     };
     saveStatusOption = async (name) => set(ref(db, `dealer-card-tracker/statusOptions/${encodeURIComponent(name)}`), {

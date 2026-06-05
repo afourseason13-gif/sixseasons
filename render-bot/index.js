@@ -23,6 +23,10 @@ function clean(value) {
   return String(value || "").trim();
 }
 
+function firebaseKey(value) {
+  return encodeURIComponent(clean(value)).replace(/[.#$\[\]]/g, "_");
+}
+
 function pickLineValue(text, labels) {
   const lines = text.split(/\r?\n/);
   for (const line of lines) {
@@ -347,7 +351,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "") {
   const now = new Date().toISOString();
   const recordRef = db.ref("dealer-card-tracker/records").push();
 
-  await db.ref(`dealer-card-tracker/dealers/${encodeURIComponent(dealerName)}`).update({
+  await db.ref(`dealer-card-tracker/dealers/${firebaseKey(dealerName)}`).update({
     name: dealerName,
     createdAt: now
   });
@@ -419,7 +423,7 @@ app.post("/telegram", async (req, res) => {
   } catch (error) {
     console.error(error);
     if (chatId) await reply(chatId, "导入失败，请检查格式。");
-    res.status(500).send("error");
+    res.status(200).send("error handled");
   }
 });
 
