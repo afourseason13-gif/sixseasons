@@ -62,6 +62,29 @@
         <p>先斩后奏 · 行走西方 · 取之社会 · 回归社会</p>
       </section>
 
+      <section class="announce-panel" aria-label="发送群公告">
+        <div class="notice-view">
+          <div>
+            <p class="eyebrow">Telegram</p>
+            <h2>发送群公告</h2>
+          </div>
+          <span class="announce-status" id="announceStatus">机器人公告</span>
+        </div>
+        <form id="announceForm" class="announce-form" autocomplete="off">
+          <label class="wide">
+            <span>公告内容</span>
+            <textarea id="announceMessage" rows="4" placeholder="输入要发到 Telegram 群的公告"></textarea>
+          </label>
+          <div class="announce-side">
+            <label>
+              <span>公告密码</span>
+              <input id="announceSecret" type="password" placeholder="Render 里设置的密码" />
+            </label>
+            <button class="primary" type="submit">发送到群</button>
+          </div>
+        </form>
+      </section>
+
       <section class="panel form-panel index-add-panel" aria-label="添加 dealer">
         <div class="panel-title compact">
           <div>

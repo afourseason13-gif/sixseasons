@@ -2,6 +2,8 @@ const localKey = "dealer-card-tracker-records";
 const dealerListKey = "dealer-card-tracker-dealers";
 const statusOptionsKey = "dealer-card-tracker-status-options";
 const noticeKey = "dealer-card-tracker-notice";
+const announceSecretKey = "dealer-announce-secret";
+const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "炸"];
 const defaultNewRecordStatus = "寄";
 const salaryStatuses = new Set(["过保", "开保"]);
@@ -382,6 +384,10 @@ function initIndexPage() {
   const noticeInput = document.querySelector("#noticeInput");
   const editNoticeButton = document.querySelector("#editNoticeButton");
   const cancelNoticeButton = document.querySelector("#cancelNoticeButton");
+  const announceForm = document.querySelector("#announceForm");
+  const announceMessage = document.querySelector("#announceMessage");
+  const announceSecret = document.querySelector("#announceSecret");
+  const announceStatus = document.querySelector("#announceStatus");
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -408,6 +414,35 @@ function initIndexPage() {
     await saveNotice(noticeInput.value.trim());
     noticeForm.hidden = true;
     editNoticeButton.hidden = false;
+  });
+
+  announceSecret.value = localStorage.getItem(announceSecretKey) || "";
+  announceForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = announceMessage.value.trim();
+    const secret = announceSecret.value.trim();
+    if (!message) {
+      announceStatus.textContent = "公告不能为空";
+      return;
+    }
+    localStorage.setItem(announceSecretKey, secret);
+    announceStatus.textContent = "发送中...";
+    try {
+      const response = await fetch(announceEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, secret })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.ok === false) throw new Error(result.message || "发送失败");
+      announceMessage.value = "";
+      announceStatus.textContent = "已发送到群";
+      setTimeout(() => {
+        announceStatus.textContent = "机器人公告";
+      }, 1800);
+    } catch (error) {
+      announceStatus.textContent = error.message || "发送失败";
+    }
   });
 
   searchInput.addEventListener("input", renderIndexPage);

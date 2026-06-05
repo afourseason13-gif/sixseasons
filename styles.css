@@ -312,6 +312,41 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.announce-panel {
+  margin-bottom: 16px;
+  border: 1px solid rgba(32, 53, 42, 0.16);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(238, 248, 242, 0.92)),
+    #f7fbf8;
+  box-shadow: 0 14px 34px rgba(25, 46, 35, 0.08);
+  padding: 18px;
+}
+
+.announce-status {
+  border: 1px solid rgba(15, 128, 78, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 128, 78, 0.08);
+  color: #0f6f45;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.announce-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 280px);
+  align-items: end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.announce-side {
+  display: grid;
+  gap: 10px;
+}
+
 .quote-panel {
   position: relative;
   display: flex;
@@ -994,6 +1029,10 @@ tbody tr:hover {
     align-items: stretch;
     grid-template-columns: 1fr;
     flex-direction: column;
+  }
+
+  .announce-form {
+    grid-template-columns: 1fr;
   }
 
   .index-hero {

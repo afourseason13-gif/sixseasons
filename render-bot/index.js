@@ -7,6 +7,8 @@ app.use(express.json({ limit: "1mb" }));
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const databaseURL = process.env.FIREBASE_DATABASE_URL;
 const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+const announceSecret = process.env.ANNOUNCE_SECRET || "";
+const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -440,8 +442,61 @@ async function reply(chatId, text) {
   });
 }
 
+async function rememberTelegramChat(chatId) {
+  await db.ref("dealer-card-tracker/settings/telegramChatId").set(String(chatId));
+}
+
+async function sendTelegramMessage(chatId, text) {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      disable_web_page_preview: true
+    })
+  });
+  if (!response.ok) throw new Error(`Telegram send failed: ${response.status}`);
+}
+
 app.get("/", (_req, res) => {
   res.send("Dealer Telegram bot is running.");
+});
+
+app.options("/announce", (_req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.status(204).send("");
+});
+
+app.post("/announce", async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  try {
+    const message = clean(req.body?.message);
+    const secret = clean(req.body?.secret);
+    if (!announceSecret || secret !== announceSecret) {
+      res.status(403).json({ ok: false, message: "密码不正确" });
+      return;
+    }
+    if (!message) {
+      res.status(400).json({ ok: false, message: "公告不能为空" });
+      return;
+    }
+
+    const savedChatId = (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
+    const targetChatId = announceChatId || savedChatId;
+    if (!targetChatId) {
+      res.status(400).json({ ok: false, message: "机器人还没有记录群聊，请先在群里发一条消息" });
+      return;
+    }
+
+    await sendTelegramMessage(targetChatId, `公告\n\n${message}`);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false, message: "发送失败，请查看 Render Logs" });
+  }
 });
 
 app.post("/telegram", async (req, res) => {
@@ -457,6 +512,7 @@ app.post("/telegram", async (req, res) => {
   }
 
   try {
+    await rememberTelegramChat(chatId);
     const text = messageText;
     if (!text) {
       res.status(200).send("ignored");
