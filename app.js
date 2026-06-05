@@ -93,6 +93,19 @@ function firebaseKey(value) {
   return encodeURIComponent(String(value || "").trim()).replace(/[.#$\[\]]/g, "_");
 }
 
+function malaysiaDateString(date = new Date()) {
+  const local = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+  return `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, "0")}-${String(local.getUTCDate()).padStart(2, "0")}`;
+}
+
+function addDays(dateText, days) {
+  const [year, month, day] = String(dateText || "").split("-").map(Number);
+  if (!year || !month || !day || !days) return "";
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + Number(days));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+
 function dealerUrl(name) {
   return `./dealer.html?name=${encodeURIComponent(name)}`;
 }
@@ -294,6 +307,7 @@ function normalizeRecord(data, id = createId()) {
     carrier: data.carrier.trim(),
     tailNumber: data.tailNumber.trim(),
     warrantyDate: data.warrantyDate || "",
+    warrantyDays: Number(data.warrantyDays || 0),
     status: data.status || firstStatus,
     notes: data.notes.trim(),
     updatedAt: now,
@@ -845,6 +859,23 @@ function renderCurrentPage() {
   }
 }
 
+async function autoExpireWarrantyRecords(updateRecord) {
+  if (typeof updateRecord !== "function") return;
+  const today = malaysiaDateString();
+  const expiringRecords = records.filter((record) => {
+    const days = Number(record.warrantyDays || 0);
+    const expireDate = addDays(record.warrantyDate, days);
+    return record.status === "开保" && days > 0 && expireDate && today >= expireDate;
+  });
+  for (const record of expiringRecords) {
+    await updateRecord({
+      ...record,
+      status: "过保",
+      updatedAt: new Date().toISOString()
+    });
+  }
+}
+
 async function initLocalMode() {
   records = readJson(localKey);
   dealers = readJson(dealerListKey);
@@ -922,6 +953,7 @@ async function initLocalMode() {
   };
 
   setSyncStatus("offline", "本机保存，未开启同步");
+  await autoExpireWarrantyRecords(saveRecord);
 }
 
 async function initFirebaseMode() {
@@ -937,6 +969,7 @@ async function initFirebaseMode() {
     const dealersRef = ref(db, "dealer-card-tracker/dealers");
     const statusOptionsRef = ref(db, "dealer-card-tracker/statusOptions");
     const noticeRef = ref(db, "dealer-card-tracker/notice");
+    let isAutoExpiring = false;
 
     saveDealer = async (name) => {
       await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {
@@ -1007,6 +1040,17 @@ async function initFirebaseMode() {
       records = Object.entries(value).map(([id, record]) => ({ id, ...record }));
       setSyncStatus("online", "多人实时同步已开启");
       renderCurrentPage();
+      if (!isAutoExpiring) {
+        isAutoExpiring = true;
+        autoExpireWarrantyRecords(async (record) => {
+          await update(ref(db, `dealer-card-tracker/records/${record.id}`), {
+            status: record.status,
+            updatedAt: record.updatedAt
+          });
+        }).finally(() => {
+          isAutoExpiring = false;
+        });
+      }
     });
   } catch {
     await initLocalMode();

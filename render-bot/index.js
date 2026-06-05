@@ -199,13 +199,44 @@ function formatDateParts(year, month, day) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function telegramMessageDate(message) {
+  if (!message?.date) return formatDateInMalaysia(new Date());
+  return formatDateInMalaysia(new Date(message.date * 1000));
+}
+
+function formatDateInMalaysia(date) {
+  const local = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+  return `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, "0")}-${String(local.getUTCDate()).padStart(2, "0")}`;
+}
+
+function parseWarrantyDays(text) {
+  const match = text.match(/(?:保|warranty|waranti)\s*(5|7)\b|(?:^|[^\d])(5|7)\s*天/i);
+  return match ? Number(match[1] || match[2]) : 0;
+}
+
+function addDays(dateText, days) {
+  const [year, month, day] = String(dateText || "").split("-").map(Number);
+  if (!year || !month || !day || !days) return "";
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + Number(days));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+
 function hasRejectedMark(text) {
   return /[❌✕×]/.test(text);
 }
 
-function parseBulkRecordCommands(text) {
-  const warrantyDate = parseCommandDate(text);
-  if (!warrantyDate || !/(开保|保\d*)/.test(text)) return [];
+function problemStatusFromText(text) {
+  if (text.includes("人头关") || text.includes("公户")) return "人头关";
+  if (text.includes("弹卡") || text.includes("有问题") || text.includes("问题")) return "弹卡";
+  if (hasRejectedMark(text)) return "炸";
+  return "";
+}
+
+function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
+  const warrantyDate = parseCommandDate(text) || defaultWarrantyDate;
+  const warrantyDays = parseWarrantyDays(text);
+  if (!warrantyDate || !/(开保|保\d*|\d+\s*天)/.test(text)) return [];
 
   const commands = [];
   const seen = new Set();
@@ -217,19 +248,20 @@ function parseBulkRecordCommands(text) {
       seen.add(cardToken);
       commands.push({
         action: "status",
-        status: hasRejectedMark(line) ? "炸" : "开保",
+        status: problemStatusFromText(line) || "开保",
         cardToken,
-        warrantyDate
+        warrantyDate,
+        warrantyDays
       });
     }
   }
   return commands;
 }
 
-function parseRecordCommand(text) {
+function parseRecordCommand(text, defaultWarrantyDate = "") {
   const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "炸"];
   const deleteWords = ["删除", "刪除", "撤回", "取消导入", "取消導入"];
-  const status = statuses.find((item) => text.includes(item)) || (hasRejectedMark(text) ? "炸" : "");
+  const status = statuses.find((item) => text.includes(item)) || problemStatusFromText(text);
   const shouldDelete = deleteWords.some((item) => text.includes(item));
   if (!status && !shouldDelete) return null;
 
@@ -241,7 +273,8 @@ function parseRecordCommand(text) {
     action: shouldDelete ? "delete" : "status",
     status,
     cardToken: cardMatch[1],
-    warrantyDate: parseCommandDate(text)
+    warrantyDate: parseCommandDate(text) || (status === "开保" ? defaultWarrantyDate : ""),
+    warrantyDays: parseWarrantyDays(text)
   };
 }
 
@@ -278,34 +311,55 @@ async function applyRecordCommand(command) {
     updatedAt: new Date().toISOString()
   };
   if (command.status === "开保" && command.warrantyDate) updateData.warrantyDate = command.warrantyDate;
+  if (command.status === "开保" && command.warrantyDays) updateData.warrantyDays = command.warrantyDays;
 
   await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
   return {
     ok: true,
     cardNumber: record.cardNumber || command.cardToken,
     status: command.status,
-    warrantyDate: updateData.warrantyDate || ""
+    warrantyDate: updateData.warrantyDate || "",
+    warrantyDays: updateData.warrantyDays || 0
   };
 }
 
-async function handleRecordCommand(text) {
-  const bulkCommands = parseBulkRecordCommands(text);
+async function autoExpireWarrantyRecords() {
+  const today = formatDateInMalaysia(new Date());
+  const snapshot = await db.ref("dealer-card-tracker/records").get();
+  const updates = {};
+  for (const [key, record] of Object.entries(snapshot.val() || {})) {
+    const days = Number(record.warrantyDays || 0);
+    const expireDate = addDays(record.warrantyDate, days);
+    if (record.status === "开保" && days > 0 && expireDate && today >= expireDate) {
+      updates[`dealer-card-tracker/records/${key}/status`] = "过保";
+      updates[`dealer-card-tracker/records/${key}/updatedAt`] = new Date().toISOString();
+    }
+  }
+  if (Object.keys(updates).length) await db.ref().update(updates);
+  return Object.keys(updates).length / 2;
+}
+
+async function handleRecordCommand(text, defaultWarrantyDate = "") {
+  await autoExpireWarrantyRecords();
+  const bulkCommands = parseBulkRecordCommands(text, defaultWarrantyDate);
   if (bulkCommands.length) {
     const results = [];
     for (const command of bulkCommands) {
       results.push(await applyRecordCommand(command));
     }
     const opened = results.filter((item) => item.ok && item.status === "开保").length;
+    const bounced = results.filter((item) => item.ok && item.status === "弹卡").length;
+    const closed = results.filter((item) => item.ok && item.status === "人头关").length;
     const rejected = results.filter((item) => item.ok && item.status === "炸").length;
     const missing = results.filter((item) => !item.ok).map((item) => item.cardToken);
     const missingText = missing.length ? `\n找不到：${missing.join(", ")}` : "";
     return {
       handled: true,
-      message: `批量更新完成：开保${opened}，炸${rejected}${missingText}`
+      message: `批量更新完成：开保${opened}，弹卡${bounced}，人头关${closed}，炸${rejected}${missingText}`
     };
   }
 
-  const command = parseRecordCommand(text);
+  const command = parseRecordCommand(text, defaultWarrantyDate);
   if (!command) return { handled: false };
 
   const result = await applyRecordCommand(command);
@@ -395,6 +449,7 @@ app.post("/telegram", async (req, res) => {
   const messageText = message?.text || message?.caption || "";
   const chatId = message?.chat?.id;
   const senderName = telegramSenderName(message);
+  const defaultWarrantyDate = telegramMessageDate(message);
 
   if (!chatId) {
     res.status(200).send("ignored");
@@ -407,7 +462,7 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ignored");
       return;
     }
-    const commandResult = await handleRecordCommand(text);
+    const commandResult = await handleRecordCommand(text, defaultWarrantyDate);
     if (commandResult.handled) {
       await reply(chatId, commandResult.message);
       res.status(200).send("ok");
@@ -429,4 +484,9 @@ app.post("/telegram", async (req, res) => {
 const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`Telegram bot listening on ${port}`);
+  autoExpireWarrantyRecords().catch((error) => console.error(error));
 });
+
+setInterval(() => {
+  autoExpireWarrantyRecords().catch((error) => console.error(error));
+}, 60 * 60 * 1000);
