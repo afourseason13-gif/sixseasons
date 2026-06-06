@@ -169,17 +169,25 @@ function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
   return commands;
 }
 
-function parseRecordCommand(text, defaultWarrantyDate = "") {
+function undoWordsFromText(text) {
+  return ["撤销导入", "撤銷導入", "取消导入", "取消導入"].some((item) => text.includes(item));
+}
+
+function parseRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
   const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "炸"];
-  const deleteWords = ["删除", "刪除", "撤回", "取消导入", "取消導入"];
+  const latestUndoWords = ["撤销导入", "撤銷導入", "取消导入", "取消導入"];
+  const deleteWords = ["删除", "刪除", "撤回", "撤销", "撤銷", ...latestUndoWords];
   const status = statuses.find((item) => text.includes(item)) || problemStatusFromText(text);
   const shouldDelete = deleteWords.some((item) => text.includes(item));
   if (!status && !shouldDelete) return null;
+  if (replyMessageId && undoWordsFromText(text)) {
+    return { action: "deleteReplyImport", replyMessageId };
+  }
 
   const compact = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const cardMatch = compact.match(/([A-Z]{2,12}\d{4}|\d{4})/);
   if (!cardMatch) {
-    if (shouldDelete) return { action: "deleteLatestImport" };
+    if (latestUndoWords.some((item) => text.includes(item))) return { action: "deleteLatestImport" };
     return null;
   }
 
@@ -210,6 +218,13 @@ async function findLatestRecordByCard(cardToken) {
 }
 
 async function applyRecordCommand(command) {
+  if (command.action === "deleteReplyImport") {
+    const record = await findTelegramImportByMessage(command.replyMessageId);
+    if (!record) return { ok: false, message: "找不到这条回复对应的导入资料" };
+    await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
+    return { ok: true, cardNumber: record.cardNumber || record.id, status: "删除" };
+  }
+
   if (command.action === "deleteLatestImport") {
     const record = await findLatestTelegramImport();
     if (!record) return { ok: false, message: "找不到可以撤销的导入资料" };
@@ -253,6 +268,17 @@ async function findLatestTelegramImport() {
   return records[0] || null;
 }
 
+async function findTelegramImportByMessage(messageId) {
+  const wanted = String(messageId || "");
+  if (!wanted) return null;
+  const snapshot = await db.ref("dealer-card-tracker/records").get();
+  const records = Object.entries(snapshot.val() || {})
+    .map(([key, record]) => ({ key, ...record }))
+    .filter((record) => String(record.telegramMessageId || "") === wanted || String(record.telegramBotReplyMessageId || "") === wanted)
+    .sort((a, b) => clean(b.createdAt || b.updatedAt).localeCompare(clean(a.createdAt || a.updatedAt)));
+  return records[0] || null;
+}
+
 async function autoExpireWarrantyRecords() {
   const today = formatDateInMalaysia(new Date());
   const snapshot = await db.ref("dealer-card-tracker/records").get();
@@ -269,7 +295,7 @@ async function autoExpireWarrantyRecords() {
   return Object.keys(updates).length / 2;
 }
 
-async function handleRecordCommand(text, defaultWarrantyDate = "") {
+async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
   await autoExpireWarrantyRecords();
   const bulkCommands = parseBulkRecordCommands(text, defaultWarrantyDate);
   if (bulkCommands.length) {
@@ -289,7 +315,7 @@ async function handleRecordCommand(text, defaultWarrantyDate = "") {
     };
   }
 
-  const command = parseRecordCommand(text, defaultWarrantyDate);
+  const command = parseRecordCommand(text, defaultWarrantyDate, replyMessageId);
   if (!command) return { handled: false };
 
   const result = await applyRecordCommand(command);
@@ -299,7 +325,7 @@ async function handleRecordCommand(text, defaultWarrantyDate = "") {
   return { handled: true, message: `已更新 ${result.cardNumber}：${result.status}${dateText}` };
 }
 
-async function saveTelegramRecord(text, fallbackDealerName = "") {
+async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessageId = "") {
   const dealerName = parseDealer(text, fallbackDealerName);
   const cardNumber = parseCardNumber(text);
   const bankName = detectBank(text);
@@ -326,6 +352,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "") {
     warrantyDate: "",
     status: "寄",
     notes: "Telegram 自动导入",
+    telegramMessageId: String(telegramMessageId || ""),
     updatedAt: now,
     createdAt: now
   });
@@ -333,13 +360,22 @@ async function saveTelegramRecord(text, fallbackDealerName = "") {
   return { dealerName, recordId: ref.key };
 }
 
+async function rememberTelegramBotReply(recordId, messageId) {
+  if (!recordId || !messageId) return;
+  await db.ref(`dealer-card-tracker/records/${recordId}`).update({
+    telegramBotReplyMessageId: String(messageId)
+  });
+}
+
 async function reply(chatId, text) {
   const token = telegramBotToken.value();
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, text })
   });
+  const body = await response.json().catch(() => ({}));
+  return body.result || {};
 }
 
 exports.telegramWebhook = onRequest({ secrets: [telegramBotToken] }, async (req, res) => {
@@ -353,6 +389,7 @@ exports.telegramWebhook = onRequest({ secrets: [telegramBotToken] }, async (req,
   const chatId = message?.chat?.id;
   const senderName = telegramSenderName(message);
   const defaultWarrantyDate = telegramMessageDate(message);
+  const replyMessageId = message?.reply_to_message?.message_id ? String(message.reply_to_message.message_id) : "";
 
   if (!text || !chatId) {
     res.status(200).send("ignored");
@@ -360,7 +397,7 @@ exports.telegramWebhook = onRequest({ secrets: [telegramBotToken] }, async (req,
   }
 
   try {
-    const commandResult = await handleRecordCommand(text, defaultWarrantyDate);
+    const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
     if (commandResult.handled) {
       await reply(chatId, commandResult.message);
       res.status(200).send("ok");
@@ -370,8 +407,9 @@ exports.telegramWebhook = onRequest({ secrets: [telegramBotToken] }, async (req,
       res.status(200).send("ignored");
       return;
     }
-    const result = await saveTelegramRecord(text, senderName);
-    await reply(chatId, `已导入 ${result.dealerName}`);
+    const result = await saveTelegramRecord(text, senderName, message?.message_id);
+    const botReply = await reply(chatId, `已导入 ${result.dealerName}`);
+    await rememberTelegramBotReply(result.recordId, botReply.message_id);
     res.status(200).send("ok");
   } catch (error) {
     console.error(error);
