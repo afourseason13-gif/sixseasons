@@ -178,7 +178,10 @@ function parseRecordCommand(text, defaultWarrantyDate = "") {
 
   const compact = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const cardMatch = compact.match(/([A-Z]{2,12}\d{4}|\d{4})/);
-  if (!cardMatch) return null;
+  if (!cardMatch) {
+    if (shouldDelete) return { action: "deleteLatestImport" };
+    return null;
+  }
 
   return {
     action: shouldDelete ? "delete" : "status",
@@ -207,6 +210,13 @@ async function findLatestRecordByCard(cardToken) {
 }
 
 async function applyRecordCommand(command) {
+  if (command.action === "deleteLatestImport") {
+    const record = await findLatestTelegramImport();
+    if (!record) return { ok: false, message: "找不到可以撤销的导入资料" };
+    await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
+    return { ok: true, cardNumber: record.cardNumber || record.id, status: "删除" };
+  }
+
   const record = await findLatestRecordByCard(command.cardToken);
   if (!record) {
     return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
@@ -232,6 +242,15 @@ async function applyRecordCommand(command) {
     warrantyDate: updateData.warrantyDate || "",
     warrantyDays: updateData.warrantyDays || 0
   };
+}
+
+async function findLatestTelegramImport() {
+  const snapshot = await db.ref("dealer-card-tracker/records").get();
+  const records = Object.entries(snapshot.val() || {})
+    .map(([key, record]) => ({ key, ...record }))
+    .filter((record) => clean(record.notes).includes("Telegram 自动导入"))
+    .sort((a, b) => clean(b.createdAt || b.updatedAt).localeCompare(clean(a.createdAt || a.updatedAt)));
+  return records[0] || null;
 }
 
 async function autoExpireWarrantyRecords() {

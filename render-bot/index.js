@@ -9,6 +9,7 @@ const databaseURL = process.env.FIREBASE_DATABASE_URL;
 const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 const announceSecret = process.env.ANNOUNCE_SECRET || "";
 const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
+const trackingMoreApiKey = process.env.TRACKINGMORE_API_KEY || "";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -82,14 +83,16 @@ function parseShipmentCode(text) {
     const match = compact.match(/^([A-Z&]+)(\d{3,})$/);
     if (match) {
       const carrierCode = normalizeCarrierCode(match[1]);
+      const trackingNumber = compact;
       return {
         carrier: carrierNameFromCode(carrierCode),
         carrierCode,
+        trackingNumber,
         tailNumber: match[2].slice(-4)
       };
     }
   }
-  return { carrier: "", carrierCode: "", tailNumber: "" };
+  return { carrier: "", carrierCode: "", trackingNumber: "", tailNumber: "" };
 }
 
 function normalizeCarrierCode(value) {
@@ -118,6 +121,42 @@ function carrierNameFromCode(code) {
   ];
   const found = groups.find(([, keys]) => keys.includes(normalized));
   return found ? found[0] : "";
+}
+
+function trackingMoreCourierCode(code) {
+  const normalized = normalizeCarrierCode(code);
+  const map = {
+    JNT: "jtexpress-my",
+    JT: "jtexpress-my",
+    POS: "pos-malaysia",
+    POSLAJU: "pos-malaysia",
+    DHL: "dhl",
+    NINJA: "ninjavan-my",
+    NINJAVAN: "ninjavan-my",
+    GDEX: "gdex",
+    CITY: "citylinkexpress",
+    CITYLINK: "citylinkexpress",
+    FLASH: "flash-express",
+    SPX: "shopee-express",
+    SHOPEE: "shopee-express",
+    LAZ: "lazada",
+    LEX: "lazada",
+    LAZADA: "lazada",
+    SKYNET: "skynet",
+    ABX: "abxexpress-my",
+    KEX: "kex",
+    BEST: "best-express",
+    FEDEX: "fedex",
+    UPS: "ups",
+    ARAMEX: "aramex"
+  };
+  return map[normalized] || "";
+}
+
+function isFullTrackingNumber(value) {
+  const compact = String(value || "").replace(/[^A-Za-z0-9]/g, "");
+  const digits = compact.replace(/\D/g, "");
+  return compact.length >= 9 && digits.length >= 6;
 }
 
 async function resolveDealerName(name) {
@@ -269,7 +308,10 @@ function parseRecordCommand(text, defaultWarrantyDate = "") {
 
   const compact = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const cardMatch = compact.match(/([A-Z]{2,12}\d{4}|\d{4})/);
-  if (!cardMatch) return null;
+  if (!cardMatch) {
+    if (shouldDelete) return { action: "deleteLatestImport" };
+    return null;
+  }
 
   return {
     action: shouldDelete ? "delete" : "status",
@@ -298,6 +340,13 @@ async function findLatestRecordByCard(cardToken) {
 }
 
 async function applyRecordCommand(command) {
+  if (command.action === "deleteLatestImport") {
+    const record = await findLatestTelegramImport();
+    if (!record) return { ok: false, message: "找不到可以撤销的导入资料" };
+    await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
+    return { ok: true, cardNumber: record.cardNumber || record.id, status: "删除" };
+  }
+
   const record = await findLatestRecordByCard(command.cardToken);
   if (!record) {
     return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
@@ -323,6 +372,15 @@ async function applyRecordCommand(command) {
     warrantyDate: updateData.warrantyDate || "",
     warrantyDays: updateData.warrantyDays || 0
   };
+}
+
+async function findLatestTelegramImport() {
+  const snapshot = await db.ref("dealer-card-tracker/records").get();
+  const records = Object.entries(snapshot.val() || {})
+    .map(([key, record]) => ({ key, ...record }))
+    .filter((record) => clean(record.notes).includes("Telegram 自动导入"))
+    .sort((a, b) => clean(b.createdAt || b.updatedAt).localeCompare(clean(a.createdAt || a.updatedAt)));
+  return records[0] || null;
 }
 
 async function autoExpireWarrantyRecords() {
@@ -412,7 +470,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "") {
     createdAt: now
   });
 
-  await recordRef.set({
+  const recordData = {
     id: recordRef.key,
     dealerName,
     customerName: pickLineValue(text, ["NAMA", "NAME"]),
@@ -423,15 +481,56 @@ async function saveTelegramRecord(text, fallbackDealerName = "") {
     atmPin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]),
     formattedDetails: text,
     carrier: shipment.carrier || detectCarrier(text, shipment.carrierCode),
+    trackingNumber: isFullTrackingNumber(shipment.trackingNumber) ? shipment.trackingNumber : "",
+    trackingMoreCourierCode: trackingMoreCourierCode(shipment.carrierCode),
     tailNumber: shipment.tailNumber,
     warrantyDate: "",
     status: "寄",
     notes: "Telegram 自动导入",
     updatedAt: now,
     createdAt: now
-  });
+  };
+
+  await recordRef.set(recordData);
+  await registerTrackingMore(recordData);
 
   return { dealerName, recordId: recordRef.key };
+}
+
+async function registerTrackingMore(record) {
+  if (!trackingMoreApiKey || !record.trackingNumber || !record.trackingMoreCourierCode) return;
+  try {
+    const response = await fetch("https://api.trackingmore.com/v3/trackings/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Tracking-Api-Key": trackingMoreApiKey
+      },
+      body: JSON.stringify([{
+        tracking_number: record.trackingNumber,
+        courier_code: record.trackingMoreCourierCode,
+        order_number: record.id,
+        title: record.cardNumber || record.dealerName,
+        note: `${record.dealerName} ${record.cardNumber || ""}`.trim(),
+        lang: "en"
+      }])
+    });
+    const body = await response.text();
+    if (!response.ok && !body.toLowerCase().includes("already")) {
+      throw new Error(`TrackingMore register failed: ${response.status} ${body}`);
+    }
+    await db.ref(`dealer-card-tracker/trackingNumbers/${record.trackingNumber}`).set({
+      recordId: record.id,
+      cardNumber: record.cardNumber || "",
+      dealerName: record.dealerName || "",
+      carrier: record.carrier || "",
+      trackingNumber: record.trackingNumber,
+      courierCode: record.trackingMoreCourierCode,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function reply(chatId, text) {
@@ -457,6 +556,78 @@ async function sendTelegramMessage(chatId, text) {
     })
   });
   if (!response.ok) throw new Error(`Telegram send failed: ${response.status}`);
+}
+
+function pickWebhookTracking(body) {
+  const data = Array.isArray(body?.data) ? body.data[0] : body?.data || body;
+  return {
+    trackingNumber: clean(data?.tracking_number || data?.trackingNumber || data?.number),
+    status: clean(data?.delivery_status || data?.status || data?.tag || data?.substatus || data?.sub_status),
+    checkpoint: clean(
+      data?.latest_checkpoint ||
+      data?.latest_event ||
+      data?.latestEvent ||
+      data?.lastEvent ||
+      data?.origin_info?.trackinfo?.[0]?.StatusDescription ||
+      data?.origin_info?.trackinfo?.[0]?.checkpoint_status
+    )
+  };
+}
+
+function normalizeTrackingStatus(status, checkpoint = "") {
+  const source = `${status} ${checkpoint}`.toLowerCase();
+  if (source.includes("delivered") || source.includes("已送达") || source.includes("已签收")) return "delivered";
+  if (source.includes("pickup") || source.includes("out for delivery") || source.includes("派送")) return "pickup";
+  if (source.includes("exception") || source.includes("failed") || source.includes("异常")) return "exception";
+  return "";
+}
+
+async function notifyTrackingUpdate(body) {
+  const event = pickWebhookTracking(body);
+  const normalizedStatus = normalizeTrackingStatus(event.status, event.checkpoint);
+  if (!event.trackingNumber || !normalizedStatus) return { notified: false };
+
+  const trackingSnapshot = await db.ref(`dealer-card-tracker/trackingNumbers/${event.trackingNumber}`).get();
+  const trackingInfo = trackingSnapshot.val() || {};
+  const recordId = trackingInfo.recordId;
+  const recordSnapshot = recordId ? await db.ref(`dealer-card-tracker/records/${recordId}`).get() : null;
+  const record = recordSnapshot?.val() || trackingInfo;
+  if (!record) return { notified: false };
+  if (record.lastTrackingNotifyStatus === normalizedStatus) return { notified: false };
+
+  const labelMap = {
+    pickup: "派送中",
+    delivered: "已送达",
+    exception: "异常"
+  };
+  const label = labelMap[normalizedStatus] || event.status;
+  const chatId = announceChatId || (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
+  if (!chatId) return { notified: false };
+
+  const message = [
+    `包裹${label}`,
+    "",
+    `Dealer: ${record.dealerName || "-"}`,
+    `卡号: ${record.cardNumber || "-"}`,
+    `快递: ${record.carrier || trackingInfo.carrier || "-"}`,
+    `单号: ${event.trackingNumber}`,
+    event.checkpoint ? `状态: ${event.checkpoint}` : ""
+  ].filter(Boolean).join("\n");
+
+  await sendTelegramMessage(chatId, message);
+  if (recordId) {
+    await db.ref(`dealer-card-tracker/records/${recordId}`).update({
+      packageStatus: label,
+      lastTrackingNotifyStatus: normalizedStatus,
+      updatedAt: new Date().toISOString()
+    });
+  }
+  await db.ref(`dealer-card-tracker/trackingNumbers/${event.trackingNumber}`).update({
+    lastTrackingNotifyStatus: normalizedStatus,
+    packageStatus: label,
+    updatedAt: new Date().toISOString()
+  });
+  return { notified: true };
 }
 
 app.get("/", (_req, res) => {
@@ -496,6 +667,16 @@ app.post("/announce", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, message: "发送失败，请查看 Render Logs" });
+  }
+});
+
+app.post("/trackingmore-webhook", async (req, res) => {
+  try {
+    const result = await notifyTrackingUpdate(req.body || {});
+    res.json({ ok: true, notified: result.notified });
+  } catch (error) {
+    console.error(error);
+    res.status(200).json({ ok: false });
   }
 });
 
