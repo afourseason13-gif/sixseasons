@@ -2,7 +2,6 @@ const localKey = "dealer-card-tracker-records";
 const dealerListKey = "dealer-card-tracker-dealers";
 const statusOptionsKey = "dealer-card-tracker-status-options";
 const noticeKey = "dealer-card-tracker-notice";
-const announceSecretKey = "dealer-announce-secret";
 const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "炸"];
 const defaultNewRecordStatus = "寄";
@@ -420,7 +419,8 @@ function initIndexPage() {
     editNoticeButton.hidden = false;
   });
 
-  announceSecret.value = localStorage.getItem(announceSecretKey) || "";
+  localStorage.removeItem("dealer-announce-secret");
+  announceSecret.value = "";
   announceForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const message = announceMessage.value.trim();
@@ -429,7 +429,6 @@ function initIndexPage() {
       announceStatus.textContent = "公告不能为空";
       return;
     }
-    localStorage.setItem(announceSecretKey, secret);
     announceStatus.textContent = "发送中...";
     try {
       const response = await fetch(announceEndpoint, {
@@ -440,11 +439,13 @@ function initIndexPage() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.ok === false) throw new Error(result.message || "发送失败");
       announceMessage.value = "";
+      announceSecret.value = "";
       announceStatus.textContent = "已发送到群";
       setTimeout(() => {
         announceStatus.textContent = "机器人公告";
       }, 1800);
     } catch (error) {
+      announceSecret.value = "";
       announceStatus.textContent = error.message || "发送失败";
     }
   });
