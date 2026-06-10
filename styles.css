@@ -1022,6 +1022,43 @@ tbody tr:hover {
   width: fit-content;
 }
 
+.tracking-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tracking-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid rgba(14, 107, 99, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #0e6b63;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.tracking-link:hover {
+  border-color: rgba(14, 107, 99, 0.38);
+  background: #fff;
+}
+
+.tracking-manual-select {
+  width: fit-content;
+  min-height: 30px;
+  border-color: rgba(14, 107, 99, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #0e6b63;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 0 26px 0 10px;
+}
+
 .compact-button {
   min-height: 32px;
   padding: 0 10px;

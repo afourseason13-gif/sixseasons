@@ -818,7 +818,53 @@ function renderTrackingCell(record) {
   checkButton.disabled = checkingTrackingRecords.has(record.id);
   checkButton.addEventListener("click", () => checkTrackingRecord(record));
 
-  wrap.append(numberInput, status, meta, detail, checkButton);
+  const links = document.createElement("div");
+  links.className = "tracking-links";
+
+  const trackingMyLink = document.createElement("a");
+  trackingMyLink.className = "tracking-link";
+  const courierSlug = (record.carrier || "").toLowerCase().includes("pos") ? "poslaju" : "jt";
+  trackingMyLink.href = `https://www.tracking.my/${courierSlug}/${encodeURIComponent(record.trackingNumber || "")}`;
+  trackingMyLink.target = "_blank";
+  trackingMyLink.rel = "noopener";
+  trackingMyLink.textContent = "Tracking.my";
+
+  const jntLink = document.createElement("a");
+  jntLink.className = "tracking-link";
+  jntLink.href = "https://www.jtexpress.my/tracking";
+  jntLink.target = "_blank";
+  jntLink.rel = "noopener";
+  jntLink.textContent = "J&T";
+
+  const manualSelect = document.createElement("select");
+  manualSelect.className = "inline-edit tracking-manual-select";
+  const manualOptions = [
+    ["", "\u624b\u52a8\u66f4\u65b0"],
+    ["\u8fd0\u8f93\u4e2d", "\u8fd0\u8f93\u4e2d"],
+    ["\u6d3e\u9001\u4e2d", "\u6d3e\u9001\u4e2d"],
+    ["\u5df2\u9001\u8fbe", "\u5df2\u9001\u8fbe"],
+    ["\u5f02\u5e38", "\u5f02\u5e38"]
+  ];
+  for (const [value, label] of manualOptions) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    if (value && record.packageStatus === value) option.selected = true;
+    manualSelect.append(option);
+  }
+  manualSelect.addEventListener("change", async () => {
+    if (!manualSelect.value) return;
+    await saveRecord({
+      ...record,
+      packageStatus: manualSelect.value,
+      trackingMyDetail: `\u624b\u52a8\u66f4\u65b0: ${manualSelect.value}`,
+      trackingMyCheckedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  });
+
+  links.append(jntLink, trackingMyLink);
+  wrap.append(numberInput, status, meta, detail, checkButton, links, manualSelect);
   return wrap;
 }
 

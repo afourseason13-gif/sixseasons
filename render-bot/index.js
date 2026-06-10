@@ -754,16 +754,6 @@ function officialTrackingUrls(record) {
   return urlsBySlug[slug] || [];
 }
 
-function easyParcelTrackingUrls(record) {
-  const number = encodeURIComponent(clean(record.trackingNumber));
-  return [
-    `https://easyparcel.com/my/easytrack/?tracking_number=${number}`,
-    `https://easyparcel.com/my/easytrack/?tracking=${number}`,
-    `https://easyparcel.com/my/easytrack/${number}`,
-    `https://go.easyparcel.com/easytrack?tracking_number=${number}`
-  ];
-}
-
 function plainPageText(html) {
   return String(html || "")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -906,9 +896,6 @@ async function fetchStatusFromUrls(urls, sourceName, trackingNumber = "") {
         if (!response.ok) continue;
         const html = await response.text();
         const text = plainPageText(html);
-        if (sourceName === "EasyParcel" && !text.includes(clean(trackingNumber))) {
-          continue;
-        }
         if (sourceName === "Tracking.my" && isTrackingMyTemporaryFailure(text)) {
           if (attempt < 2) await sleep(1200);
           continue;
@@ -944,16 +931,13 @@ async function fetchTrackingMyStatus(record) {
     return [`https://www.tracking.my/${encodedSlug}/${encodedNumber}`];
   });
 
-  const easyParcelResult = await fetchStatusFromUrls(easyParcelTrackingUrls(record), "EasyParcel", number);
-  if (easyParcelResult.ok) return easyParcelResult;
-
   const trackingMyResult = await fetchStatusFromUrls(urls, "Tracking.my", number);
   if (trackingMyResult.ok) return trackingMyResult;
 
   const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "\u5b98\u7f51", number);
   if (officialResult.ok) return officialResult;
 
-  return { ok: false, reason: trackingMySlug(record) === "jt" ? "jnt_easyparcel_not_found" : "unable_to_parse_tracking_status" };
+  return { ok: false, reason: trackingMySlug(record) === "jt" ? "jnt_tracking_not_found" : "unable_to_parse_tracking_status" };
 }
 
 async function getTrackingChatId() {
@@ -990,8 +974,8 @@ async function checkTrackingMyRecords(targetRecordId = "") {
     if (!result.ok) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).update({
         trackingMyLastError: result.reason,
-        trackingMyDetail: result.reason === "jnt_easyparcel_not_found"
-          ? "EasyParcel、Tracking.my 和 J&T 官网都暂时没有拿到真实状态，已保留原状态。"
+        trackingMyDetail: result.reason === "jnt_tracking_not_found"
+          ? "Tracking.my 和 J&T 官网都暂时没有拿到真实状态，已保留原状态。"
           : (result.reason === "unable_to_parse_tracking_status" ? "Tracking.my 和官网都暂时查不到真实状态，已保留原状态。" : result.reason),
         trackingMyCheckedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
