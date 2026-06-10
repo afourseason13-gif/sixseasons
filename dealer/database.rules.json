@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "dealer-card-tracker": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
