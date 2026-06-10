@@ -761,12 +761,12 @@ async function checkTrackingRecord(record) {
   try {
     const response = await fetch(`${trackingCheckEndpoint}?id=${encodeURIComponent(record.id)}`);
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) throw new Error(result.message || "check_failed");
+    if (!response.ok || !result.ok) throw new Error(result.message || `HTTP ${response.status}`);
     if (!result.checked && !result.deleted && !result.skippedToday) {
       alert("没有查到这个包裹。请确认包裹公司和完整单号。");
     }
-  } catch {
-    alert("检查失败，请看 Render Logs 或稍后再试。");
+  } catch (error) {
+    alert(`检查失败：${error.message || "后台没有回应"}`);
   } finally {
     checkingTrackingRecords.delete(record.id);
     renderCurrentPage();

@@ -683,6 +683,27 @@ function trackingMySlug(record) {
   return "";
 }
 
+function trackingMySlugs(record) {
+  const selected = trackingMySlug(record);
+  const number = clean(record.trackingNumber).toUpperCase();
+  const guessed = [];
+
+  if (/^[A-Z]{2}\d{9}MY$/.test(number) || /^[A-Z]{3}\d{9,12}MY$/.test(number) || number.endsWith("MY")) {
+    guessed.push("poslaju");
+  }
+  if (/^\d{10,15}$/.test(number) || /^6\d{9,14}$/.test(number)) {
+    guessed.push("jt");
+  }
+  if (/^N[VJ][A-Z0-9]{8,}$/i.test(number) || number.includes("NINJA")) {
+    guessed.push("ninjavan");
+  }
+  if (/^MY[A-Z0-9]{8,}$/i.test(number)) {
+    guessed.push("spx", "lazada", "jt");
+  }
+
+  return [...new Set([selected, ...guessed, "jt", "poslaju", "ninjavan", "gdex", "citylink", "flash", "spx", "lazada", "skynet"].filter(Boolean))].slice(0, 5);
+}
+
 function plainPageText(html) {
   return String(html || "")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -802,16 +823,17 @@ function trackingStatusSnippet(text, status) {
 
 async function fetchTrackingMyStatus(record) {
   const number = clean(record.trackingNumber);
-  const slug = trackingMySlug(record);
-  if (!number || !slug) return { ok: false, reason: "missing_tracking_or_courier" };
+  const slugs = trackingMySlugs(record);
+  if (!number || !slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
 
   const encodedNumber = encodeURIComponent(number);
-  const encodedSlug = encodeURIComponent(slug);
-  const urls = [
-    `https://www.tracking.my/${encodedSlug}/${encodedNumber}`,
-    `https://www.tracking.my/${encodedSlug}?tracking_number=${encodedNumber}`,
-    `https://www.tracking.my/track?tracking_number=${encodedNumber}&courier=${encodedSlug}`
-  ];
+  const urls = slugs.flatMap((slug) => {
+    const encodedSlug = encodeURIComponent(slug);
+    return [
+      `https://www.tracking.my/${encodedSlug}/${encodedNumber}`,
+      `https://www.tracking.my/${encodedSlug}?tracking_number=${encodedNumber}`
+    ];
+  });
 
   for (const url of urls) {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -1001,7 +1023,7 @@ app.get("/check-trackingmy", async (_req, res) => {
     res.json({ ok: true, ...result });
   } catch (error) {
     console.error(error);
-    res.status(200).json({ ok: false, message: "trackingmy_check_failed" });
+    res.status(200).json({ ok: false, message: error.message || "trackingmy_check_failed" });
   }
 });
 
