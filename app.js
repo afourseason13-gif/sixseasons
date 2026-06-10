@@ -511,6 +511,7 @@ function initDealerPage() {
   const dealerRate = document.querySelector("#dealerRate");
   const dealerExpense = document.querySelector("#dealerExpense");
   const dealerExtraPay = document.querySelector("#dealerExtraPay");
+  const recordFormPanel = document.querySelector("#recordFormPanel");
   const form = document.querySelector("#recordForm");
   const statusForm = document.querySelector("#statusOptionForm");
   const newStatusOption = document.querySelector("#newStatusOption");
@@ -580,6 +581,7 @@ function initDealerPage() {
   }
 
   function fillForm(record) {
+    if (recordFormPanel) recordFormPanel.open = true;
     recordId.value = record.id;
     parsedDetailsDraft = {
       customerName: record.customerName || "",
@@ -877,6 +879,53 @@ function isRecordStale(record) {
   return Date.now() - new Date(updatedAt).getTime() > fiveDaysMs;
 }
 
+function recordStatusGroup(record) {
+  const status = String(record.status || "");
+  if (status.includes("过保") || status.includes("开保") || status.includes("杩囦繚") || status.includes("寮€淇")) return "active";
+  if (status.includes("弹卡") || status.includes("人头关") || status.includes("寮瑰崱") || status.includes("浜哄ご鍏")) return "problem";
+  return "";
+}
+
+function renderStatusBoard(dealerRecords) {
+  const activeList = document.querySelector("#activeStatusCards");
+  const problemList = document.querySelector("#problemStatusCards");
+  const activeCount = document.querySelector("#activeStatusCount");
+  const problemCount = document.querySelector("#problemStatusCount");
+  if (!activeList || !problemList) return;
+
+  const groups = { active: [], problem: [] };
+  for (const record of dealerRecords) {
+    const group = recordStatusGroup(record);
+    if (group) groups[group].push(record);
+  }
+
+  const renderList = (element, items) => {
+    element.textContent = "";
+    if (!items.length) {
+      const empty = document.createElement("span");
+      empty.className = "status-board-empty";
+      empty.textContent = "\u6ca1\u6709\u5361";
+      element.append(empty);
+      return;
+    }
+    items
+      .sort((a, b) => String(a.cardNumber || "").localeCompare(String(b.cardNumber || "")))
+      .forEach((record) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "status-board-item";
+        item.textContent = record.cardNumber || "-";
+        item.addEventListener("click", () => dealerPageFillForm?.(record));
+        element.append(item);
+      });
+  };
+
+  activeCount.textContent = String(groups.active.length);
+  problemCount.textContent = String(groups.problem.length);
+  renderList(activeList, groups.active);
+  renderList(problemList, groups.problem);
+}
+
 function renderDealerPage(dealerName, fillForm) {
   const searchInput = document.querySelector("#searchInput");
   const recordsBody = document.querySelector("#recordsBody");
@@ -915,6 +964,7 @@ function renderDealerPage(dealerName, fillForm) {
     .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
 
   renderDealerMetrics(dealerRecords);
+  renderStatusBoard(dealerRecords);
   renderStatusOptionsList();
   recordsBody.textContent = "";
   totalCount.textContent = String(visibleRecords.length);

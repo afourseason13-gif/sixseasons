@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dealer 资料</title>
-    <link rel="stylesheet" href="./styles.css?v=20260611-mobile-cards" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-status-board" />
   </head>
   <body>
     <main class="app-shell">
@@ -57,13 +57,14 @@
         </div>
       </section>
 
-      <section class="panel form-panel feature-panel" aria-label="添加记录">
-        <div class="panel-title">
+      <details class="panel form-panel feature-panel collapsible-panel" id="recordFormPanel">
+        <summary class="panel-summary">
           <div>
             <p class="eyebrow">Record</p>
-            <h2>添加资料</h2>
+            <h2>&#28155;&#21152;&#36164;&#26009;</h2>
           </div>
-        </div>
+          <span class="summary-toggle">&#23637;&#24320;</span>
+        </summary>
         <form id="recordForm" autocomplete="off">
           <input type="hidden" id="recordId" />
           <label class="parser-field">
@@ -99,6 +100,23 @@
             <button class="ghost" type="button" id="resetButton">清空</button>
           </div>
         </form>
+      </details>
+
+      <section class="status-board" aria-label="&#21345;&#21495;&#29366;&#24577;&#27719;&#24635;">
+        <article class="status-board-card">
+          <div class="status-board-head">
+            <h2>&#36807;&#20445; / &#24320;&#20445;</h2>
+            <span id="activeStatusCount">0</span>
+          </div>
+          <div class="status-board-list" id="activeStatusCards"></div>
+        </article>
+        <article class="status-board-card danger-board">
+          <div class="status-board-head">
+            <h2>&#24377;&#21345; / &#20154;&#22836;&#20851;</h2>
+            <span id="problemStatusCount">0</span>
+          </div>
+          <div class="status-board-list" id="problemStatusCards"></div>
+        </article>
       </section>
 
       <section class="panel status-panel" aria-label="状态选项">
@@ -193,6 +211,6 @@
     </div>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260611-mobile-cards"></script>
+    <script src="./app.js?v=20260611-status-board"></script>
   </body>
 </html>

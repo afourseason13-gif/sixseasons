@@ -464,6 +464,145 @@ textarea:focus {
   line-height: 1.2;
 }
 
+.collapsible-panel {
+  padding: 0;
+}
+
+.collapsible-panel form {
+  padding: 0 16px 16px;
+}
+
+.panel-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  list-style: none;
+  padding: 16px;
+}
+
+.panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid rgba(14, 107, 99, 0.18);
+  border-radius: 999px;
+  background: #eef8f5;
+  color: var(--primary-strong);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.collapsible-panel[open] .summary-toggle {
+  background: var(--primary);
+  color: #fff;
+  font-size: 0;
+}
+
+.collapsible-panel[open] .summary-toggle::before {
+  content: "\6536\36215";
+  font-size: 12px;
+}
+
+.status-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.status-board-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.75);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(22, 135, 95, 0.13), rgba(255, 255, 255, 0.94) 44%),
+    #fff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  padding: 14px;
+}
+
+.status-board-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: #16875f;
+}
+
+.status-board-card.danger-board {
+  background:
+    linear-gradient(135deg, rgba(194, 106, 9, 0.16), rgba(255, 255, 255, 0.94) 46%),
+    #fff;
+}
+
+.status-board-card.danger-board::before {
+  background: #c26a09;
+}
+
+.status-board-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.status-board-head h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.status-board-head span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.status-board-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.status-board-item {
+  min-height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #0f172a;
+  padding: 0 10px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.status-board-item:hover {
+  border-color: rgba(14, 107, 99, 0.42);
+  background: #fff;
+}
+
+.status-board-empty {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 form {
   display: grid;
   grid-template-columns: repeat(5, minmax(130px, 1fr));
@@ -1329,6 +1468,14 @@ tbody tr:hover {
 
   .dealer-overview {
     gap: 10px;
+  }
+
+  .status-board {
+    grid-template-columns: 1fr;
+  }
+
+  .status-board-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .metric-card {
