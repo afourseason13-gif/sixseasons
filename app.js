@@ -934,6 +934,18 @@ function renderDealerPage(dealerName, fillForm) {
     row.classList.add("record-row", statusClassName(record.status));
     if (isRecordStale(record)) row.classList.add("stale-row");
     const cells = row.querySelectorAll("td");
+    [
+      "record-card-number",
+      "record-details",
+      "record-carrier",
+      "record-tail",
+      "record-tracking",
+      "record-warranty",
+      "record-status",
+      "record-notes",
+      "record-updated",
+      "record-actions"
+    ].forEach((className, index) => cells[index]?.classList.add(className));
     cells[0].append(editableInput(record, "cardNumber"));
     const detailsButton = document.createElement("button");
     detailsButton.type = "button";
