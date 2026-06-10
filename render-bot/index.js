@@ -696,37 +696,62 @@ function plainPageText(html) {
 
 function normalizeTrackingMyStatus(text) {
   const source = String(text || "").toLowerCase();
+  const hasAny = (items) => items.some((item) => source.includes(item));
+  const hasWord = (word) => new RegExp(`\\b${word}\\b`, "i").test(source);
   if (
-    source.includes("delivered") ||
-    source.includes("successfully delivered") ||
-    source.includes("\u5df2\u9001\u8fbe") ||
-    source.includes("\u5df2\u7b7e\u6536") ||
-    source.includes("\u7b7e\u6536")
+    hasWord("delivered") ||
+    hasAny([
+      "successfully delivered",
+      "parcel delivered",
+      "shipment delivered",
+      "delivered to",
+      "\u5df2\u9001\u8fbe",
+      "\u5df2\u7b7e\u6536",
+      "\u7b7e\u6536"
+    ])
   ) return "delivered";
   if (
-    source.includes("out for delivery") ||
-    source.includes("with delivery courier") ||
-    source.includes("\u6d3e\u9001") ||
-    source.includes("\u6d3e\u4ef6")
+    hasAny(["on delivery"]) ||
+    hasAny([
+      "out for delivery",
+      "with delivery courier",
+      "courier is delivering",
+      "\u6d3e\u9001",
+      "\u6d3e\u4ef6"
+    ])
   ) return "out_for_delivery";
   if (
-    source.includes("exception") ||
-    source.includes("failed") ||
-    source.includes("unsuccessful") ||
-    source.includes("problem") ||
-    source.includes("\u5f02\u5e38") ||
-    source.includes("\u5931\u8d25")
+    hasAny([
+      "delivery failed",
+      "delivery unsuccessful",
+      "unsuccessful delivery",
+      "undelivered",
+      "delivery exception",
+      "shipment exception",
+      "parcel exception",
+      "return to sender",
+      "recipient not available",
+      "\u6d3e\u9001\u5931\u8d25",
+      "\u6d3e\u4ef6\u5931\u8d25",
+      "\u5feb\u9012\u5f02\u5e38",
+      "\u5305\u88f9\u5f02\u5e38",
+      "\u95ee\u9898\u4ef6"
+    ])
   ) return "exception";
   if (
-    source.includes("transit") ||
-    source.includes("arrived") ||
-    source.includes("hub") ||
-    source.includes("warehouse") ||
-    source.includes("sorting") ||
-    source.includes("\u8fd0\u8f93") ||
-    source.includes("\u8f6c\u8fd0") ||
-    source.includes("\u4ed3\u5e93") ||
-    source.includes("\u5230\u8fbe")
+    hasAny([
+      "in transit",
+      "departure",
+      "arrived at",
+      "departed from",
+      "sorting",
+      "warehouse",
+      "hub",
+      "\u8fd0\u8f93",
+      "\u8f6c\u8fd0",
+      "\u4ed3\u5e93",
+      "\u5230\u8fbe"
+    ])
   ) return "in_transit";
   return "";
 }
@@ -745,7 +770,7 @@ function trackingStatusSnippet(text, status) {
   const cleanText = String(text || "").replace(/\s+/g, " ").trim();
   const keywords = {
     delivered: ["delivered", "\u5df2\u9001\u8fbe", "\u7b7e\u6536"],
-    out_for_delivery: ["out for delivery", "\u6d3e\u9001", "\u6d3e\u4ef6"],
+    out_for_delivery: ["out for delivery", "on delivery", "\u6d3e\u9001", "\u6d3e\u4ef6"],
     exception: ["exception", "failed", "unsuccessful", "\u5f02\u5e38", "\u5931\u8d25"],
     in_transit: ["transit", "arrived", "warehouse", "\u8fd0\u8f93", "\u8f6c\u8fd0", "\u5230\u8fbe"]
   }[status] || [];

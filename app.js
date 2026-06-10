@@ -737,6 +737,20 @@ function editableCarrierSelect(record) {
   return select;
 }
 
+function statusClassName(status) {
+  const source = String(status || "");
+  if (source.includes("过保") || source.includes("杩囦繚")) return "status-expired";
+  if (source.includes("开保") || source.includes("寮€淇")) return "status-opened";
+  if (source.includes("人头关") || source.includes("浜哄ご鍏")) return "status-closed";
+  if (source.includes("弹卡") || source.includes("寮瑰崱")) return "status-bounced";
+  if (source.includes("炸") || source.includes("鐐")) return "status-rejected";
+  if (source.includes("车手") || source.includes("签收") || source.includes("杞︽墜") || source.includes("绛炬敹")) return "status-signed";
+  if (source.includes("寄") || source.includes("瀵")) return "status-sent";
+  if (source.includes("完成") || source.includes("宸插畬")) return "status-done";
+  if (source.includes("处理") || source.includes("澶勭悊")) return "status-processing";
+  return "status-default";
+}
+
 async function checkTrackingRecord(record) {
   if (!record.trackingNumber) {
     alert("请先填写完整包裹单号，不能只填尾号码。");
@@ -784,6 +798,11 @@ function renderTrackingCell(record) {
   meta.textContent = record.trackingMyCheckedAt ? `检查: ${formatTime(record.trackingMyCheckedAt)}` : "今天新增不会检查";
   if (record.trackingMyDetail) meta.title = record.trackingMyDetail;
 
+  const detail = document.createElement("div");
+  detail.className = "tracking-detail";
+  detail.textContent = record.trackingMyDetail || "";
+  if (!record.trackingMyDetail) detail.hidden = true;
+
   const checkButton = document.createElement("button");
   checkButton.type = "button";
   checkButton.className = "ghost compact-button tracking-check-button";
@@ -791,7 +810,7 @@ function renderTrackingCell(record) {
   checkButton.disabled = checkingTrackingRecords.has(record.id);
   checkButton.addEventListener("click", () => checkTrackingRecord(record));
 
-  wrap.append(numberInput, status, meta, checkButton);
+  wrap.append(numberInput, status, meta, detail, checkButton);
   return wrap;
 }
 
@@ -856,6 +875,7 @@ function renderDealerPage(dealerName, fillForm) {
 
   for (const record of visibleRecords) {
     const row = rowTemplate.content.firstElementChild.cloneNode(true);
+    row.classList.add("record-row", statusClassName(record.status));
     if (isRecordStale(record)) row.classList.add("stale-row");
     const cells = row.querySelectorAll("td");
     cells[0].append(editableInput(record, "cardNumber"));
@@ -876,7 +896,7 @@ function renderDealerPage(dealerName, fillForm) {
     cells[5].append(editableInput(record, "warrantyDate", "date"));
 
     const statusSelect = document.createElement("select");
-    statusSelect.className = "status-select";
+    statusSelect.className = `status-select ${statusClassName(record.status)}`;
     populateStatusSelect(statusSelect, record.status || statusOptions[0] || "");
     statusSelect.addEventListener("change", async () => {
       await saveRecord({ ...record, status: statusSelect.value, updatedAt: new Date().toISOString() });
