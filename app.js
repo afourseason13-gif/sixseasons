@@ -3,6 +3,7 @@ const dealerListKey = "dealer-card-tracker-dealers";
 const statusOptionsKey = "dealer-card-tracker-status-options";
 const noticeKey = "dealer-card-tracker-notice";
 const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
+const trackingCheckEndpoint = "https://dealer-tracker.onrender.com/check-trackingmy";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "炸"];
 const defaultNewRecordStatus = "寄";
 const salaryStatuses = new Set(["过保", "开保"]);
@@ -69,6 +70,7 @@ let saveNotice;
 let dealerPageFillForm = null;
 let firebaseStatusOptionsLoaded = false;
 let parsedDetailsDraft = {};
+const checkingTrackingRecords = new Set();
 
 function hasFirebaseConfig() {
   const config = window.FIREBASE_CONFIG || {};
@@ -310,6 +312,10 @@ function normalizeRecord(data, id = createId()) {
     trackingMoreCourierCode: (data.trackingMoreCourierCode || "").trim(),
     packageStatus: (data.packageStatus || "").trim(),
     lastTrackingNotifyStatus: (data.lastTrackingNotifyStatus || "").trim(),
+    trackingMyDetail: (data.trackingMyDetail || "").trim(),
+    trackingMyUrl: (data.trackingMyUrl || "").trim(),
+    trackingMyCheckedAt: data.trackingMyCheckedAt || "",
+    deliveredAt: data.deliveredAt || "",
     tailNumber: data.tailNumber.trim(),
     warrantyDate: data.warrantyDate || "",
     warrantyDays: Number(data.warrantyDays || 0),
@@ -731,6 +737,64 @@ function editableCarrierSelect(record) {
   return select;
 }
 
+async function checkTrackingRecord(record) {
+  if (!record.trackingNumber) {
+    alert("请先填写完整包裹单号，不能只填尾号码。");
+    return;
+  }
+  checkingTrackingRecords.add(record.id);
+  renderCurrentPage();
+  try {
+    const response = await fetch(`${trackingCheckEndpoint}?id=${encodeURIComponent(record.id)}`);
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.message || "check_failed");
+    if (!result.checked && !result.deleted && !result.skippedToday) {
+      alert("没有查到这个包裹。请确认包裹公司和完整单号。");
+    }
+  } catch {
+    alert("检查失败，请看 Render Logs 或稍后再试。");
+  } finally {
+    checkingTrackingRecords.delete(record.id);
+    renderCurrentPage();
+  }
+}
+
+function renderTrackingCell(record) {
+  const wrap = document.createElement("div");
+  wrap.className = "tracking-cell";
+
+  const numberInput = document.createElement("input");
+  numberInput.className = "inline-edit tracking-number-input";
+  numberInput.value = record.trackingNumber || "";
+  numberInput.placeholder = "完整单号";
+  numberInput.addEventListener("blur", () => saveRecordField(record, "trackingNumber", numberInput.value.trim()));
+  numberInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      numberInput.blur();
+    }
+  });
+
+  const status = document.createElement("div");
+  status.className = "tracking-status";
+  status.textContent = record.packageStatus || "未检查";
+
+  const meta = document.createElement("div");
+  meta.className = "tracking-meta";
+  meta.textContent = record.trackingMyCheckedAt ? `检查: ${formatTime(record.trackingMyCheckedAt)}` : "今天新增不会检查";
+  if (record.trackingMyDetail) meta.title = record.trackingMyDetail;
+
+  const checkButton = document.createElement("button");
+  checkButton.type = "button";
+  checkButton.className = "ghost compact-button tracking-check-button";
+  checkButton.textContent = checkingTrackingRecords.has(record.id) ? "检查中" : "检查";
+  checkButton.disabled = checkingTrackingRecords.has(record.id);
+  checkButton.addEventListener("click", () => checkTrackingRecord(record));
+
+  wrap.append(numberInput, status, meta, checkButton);
+  return wrap;
+}
+
 function isRecordStale(record) {
   const updatedAt = record.updatedAt || record.createdAt;
   if (!updatedAt) return false;
@@ -761,6 +825,9 @@ function renderDealerPage(dealerName, fillForm) {
         record.atmPin,
         record.formattedDetails,
         record.carrier,
+        record.trackingNumber,
+        record.packageStatus,
+        record.trackingMyDetail,
         record.tailNumber,
         record.warrantyDate,
         record.status,
@@ -805,7 +872,8 @@ function renderDealerPage(dealerName, fillForm) {
     cells[1].append(detailsButton);
     cells[2].append(editableCarrierSelect(record));
     cells[3].append(editableInput(record, "tailNumber"));
-    cells[4].append(editableInput(record, "warrantyDate", "date"));
+    cells[4].append(renderTrackingCell(record));
+    cells[5].append(editableInput(record, "warrantyDate", "date"));
 
     const statusSelect = document.createElement("select");
     statusSelect.className = "status-select";
@@ -813,7 +881,7 @@ function renderDealerPage(dealerName, fillForm) {
     statusSelect.addEventListener("change", async () => {
       await saveRecord({ ...record, status: statusSelect.value, updatedAt: new Date().toISOString() });
     });
-    cells[5].append(statusSelect);
+    cells[6].append(statusSelect);
     const notesInput = document.createElement("input");
     notesInput.className = "inline-edit inline-notes";
     notesInput.value = record.notes || "";
@@ -829,8 +897,8 @@ function renderDealerPage(dealerName, fillForm) {
         notesInput.blur();
       }
     });
-    cells[6].append(notesInput);
-    cells[7].textContent = formatTime(record.updatedAt);
+    cells[7].append(notesInput);
+    cells[8].textContent = formatTime(record.updatedAt);
 
     const editButton = document.createElement("button");
     editButton.type = "button";
@@ -846,7 +914,7 @@ function renderDealerPage(dealerName, fillForm) {
       if (confirm("删除这条记录？")) await deleteRecord(record.id);
     });
 
-    cells[8].append(editButton, removeButton);
+    cells[9].append(editButton, removeButton);
     recordsBody.append(row);
   }
 }

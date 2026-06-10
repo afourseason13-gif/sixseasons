@@ -666,6 +666,231 @@ async function notifyTrackingUpdate(body) {
   return { notified: true };
 }
 
+function trackingMySlug(record) {
+  const source = `${record.carrier || ""} ${record.carrierCode || ""} ${record.trackingMoreCourierCode || ""}`.toLowerCase();
+  if (source.includes("j&t") || source.includes("jnt") || source.includes("jtexpress") || source.includes("jt")) return "jt";
+  if (source.includes("pos")) return "poslaju";
+  if (source.includes("ninja")) return "ninjavan";
+  if (source.includes("gdex")) return "gdex";
+  if (source.includes("city")) return "citylink";
+  if (source.includes("flash")) return "flash";
+  if (source.includes("spx") || source.includes("shopee")) return "spx";
+  if (source.includes("lazada") || source.includes("lex")) return "lazada";
+  if (source.includes("skynet")) return "skynet";
+  if (source.includes("abx")) return "abx";
+  if (source.includes("best")) return "best";
+  if (source.includes("dhl")) return "dhl";
+  return "";
+}
+
+function plainPageText(html) {
+  return String(html || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeTrackingMyStatus(text) {
+  const source = String(text || "").toLowerCase();
+  if (
+    source.includes("delivered") ||
+    source.includes("successfully delivered") ||
+    source.includes("\u5df2\u9001\u8fbe") ||
+    source.includes("\u5df2\u7b7e\u6536") ||
+    source.includes("\u7b7e\u6536")
+  ) return "delivered";
+  if (
+    source.includes("out for delivery") ||
+    source.includes("with delivery courier") ||
+    source.includes("\u6d3e\u9001") ||
+    source.includes("\u6d3e\u4ef6")
+  ) return "out_for_delivery";
+  if (
+    source.includes("exception") ||
+    source.includes("failed") ||
+    source.includes("unsuccessful") ||
+    source.includes("problem") ||
+    source.includes("\u5f02\u5e38") ||
+    source.includes("\u5931\u8d25")
+  ) return "exception";
+  if (
+    source.includes("transit") ||
+    source.includes("arrived") ||
+    source.includes("hub") ||
+    source.includes("warehouse") ||
+    source.includes("sorting") ||
+    source.includes("\u8fd0\u8f93") ||
+    source.includes("\u8f6c\u8fd0") ||
+    source.includes("\u4ed3\u5e93") ||
+    source.includes("\u5230\u8fbe")
+  ) return "in_transit";
+  return "";
+}
+
+function trackingStatusLabel(status) {
+  const labels = {
+    delivered: "\u5df2\u9001\u8fbe",
+    out_for_delivery: "\u6d3e\u9001\u4e2d",
+    exception: "\u5f02\u5e38",
+    in_transit: "\u8fd0\u8f93\u4e2d"
+  };
+  return labels[status] || "";
+}
+
+function trackingStatusSnippet(text, status) {
+  const cleanText = String(text || "").replace(/\s+/g, " ").trim();
+  const keywords = {
+    delivered: ["delivered", "\u5df2\u9001\u8fbe", "\u7b7e\u6536"],
+    out_for_delivery: ["out for delivery", "\u6d3e\u9001", "\u6d3e\u4ef6"],
+    exception: ["exception", "failed", "unsuccessful", "\u5f02\u5e38", "\u5931\u8d25"],
+    in_transit: ["transit", "arrived", "warehouse", "\u8fd0\u8f93", "\u8f6c\u8fd0", "\u5230\u8fbe"]
+  }[status] || [];
+  const lower = cleanText.toLowerCase();
+  const index = keywords.reduce((found, keyword) => {
+    if (found >= 0) return found;
+    return lower.indexOf(String(keyword).toLowerCase());
+  }, -1);
+  if (index < 0) return cleanText.slice(0, 160);
+  return cleanText.slice(Math.max(0, index - 50), index + 140);
+}
+
+async function fetchTrackingMyStatus(record) {
+  const number = clean(record.trackingNumber);
+  const slug = trackingMySlug(record);
+  if (!number || !slug) return { ok: false, reason: "missing_tracking_or_courier" };
+
+  const encodedNumber = encodeURIComponent(number);
+  const encodedSlug = encodeURIComponent(slug);
+  const urls = [
+    `https://www.tracking.my/${encodedSlug}/${encodedNumber}`,
+    `https://www.tracking.my/${encodedSlug}?tracking_number=${encodedNumber}`,
+    `https://www.tracking.my/track?tracking_number=${encodedNumber}&courier=${encodedSlug}`
+  ];
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        }
+      });
+      if (!response.ok) continue;
+      const html = await response.text();
+      const text = plainPageText(html);
+      const status = normalizeTrackingMyStatus(text);
+      if (status) {
+        return {
+          ok: true,
+          status,
+          label: trackingStatusLabel(status),
+          detail: trackingStatusSnippet(text, status),
+          url
+        };
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  return { ok: false, reason: "unable_to_parse_tracking_my" };
+}
+
+async function getTrackingChatId() {
+  return announceChatId || (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
+}
+
+async function checkTrackingMyRecords(targetRecordId = "") {
+  const today = formatDateInMalaysia(new Date());
+  const snapshot = await db.ref("dealer-card-tracker/records").get();
+  const records = Object.entries(snapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
+  const chatId = await getTrackingChatId();
+  let checked = 0;
+  let notified = 0;
+  let deleted = 0;
+  let skippedToday = 0;
+
+  for (const record of records) {
+    if (targetRecordId && record.key !== targetRecordId && record.id !== targetRecordId) continue;
+    if (!isFullTrackingNumber(record.trackingNumber)) continue;
+
+    if ((record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") && record.deliveredAt && record.deliveredAt < today) {
+      await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
+      deleted += 1;
+      continue;
+    }
+
+    if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) === today) {
+      skippedToday += 1;
+      continue;
+    }
+
+    checked += 1;
+    const result = await fetchTrackingMyStatus(record);
+    if (!result.ok) {
+      await db.ref(`dealer-card-tracker/records/${record.key}`).update({
+        trackingMyLastError: result.reason,
+        trackingMyCheckedAt: new Date().toISOString()
+      });
+      continue;
+    }
+
+    const updateData = {
+      packageStatus: result.label,
+      trackingMyDetail: result.detail,
+      trackingMyUrl: result.url,
+      trackingMyCheckedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    if (result.status === "delivered" && !record.deliveredAt) updateData.deliveredAt = today;
+
+    if (record.lastTrackingNotifyStatus !== result.status && chatId) {
+      const message = [
+        `\u5305\u88f9${result.label}`,
+        "",
+        `Dealer: ${record.dealerName || "-"}`,
+        `\u5361\u53f7: ${record.cardNumber || "-"}`,
+        `\u5feb\u9012: ${record.carrier || "-"}`,
+        `\u5355\u53f7: ${record.trackingNumber}`,
+        result.detail ? `\u72b6\u6001: ${result.detail}` : ""
+      ].filter(Boolean).join("\n");
+      await sendTelegramMessage(chatId, message);
+      updateData.lastTrackingNotifyStatus = result.status;
+      notified += 1;
+    }
+
+    await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
+  }
+
+  return { checked, notified, deleted, skippedToday };
+}
+
+async function runScheduledTrackingMyCheck() {
+  const now = new Date();
+  const malaysia = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+  const today = formatDateInMalaysia(now);
+  const time = `${String(malaysia.getUTCHours()).padStart(2, "0")}:${String(malaysia.getUTCMinutes()).padStart(2, "0")}`;
+  if (!["12:00", "13:00"].includes(time)) return;
+
+  const slotKey = time.replace(":", "");
+  const runRef = db.ref(`dealer-card-tracker/settings/trackingMySchedule/${today}/${slotKey}`);
+  const alreadyRun = (await runRef.get()).val();
+  if (alreadyRun) return;
+
+  await runRef.set(new Date().toISOString());
+  const result = await checkTrackingMyRecords();
+  await db.ref("dealer-card-tracker/settings/trackingMyLastRun").set({
+    ...result,
+    slot: time,
+    date: today,
+    updatedAt: new Date().toISOString()
+  });
+}
+
 app.get("/", (_req, res) => {
   res.send("Dealer Telegram bot is running.");
 });
@@ -713,6 +938,17 @@ app.post("/trackingmore-webhook", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(200).json({ ok: false });
+  }
+});
+
+app.get("/check-trackingmy", async (_req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  try {
+    const result = await checkTrackingMyRecords(clean(_req.query?.id));
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error(error);
+    res.status(200).json({ ok: false, message: "trackingmy_check_failed" });
   }
 });
 
@@ -765,3 +1001,7 @@ app.listen(port, () => {
 setInterval(() => {
   autoExpireWarrantyRecords().catch((error) => console.error(error));
 }, 60 * 60 * 1000);
+
+setInterval(() => {
+  runScheduledTrackingMyCheck().catch((error) => console.error(error));
+}, 60 * 1000);

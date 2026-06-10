@@ -787,7 +787,7 @@ button:active {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1120px;
+  min-width: 1320px;
 }
 
 th,
@@ -867,6 +867,45 @@ tbody tr:hover {
 .row-actions button {
   min-height: 34px;
   padding: 0 10px;
+}
+
+.tracking-cell {
+  display: grid;
+  gap: 6px;
+  min-width: 170px;
+}
+
+.tracking-number-input {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
+.tracking-status {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 24px;
+  align-items: center;
+  border-radius: 999px;
+  background: #e9f6f2;
+  color: #0e6b63;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.tracking-meta {
+  max-width: 190px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracking-check-button {
+  width: fit-content;
 }
 
 .compact-button {
