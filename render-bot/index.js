@@ -754,6 +754,16 @@ function officialTrackingUrls(record) {
   return urlsBySlug[slug] || [];
 }
 
+function easyParcelTrackingUrls(record) {
+  const number = encodeURIComponent(clean(record.trackingNumber));
+  return [
+    `https://easyparcel.com/my/easytrack/?tracking_number=${number}`,
+    `https://easyparcel.com/my/easytrack/?tracking=${number}`,
+    `https://easyparcel.com/my/easytrack/${number}`,
+    `https://go.easyparcel.com/easytrack?tracking_number=${number}`
+  ];
+}
+
 function plainPageText(html) {
   return String(html || "")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -881,7 +891,7 @@ function trackingStatusSnippet(text, status) {
   return cleanText.slice(Math.max(0, index - 50), index + 140);
 }
 
-async function fetchStatusFromUrls(urls, sourceName) {
+async function fetchStatusFromUrls(urls, sourceName, trackingNumber = "") {
   for (const url of urls) {
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
@@ -896,6 +906,9 @@ async function fetchStatusFromUrls(urls, sourceName) {
         if (!response.ok) continue;
         const html = await response.text();
         const text = plainPageText(html);
+        if (sourceName === "EasyParcel" && !text.includes(clean(trackingNumber))) {
+          continue;
+        }
         if (sourceName === "Tracking.my" && isTrackingMyTemporaryFailure(text)) {
           if (attempt < 2) await sleep(1200);
           continue;
@@ -931,13 +944,16 @@ async function fetchTrackingMyStatus(record) {
     return [`https://www.tracking.my/${encodedSlug}/${encodedNumber}`];
   });
 
-  const trackingMyResult = await fetchStatusFromUrls(urls, "Tracking.my");
+  const easyParcelResult = await fetchStatusFromUrls(easyParcelTrackingUrls(record), "EasyParcel", number);
+  if (easyParcelResult.ok) return easyParcelResult;
+
+  const trackingMyResult = await fetchStatusFromUrls(urls, "Tracking.my", number);
   if (trackingMyResult.ok) return trackingMyResult;
 
-  const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "\u5b98\u7f51");
+  const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "\u5b98\u7f51", number);
   if (officialResult.ok) return officialResult;
 
-  return { ok: false, reason: trackingMySlug(record) === "jt" ? "jnt_requires_api_or_browser" : "unable_to_parse_tracking_status" };
+  return { ok: false, reason: trackingMySlug(record) === "jt" ? "jnt_easyparcel_not_found" : "unable_to_parse_tracking_status" };
 }
 
 async function getTrackingChatId() {
@@ -974,8 +990,8 @@ async function checkTrackingMyRecords(targetRecordId = "") {
     if (!result.ok) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).update({
         trackingMyLastError: result.reason,
-        trackingMyDetail: result.reason === "jnt_requires_api_or_browser"
-          ? "J&T 官网需要动态查询接口，Tracking.my 又暂时失败；需要接 eTracking/API 才能稳定自动查。"
+        trackingMyDetail: result.reason === "jnt_easyparcel_not_found"
+          ? "EasyParcel、Tracking.my 和 J&T 官网都暂时没有拿到真实状态，已保留原状态。"
           : (result.reason === "unable_to_parse_tracking_status" ? "Tracking.my 和官网都暂时查不到真实状态，已保留原状态。" : result.reason),
         trackingMyCheckedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
