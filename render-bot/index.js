@@ -720,9 +720,7 @@ function officialTrackingUrls(record) {
   const slug = trackingMySlug(record) || trackingMySlugs(record)[0] || "";
   const urlsBySlug = {
     jt: [
-      `https://www.jtexpress.my/track/${number}`,
-      `https://www.jtexpress.my/tracking/${number}`,
-      `https://www.jtexpress.my/track?waybillNo=${number}`
+      `https://www.jtexpress.my/tracking`
     ],
     poslaju: [
       `https://tracking.pos.com.my/tracking/${number}`,
@@ -939,7 +937,7 @@ async function fetchTrackingMyStatus(record) {
   const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "\u5b98\u7f51");
   if (officialResult.ok) return officialResult;
 
-  return { ok: false, reason: "unable_to_parse_tracking_status" };
+  return { ok: false, reason: trackingMySlug(record) === "jt" ? "jnt_requires_api_or_browser" : "unable_to_parse_tracking_status" };
 }
 
 async function getTrackingChatId() {
@@ -976,7 +974,9 @@ async function checkTrackingMyRecords(targetRecordId = "") {
     if (!result.ok) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).update({
         trackingMyLastError: result.reason,
-        trackingMyDetail: result.reason === "unable_to_parse_tracking_status" ? "Tracking.my 和官网都暂时查不到真实状态，已保留原状态。" : result.reason,
+        trackingMyDetail: result.reason === "jnt_requires_api_or_browser"
+          ? "J&T 官网需要动态查询接口，Tracking.my 又暂时失败；需要接 eTracking/API 才能稳定自动查。"
+          : (result.reason === "unable_to_parse_tracking_status" ? "Tracking.my 和官网都暂时查不到真实状态，已保留原状态。" : result.reason),
         trackingMyCheckedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
