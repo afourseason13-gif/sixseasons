@@ -704,6 +704,47 @@ function trackingMySlugs(record) {
   return [...new Set([selected, ...guessed, "jt", "poslaju", "ninjavan", "gdex", "citylink", "flash", "spx", "lazada", "skynet"].filter(Boolean))].slice(0, 5);
 }
 
+function officialTrackingUrls(record) {
+  const number = encodeURIComponent(clean(record.trackingNumber));
+  const slug = trackingMySlug(record) || trackingMySlugs(record)[0] || "";
+  const urlsBySlug = {
+    jt: [
+      `https://www.jtexpress.my/track/${number}`,
+      `https://www.jtexpress.my/tracking/${number}`,
+      `https://www.jtexpress.my/track?waybillNo=${number}`
+    ],
+    poslaju: [
+      `https://tracking.pos.com.my/tracking/${number}`,
+      `https://www.pos.com.my/track-trace/${number}`,
+      `https://www.pos.com.my/track-trace?trackingNumber=${number}`
+    ],
+    ninjavan: [
+      `https://www.ninjavan.co/en-my/tracking?id=${number}`,
+      `https://www.ninjavan.co/en-my/tracking/${number}`
+    ],
+    gdex: [
+      `https://www.gdexpress.com/malaysia/e-tracking/?trackingno=${number}`,
+      `https://www.gdexpress.com/track/${number}`
+    ],
+    citylink: [
+      `https://www.citylinkexpress.com/wp/track-your-shipment/?tracking_no=${number}`
+    ],
+    flash: [
+      `https://www.flashexpress.my/tracking/?se=${number}`
+    ],
+    spx: [
+      `https://spx.com.my/m/track?tracking_number=${number}`
+    ],
+    lazada: [
+      `https://tracker.lel.asia/?trackingNumber=${number}`
+    ],
+    skynet: [
+      `https://www.skynet.com.my/track?tracking=${number}`
+    ]
+  };
+  return urlsBySlug[slug] || [];
+}
+
 function plainPageText(html) {
   return String(html || "")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -821,20 +862,7 @@ function trackingStatusSnippet(text, status) {
   return cleanText.slice(Math.max(0, index - 50), index + 140);
 }
 
-async function fetchTrackingMyStatus(record) {
-  const number = clean(record.trackingNumber);
-  const slugs = trackingMySlugs(record);
-  if (!number || !slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
-
-  const encodedNumber = encodeURIComponent(number);
-  const urls = slugs.flatMap((slug) => {
-    const encodedSlug = encodeURIComponent(slug);
-    return [
-      `https://www.tracking.my/${encodedSlug}/${encodedNumber}`,
-      `https://www.tracking.my/${encodedSlug}?tracking_number=${encodedNumber}`
-    ];
-  });
-
+async function fetchStatusFromUrls(urls, sourceName) {
   for (const url of urls) {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
@@ -849,7 +877,7 @@ async function fetchTrackingMyStatus(record) {
         if (!response.ok) continue;
         const html = await response.text();
         const text = plainPageText(html);
-        if (isTrackingMyTemporaryFailure(text)) {
+        if (sourceName === "Tracking.my" && isTrackingMyTemporaryFailure(text)) {
           if (attempt < 3) await sleep(3500);
           continue;
         }
@@ -860,7 +888,8 @@ async function fetchTrackingMyStatus(record) {
             status,
             label: trackingStatusLabel(status),
             detail: trackingStatusSnippet(text, status),
-            url
+            url,
+            source: sourceName
           };
         }
       } catch (error) {
@@ -869,8 +898,30 @@ async function fetchTrackingMyStatus(record) {
       }
     }
   }
+  return { ok: false };
+}
 
-  return { ok: false, reason: "unable_to_parse_tracking_my" };
+async function fetchTrackingMyStatus(record) {
+  const number = clean(record.trackingNumber);
+  const slugs = trackingMySlugs(record);
+  if (!number || !slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
+
+  const encodedNumber = encodeURIComponent(number);
+  const urls = slugs.flatMap((slug) => {
+    const encodedSlug = encodeURIComponent(slug);
+    return [
+      `https://www.tracking.my/${encodedSlug}/${encodedNumber}`,
+      `https://www.tracking.my/${encodedSlug}?tracking_number=${encodedNumber}`
+    ];
+  });
+
+  const trackingMyResult = await fetchStatusFromUrls(urls, "Tracking.my");
+  if (trackingMyResult.ok) return trackingMyResult;
+
+  const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "官网");
+  if (officialResult.ok) return officialResult;
+
+  return { ok: false, reason: "unable_to_parse_tracking_status" };
 }
 
 async function getTrackingChatId() {
@@ -907,7 +958,7 @@ async function checkTrackingMyRecords(targetRecordId = "") {
     if (!result.ok) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).update({
         trackingMyLastError: result.reason,
-        trackingMyDetail: result.reason === "unable_to_parse_tracking_my" ? "Tracking.my/J&T 暂时查不到真实状态，已保留原状态。" : result.reason,
+        trackingMyDetail: result.reason === "unable_to_parse_tracking_status" ? "Tracking.my 和官网都暂时查不到真实状态，已保留原状态。" : result.reason,
         trackingMyCheckedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -916,7 +967,7 @@ async function checkTrackingMyRecords(targetRecordId = "") {
 
     const updateData = {
       packageStatus: result.label,
-      trackingMyDetail: result.detail,
+      trackingMyDetail: result.source ? `${result.source}: ${result.detail}` : result.detail,
       trackingMyUrl: result.url,
       trackingMyCheckedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -931,6 +982,7 @@ async function checkTrackingMyRecords(targetRecordId = "") {
         `\u5361\u53f7: ${record.cardNumber || "-"}`,
         `\u5feb\u9012: ${record.carrier || "-"}`,
         `\u5355\u53f7: ${record.trackingNumber}`,
+        result.source ? `来源: ${result.source}` : "",
         result.detail ? `\u72b6\u6001: ${result.detail}` : ""
       ].filter(Boolean).join("\n");
       await sendTelegramMessage(chatId, message);
