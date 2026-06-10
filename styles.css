@@ -1362,7 +1362,18 @@ tbody tr:hover {
     flex-direction: column;
   }
 
+  table,
+  tbody {
+    display: block;
+    width: 100%;
+  }
+
+  tbody {
+    padding: 10px;
+  }
+
   tr {
+    display: grid;
     grid-template-columns: 1fr;
     grid-template-areas:
       "card"
@@ -1375,25 +1386,63 @@ tbody tr:hover {
       "details"
       "updated"
       "actions";
-    padding: 14px 13px 14px 16px;
+    gap: 11px;
+    border-radius: 9px;
+    padding: 14px 12px 14px 16px;
   }
 
   td {
-    grid-template-columns: 86px minmax(0, 1fr);
-    gap: 9px;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    align-items: stretch;
     word-break: break-word;
   }
 
   td::before {
     content: attr(data-label);
     color: var(--muted);
+    font-size: 11px;
     font-weight: 900;
+  }
+
+  .record-card-number .inline-edit {
+    min-height: 42px;
+    font-size: 16px;
+    font-weight: 900;
+  }
+
+  .record-tracking {
+    border: 1px solid rgba(14, 107, 99, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.58);
+    padding: 10px;
+  }
+
+  .tracking-cell {
+    gap: 8px;
+  }
+
+  .tracking-links {
+    gap: 7px;
+  }
+
+  .tracking-link,
+  .tracking-check-button,
+  .tracking-manual-select {
+    min-height: 34px;
+  }
+
+  .tracking-meta,
+  .tracking-detail {
+    max-width: none;
+    white-space: normal;
   }
 
   .row-actions {
     display: flex;
     grid-template-columns: none;
+    flex-direction: row;
     padding-top: 12px;
   }
 
