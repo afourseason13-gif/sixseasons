@@ -1085,7 +1085,7 @@ async function runScheduledTrackingMyCheck() {
   const malaysia = new Date(now.getTime() + (8 * 60 * 60 * 1000));
   const today = formatDateInMalaysia(now);
   const time = `${String(malaysia.getUTCHours()).padStart(2, "0")}:${String(malaysia.getUTCMinutes()).padStart(2, "0")}`;
-  if (!["12:00", "13:00"].includes(time)) return;
+  if (time !== "13:00") return;
 
   const slotKey = time.replace(":", "");
   const runRef = db.ref(`dealer-card-tracker/settings/trackingMySchedule/${today}/${slotKey}`);
