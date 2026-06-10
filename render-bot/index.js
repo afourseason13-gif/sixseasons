@@ -310,6 +310,41 @@ function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
   return commands;
 }
 
+function statusFromCommandLine(line) {
+  const source = String(line || "");
+  if (source.includes("\u4eba\u5934\u5173") || source.includes("\u516c\u6237") || source.includes("浜哄ご鍏") || source.includes("鍏埛")) return "\u4eba\u5934\u5173";
+  if (source.includes("\u5f39\u5361") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898") || source.includes("寮瑰崱")) return "\u5f39\u5361";
+  if (source.includes("\u70b8") || hasRejectedMark(source)) return "\u70b8";
+  if (source.includes("\u8fc7\u4fdd") || source.includes("杩囦繚")) return "\u8fc7\u4fdd";
+  if (source.includes("\u5f00\u4fdd") || source.includes("寮€淇")) return "\u5f00\u4fdd";
+  if (source.includes("\u5bc4") || source.includes("瀵")) return "\u5bc4";
+  if (source.includes("\u8f66\u624b\u5df2\u7b7e\u6536") || source.includes("\u7b7e\u6536")) return "\u8f66\u624b\u5df2\u7b7e\u6536";
+  return "";
+}
+
+function parseGeneralBulkRecordCommands(text, defaultWarrantyDate = "") {
+  const commands = [];
+  const seen = new Set();
+  for (const line of String(text || "").split(/\r?\n/)) {
+    const status = statusFromCommandLine(line);
+    if (!status) continue;
+    const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
+    for (const cardToken of cardTokens) {
+      if (seen.has(cardToken)) continue;
+      seen.add(cardToken);
+      commands.push({
+        action: "status",
+        status,
+        cardToken,
+        warrantyDate: parseCommandDate(text) || (status === "\u5f00\u4fdd" ? defaultWarrantyDate : ""),
+        warrantyDays: parseWarrantyDays(text)
+      });
+    }
+  }
+  return commands.length > 1 ? commands : [];
+}
+
 function undoWordsFromText(text) {
   return ["撤销导入", "撤銷導入", "取消导入", "取消導入"].some((item) => text.includes(item));
 }
@@ -318,7 +353,7 @@ function parseRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "")
   const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "炸"];
   const latestUndoWords = ["撤销导入", "撤銷導入", "取消导入", "取消導入"];
   const deleteWords = ["删除", "刪除", "撤回", "撤销", "撤銷", ...latestUndoWords];
-  const status = statuses.find((item) => text.includes(item)) || problemStatusFromText(text);
+  const status = statuses.find((item) => text.includes(item)) || statusFromCommandLine(text) || problemStatusFromText(text);
   const shouldDelete = deleteWords.some((item) => text.includes(item));
   if (!status && !shouldDelete) return null;
   if (replyMessageId && undoWordsFromText(text)) {
@@ -438,6 +473,25 @@ async function autoExpireWarrantyRecords() {
 
 async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
   await autoExpireWarrantyRecords();
+  const generalBulkCommands = parseGeneralBulkRecordCommands(text, defaultWarrantyDate);
+  if (generalBulkCommands.length) {
+    const results = [];
+    for (const command of generalBulkCommands) {
+      results.push(await applyRecordCommand(command));
+    }
+    const summary = {};
+    for (const item of results.filter((result) => result.ok)) {
+      summary[item.status] = (summary[item.status] || 0) + 1;
+    }
+    const summaryText = Object.entries(summary).map(([status, count]) => `${status}${count}`).join("\uff0c") || "0";
+    const missing = results.filter((item) => !item.ok).map((item) => item.cardToken);
+    const missingText = missing.length ? `\n\u627e\u4e0d\u5230\uff1a${missing.join(", ")}` : "";
+    return {
+      handled: true,
+      message: `\u6279\u91cf\u66f4\u65b0\u5b8c\u6210\uff1a${summaryText}${missingText}`
+    };
+  }
+
   const bulkCommands = parseBulkRecordCommands(text, defaultWarrantyDate);
   if (bulkCommands.length) {
     const results = [];
