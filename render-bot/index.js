@@ -694,10 +694,27 @@ function plainPageText(html) {
     .trim();
 }
 
+function isTrackingMyTemporaryFailure(text) {
+  const source = String(text || "").toLowerCase();
+  return [
+    "sorry, tracking failed",
+    "tracking failed",
+    "server is currently inaccessible",
+    "please refresh this page",
+    "try tracking your shipment again",
+    "our device caused this to happen"
+  ].some((item) => source.includes(item));
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function normalizeTrackingMyStatus(text) {
   const source = String(text || "").toLowerCase();
   const hasAny = (items) => items.some((item) => source.includes(item));
   const hasWord = (word) => new RegExp(`\\b${word}\\b`, "i").test(source);
+  if (isTrackingMyTemporaryFailure(source)) return "";
   if (
     hasWord("delivered") ||
     hasAny([
@@ -797,28 +814,37 @@ async function fetchTrackingMyStatus(record) {
   ];
 
   for (const url of urls) {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9,ms;q=0.8",
+            "Cache-Control": "no-cache"
+          }
+        });
+        if (!response.ok) continue;
+        const html = await response.text();
+        const text = plainPageText(html);
+        if (isTrackingMyTemporaryFailure(text)) {
+          if (attempt < 3) await sleep(3500);
+          continue;
         }
-      });
-      if (!response.ok) continue;
-      const html = await response.text();
-      const text = plainPageText(html);
-      const status = normalizeTrackingMyStatus(text);
-      if (status) {
-        return {
-          ok: true,
-          status,
-          label: trackingStatusLabel(status),
-          detail: trackingStatusSnippet(text, status),
-          url
-        };
+        const status = normalizeTrackingMyStatus(text);
+        if (status) {
+          return {
+            ok: true,
+            status,
+            label: trackingStatusLabel(status),
+            detail: trackingStatusSnippet(text, status),
+            url
+          };
+        }
+      } catch (error) {
+        console.error(error);
+        if (attempt < 3) await sleep(3500);
       }
-    } catch (error) {
-      console.error(error);
     }
   }
 
@@ -859,7 +885,9 @@ async function checkTrackingMyRecords(targetRecordId = "") {
     if (!result.ok) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).update({
         trackingMyLastError: result.reason,
-        trackingMyCheckedAt: new Date().toISOString()
+        trackingMyDetail: result.reason === "unable_to_parse_tracking_my" ? "Tracking.my/J&T 暂时查不到真实状态，已保留原状态。" : result.reason,
+        trackingMyCheckedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
       continue;
     }
