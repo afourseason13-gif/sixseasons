@@ -854,13 +854,15 @@ function renderTrackingCell(record) {
   }
   manualSelect.addEventListener("change", async () => {
     if (!manualSelect.value) return;
-    await saveRecord({
+    const nextRecord = {
       ...record,
       packageStatus: manualSelect.value,
       trackingMyDetail: `\u624b\u52a8\u66f4\u65b0: ${manualSelect.value}`,
       trackingMyCheckedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    });
+    };
+    if (manualSelect.value === "\u5df2\u9001\u8fbe") nextRecord.deliveredAt = malaysiaDateString();
+    await saveRecord(nextRecord);
   });
 
   links.append(jntLink, trackingMyLink);

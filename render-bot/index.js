@@ -944,7 +944,66 @@ async function getTrackingChatId() {
   return announceChatId || (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
 }
 
-async function checkTrackingMyRecords(targetRecordId = "") {
+function trackingCarrierCode(record) {
+  const source = `${record.carrier || ""} ${record.carrierCode || ""}`.toUpperCase();
+  if (source.includes("J&T") || source.includes("JNT") || source.includes("JT")) return "JNT";
+  if (source.includes("POS")) return "POS";
+  if (source.includes("NINJA")) return "NINJA";
+  if (source.includes("GDEX")) return "GDEX";
+  if (source.includes("CITY")) return "CITY";
+  if (source.includes("FLASH")) return "FLASH";
+  if (source.includes("SPX") || source.includes("SHOPEE")) return "SPX";
+  if (source.includes("LAZ") || source.includes("LEX")) return "LEX";
+  if (source.includes("SKYNET")) return "SKY";
+  return clean(record.carrier || "PKG").split(/\s+/)[0].toUpperCase().slice(0, 6) || "PKG";
+}
+
+function trackingTail(record) {
+  const tail = clean(record.tailNumber).replace(/\D/g, "").slice(-4);
+  if (tail) return tail;
+  const digits = clean(record.trackingNumber).replace(/\D/g, "");
+  return digits.slice(-4) || "XXXX";
+}
+
+function packageStatusText(record) {
+  const status = clean(record.packageStatus);
+  if (status.includes("\u5df2\u9001\u8fbe") || record.lastTrackingNotifyStatus === "delivered") return "\u9001\u8fbe";
+  if (status.includes("\u6d3e\u9001")) return "\u6d3e\u9001\u4e2d";
+  if (status.includes("\u5f02\u5e38")) return "\u5f02\u5e38";
+  if (status.includes("\u8fd0\u8f93")) return "\u8fd0\u8f93\u4e2d";
+  return status || "\u672a\u68c0\u67e5";
+}
+
+function shouldIncludeTrackingSummary(record, today) {
+  if (!isFullTrackingNumber(record.trackingNumber)) return false;
+  if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) >= today) return false;
+  return !(record.packageStatus === "\u5df2\u9001\u8fbe" && record.deliveredAt && record.deliveredAt < today);
+}
+
+function buildTrackingSummaryMessage(records, today) {
+  const summaryRecords = records
+    .filter((record) => shouldIncludeTrackingSummary(record, today))
+    .sort((a, b) => {
+      return `${trackingCarrierCode(a)}${trackingTail(a)}${clean(a.cardNumber)}`.localeCompare(`${trackingCarrierCode(b)}${trackingTail(b)}${clean(b.cardNumber)}`);
+    });
+
+  if (!summaryRecords.length) return "";
+  const lines = summaryRecords.map((record) => {
+    return `${trackingCarrierCode(record)}(${trackingTail(record)}) ${clean(record.cardNumber || "-")} ${packageStatusText(record)}`;
+  });
+  return ["\u5305\u88f9\u72b6\u6001\u6c47\u603b", today, "", ...lines].join("\n");
+}
+
+async function sendTrackingSummary(records, today) {
+  const chatId = await getTrackingChatId();
+  if (!chatId) return false;
+  const message = buildTrackingSummaryMessage(records, today);
+  if (!message) return false;
+  await sendTelegramMessage(chatId, message);
+  return true;
+}
+
+async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
   const today = formatDateInMalaysia(new Date());
   const snapshot = await db.ref("dealer-card-tracker/records").get();
   const records = Object.entries(snapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
@@ -992,7 +1051,7 @@ async function checkTrackingMyRecords(targetRecordId = "") {
     };
     if (result.status === "delivered" && !record.deliveredAt) updateData.deliveredAt = today;
 
-    if (record.lastTrackingNotifyStatus !== result.status && chatId) {
+    if (options.sendIndividualNotifications && record.lastTrackingNotifyStatus !== result.status && chatId) {
       const message = [
         `\u5305\u88f9${result.label}`,
         "",
@@ -1011,7 +1070,14 @@ async function checkTrackingMyRecords(targetRecordId = "") {
     await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
   }
 
-  return { checked, notified, deleted, skippedToday };
+  let summarySent = false;
+  if (options.sendSummary) {
+    const latestSnapshot = await db.ref("dealer-card-tracker/records").get();
+    const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
+    summarySent = await sendTrackingSummary(latestRecords, today);
+  }
+
+  return { checked, notified, deleted, skippedToday, summarySent };
 }
 
 async function runScheduledTrackingMyCheck() {
@@ -1027,7 +1093,7 @@ async function runScheduledTrackingMyCheck() {
   if (alreadyRun) return;
 
   await runRef.set(new Date().toISOString());
-  const result = await checkTrackingMyRecords();
+  const result = await checkTrackingMyRecords("", { sendSummary: true });
   await db.ref("dealer-card-tracker/settings/trackingMyLastRun").set({
     ...result,
     slot: time,
