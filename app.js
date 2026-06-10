@@ -758,16 +758,24 @@ async function checkTrackingRecord(record) {
   }
   checkingTrackingRecords.add(record.id);
   renderCurrentPage();
+  let timeout;
   try {
-    const response = await fetch(`${trackingCheckEndpoint}?id=${encodeURIComponent(record.id)}`);
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), 35000);
+    const response = await fetch(`${trackingCheckEndpoint}?id=${encodeURIComponent(record.id)}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.message || `HTTP ${response.status}`);
     if (!result.checked && !result.deleted && !result.skippedToday) {
       alert("没有查到这个包裹。请确认包裹公司和完整单号。");
     }
   } catch (error) {
-    alert(`检查失败：${error.message || "后台没有回应"}`);
+    const message = error.name === "AbortError" ? "请求超时，Render 后台太久没有回应" : (error.message || "后台没有回应");
+    alert(`检查失败：${message}`);
   } finally {
+    if (timeout) clearTimeout(timeout);
     checkingTrackingRecords.delete(record.id);
     renderCurrentPage();
   }

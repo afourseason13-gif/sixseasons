@@ -3,6 +3,16 @@ const admin = require("firebase-admin");
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
+app.use((req, res, next) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+  next();
+});
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const databaseURL = process.env.FIREBASE_DATABASE_URL;
@@ -701,7 +711,8 @@ function trackingMySlugs(record) {
     guessed.push("spx", "lazada", "jt");
   }
 
-  return [...new Set([selected, ...guessed, "jt", "poslaju", "ninjavan", "gdex", "citylink", "flash", "spx", "lazada", "skynet"].filter(Boolean))].slice(0, 5);
+  const slugs = [...new Set([selected, ...guessed].filter(Boolean))];
+  return slugs.length ? slugs.slice(0, 3) : ["jt", "poslaju"];
 }
 
 function officialTrackingUrls(record) {
@@ -770,6 +781,16 @@ function isTrackingMyTemporaryFailure(text) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function normalizeTrackingMyStatus(text) {
@@ -864,9 +885,9 @@ function trackingStatusSnippet(text, status) {
 
 async function fetchStatusFromUrls(urls, sourceName) {
   for (const url of urls) {
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -878,7 +899,7 @@ async function fetchStatusFromUrls(urls, sourceName) {
         const html = await response.text();
         const text = plainPageText(html);
         if (sourceName === "Tracking.my" && isTrackingMyTemporaryFailure(text)) {
-          if (attempt < 3) await sleep(3500);
+          if (attempt < 2) await sleep(1200);
           continue;
         }
         const status = normalizeTrackingMyStatus(text);
@@ -894,7 +915,7 @@ async function fetchStatusFromUrls(urls, sourceName) {
         }
       } catch (error) {
         console.error(error);
-        if (attempt < 3) await sleep(3500);
+        if (attempt < 2) await sleep(1200);
       }
     }
   }
@@ -909,16 +930,13 @@ async function fetchTrackingMyStatus(record) {
   const encodedNumber = encodeURIComponent(number);
   const urls = slugs.flatMap((slug) => {
     const encodedSlug = encodeURIComponent(slug);
-    return [
-      `https://www.tracking.my/${encodedSlug}/${encodedNumber}`,
-      `https://www.tracking.my/${encodedSlug}?tracking_number=${encodedNumber}`
-    ];
+    return [`https://www.tracking.my/${encodedSlug}/${encodedNumber}`];
   });
 
   const trackingMyResult = await fetchStatusFromUrls(urls, "Tracking.my");
   if (trackingMyResult.ok) return trackingMyResult;
 
-  const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "官网");
+  const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "\u5b98\u7f51");
   if (officialResult.ok) return officialResult;
 
   return { ok: false, reason: "unable_to_parse_tracking_status" };
@@ -948,7 +966,7 @@ async function checkTrackingMyRecords(targetRecordId = "") {
       continue;
     }
 
-    if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) === today) {
+    if (!targetRecordId && formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) === today) {
       skippedToday += 1;
       continue;
     }
