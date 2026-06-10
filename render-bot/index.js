@@ -20,6 +20,7 @@ const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 const announceSecret = process.env.ANNOUNCE_SECRET || "";
 const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
 const trackingMoreApiKey = process.env.TRACKINGMORE_API_KEY || "";
+const trackingSummaryEnabled = process.env.TRACKING_SUMMARY_ENABLED === "true";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -1071,7 +1072,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
   }
 
   let summarySent = false;
-  if (options.sendSummary) {
+  if (options.sendSummary && trackingSummaryEnabled) {
     const latestSnapshot = await db.ref("dealer-card-tracker/records").get();
     const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
     summarySent = await sendTrackingSummary(latestRecords, today);
