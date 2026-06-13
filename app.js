@@ -820,24 +820,6 @@ function renderTrackingCell(record) {
   checkButton.disabled = checkingTrackingRecords.has(record.id);
   checkButton.addEventListener("click", () => checkTrackingRecord(record));
 
-  const links = document.createElement("div");
-  links.className = "tracking-links";
-
-  const trackingMyLink = document.createElement("a");
-  trackingMyLink.className = "tracking-link";
-  const courierSlug = (record.carrier || "").toLowerCase().includes("pos") ? "poslaju" : "jt";
-  trackingMyLink.href = `https://www.tracking.my/${courierSlug}/${encodeURIComponent(record.trackingNumber || "")}`;
-  trackingMyLink.target = "_blank";
-  trackingMyLink.rel = "noopener";
-  trackingMyLink.textContent = "Tracking.my";
-
-  const jntLink = document.createElement("a");
-  jntLink.className = "tracking-link";
-  jntLink.href = "https://www.jtexpress.my/tracking";
-  jntLink.target = "_blank";
-  jntLink.rel = "noopener";
-  jntLink.textContent = "J&T";
-
   const manualSelect = document.createElement("select");
   manualSelect.className = "inline-edit tracking-manual-select";
   const manualOptions = [
@@ -867,8 +849,7 @@ function renderTrackingCell(record) {
     await saveRecord(nextRecord);
   });
 
-  links.append(jntLink, trackingMyLink);
-  wrap.append(numberInput, status, meta, detail, checkButton, links, manualSelect);
+  wrap.append(numberInput, status, meta, detail, checkButton, manualSelect);
   return wrap;
 }
 

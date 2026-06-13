@@ -1101,6 +1101,38 @@ async function fetchStatusFromUrls(urls, sourceName, trackingNumber = "") {
   return { ok: false };
 }
 
+async function fetchPosMalaysiaApiStatus(trackingNumber) {
+  const number = clean(trackingNumber);
+  if (!number) return { ok: false };
+  const url = `https://apis.pos.com.my/apigateway/as2corporate/api/v2trackntracewebapijson/v1/?id=${encodeURIComponent(number)}`;
+  try {
+    const response = await fetchWithTimeout(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json,text/plain,*/*",
+        "Referer": "https://tracking.pos.com.my/"
+      }
+    }, 12000);
+    if (!response.ok) return { ok: false };
+    const result = await response.json();
+    const text = JSON.stringify(result);
+    if (!text || text === "{}" || text === "[]" || /not found|no record|invalid/i.test(text)) return { ok: false };
+    const status = normalizeTrackingMyStatus(text);
+    if (!status) return { ok: false };
+    return {
+      ok: true,
+      status,
+      label: trackingStatusLabel(status),
+      detail: trackingStatusSnippet(text, status),
+      url,
+      source: "Pos Malaysia"
+    };
+  } catch (error) {
+    console.error(error);
+    return { ok: false };
+  }
+}
+
 async function fetchTrackingMyStatus(record) {
   const number = clean(record.trackingNumber);
   const slugs = trackingMySlugs(record);
@@ -1109,6 +1141,11 @@ async function fetchTrackingMyStatus(record) {
   for (const slug of slugs) {
     const socketResult = await fetchTrackingMySocketStatus(slug, number);
     if (socketResult.ok) return socketResult;
+  }
+
+  if (slugs.includes("poslaju")) {
+    const posResult = await fetchPosMalaysiaApiStatus(number);
+    if (posResult.ok) return posResult;
   }
 
   return { ok: false, reason: "unable_to_parse_tracking_status" };
@@ -1145,6 +1182,7 @@ function packageStatusText(record) {
   if (status.includes("\u6d3e\u9001")) return "\u6d3e\u9001\u4e2d";
   if (status.includes("\u5f02\u5e38")) return "\u5f02\u5e38\u6709\u95ee\u9898";
   if (status.includes("\u8fd0\u8f93")) return "\u8fd0\u8f93\u4e2d";
+  if (status.includes("\u6682\u65f6\u67e5\u4e0d\u5230")) return "\u6682\u65f6\u67e5\u4e0d\u5230";
   return status || "\u672a\u68c0\u67e5";
 }
 
@@ -1207,6 +1245,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
     const result = await fetchTrackingMyStatus(record);
     if (!result.ok) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).update({
+        packageStatus: "\u6682\u65f6\u67e5\u4e0d\u5230",
         trackingMyLastError: result.reason,
         trackingMyDetail: result.reason === "unable_to_parse_tracking_status"
           ? "Tracking.my 暂时没有返回这个单号的真实状态，已保留原状态。"
