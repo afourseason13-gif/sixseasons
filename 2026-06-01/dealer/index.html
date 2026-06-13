@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dealer 名单</title>
+    <link rel="stylesheet" href="./styles.css?v=20260611-status-board" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="总览">
+        <div>
+          <p class="eyebrow">Dealer Tracking</p>
+          <h1>Dealer 名单</h1>
+        </div>
+        <div class="sync-card" id="syncStatus">
+          <span class="dot"></span>
+          <span>正在检查同步</span>
+        </div>
+      </section>
+
+      <section class="index-hero" aria-label="Dealer 工作台">
+        <div>
+          <p class="eyebrow">Workspace · 新版名单</p>
+          <h2>Dealer 工作台</h2>
+          <p class="hero-copy">每个 Dealer 都有自己的独立资料页，点卡片进入管理。</p>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span>当前名单</span>
+            <strong id="heroDealerCount">0</strong>
+          </div>
+          <div class="hero-stat">
+            <span>实时同步</span>
+            <strong>ON</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="notice-panel" aria-label="实时通知">
+        <div class="notice-view">
+          <div>
+            <p class="eyebrow">Live Notice</p>
+            <h2>实时通知</h2>
+          </div>
+          <button class="ghost notice-edit" type="button" id="editNoticeButton">修改通知</button>
+        </div>
+        <p class="notice-message" id="noticeMessage">暂无通知</p>
+        <form id="noticeForm" class="notice-form" autocomplete="off" hidden>
+          <label>
+            <span>通知内容</span>
+            <textarea id="noticeInput" rows="3" placeholder="输入要让大家看到的实时消息"></textarea>
+          </label>
+          <div class="actions">
+            <button class="primary" type="submit">保存通知</button>
+            <button class="ghost" type="button" id="cancelNoticeButton">取消</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="quote-panel" aria-label="团队语录">
+        <p>先斩后奏 · 行走西方 · 取之社会 · 回归社会</p>
+      </section>
+
+      <section class="announce-panel" aria-label="发送群公告">
+        <div class="notice-view">
+          <div>
+            <p class="eyebrow">Telegram</p>
+            <h2>发送群公告</h2>
+          </div>
+          <span class="announce-status" id="announceStatus">机器人公告</span>
+        </div>
+        <form id="announceForm" class="announce-form" autocomplete="off">
+          <label class="wide">
+            <span>公告内容</span>
+            <textarea id="announceMessage" rows="4" placeholder="输入要发到 Telegram 群的公告"></textarea>
+          </label>
+          <div class="announce-side">
+            <label>
+              <span>公告密码</span>
+              <input id="announceSecret" type="password" placeholder="Render 里设置的密码" />
+            </label>
+            <button class="primary" type="submit">发送到群</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel form-panel index-add-panel" aria-label="添加 dealer">
+        <div class="panel-title compact">
+          <div>
+            <p class="eyebrow">New Dealer</p>
+            <h2>添加 Dealer</h2>
+          </div>
+        </div>
+        <form id="dealerForm" autocomplete="off">
+          <label class="wide">
+            <span>Dealer 名字</span>
+            <input id="newDealerName" required placeholder="例如: Dealer 1" />
+          </label>
+          <div class="actions">
+            <button class="primary" type="submit">添加到名单</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="toolbar" aria-label="搜索">
+        <div class="search-wrap">
+          <span aria-hidden="true">⌕</span>
+          <input id="searchInput" placeholder="搜索 dealer 名字" />
+        </div>
+        <div class="summary">
+          <strong id="totalCount">0</strong>
+          <span>个 dealer</span>
+        </div>
+      </section>
+
+      <section class="dealer-section" aria-label="Dealer 列表">
+        <div class="panel-title compact">
+          <div>
+            <p class="eyebrow">Directory</p>
+            <h2>Dealer 列表</h2>
+          </div>
+        </div>
+        <div class="dealer-list" id="dealerList"></div>
+        <div class="empty-state" id="emptyState">
+          <h2>还没有 Dealer</h2>
+          <p>先添加一个 Dealer，然后点进去管理他的卡号资料。</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="./firebase-config.js"></script>
+    <script src="./app.js?v=20260611-status-board"></script>
+  </body>
+</html>
