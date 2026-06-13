@@ -37,6 +37,32 @@
         </div>
       </section>
 
+      <section class="card-dealer-finder" aria-label="卡号查找 Dealer">
+        <div class="card-finder-heading">
+          <div>
+            <p class="eyebrow">Card Lookup</p>
+            <h2>卡号查 Dealer</h2>
+          </div>
+          <span class="card-finder-count" id="cardFinderCount">输入卡号查找</span>
+        </div>
+        <div class="card-finder-search">
+          <input id="cardFinderInput" autocomplete="off" placeholder="例如：MBB1234" />
+          <button class="primary" type="button" id="cardFinderButton">查找</button>
+        </div>
+        <div class="card-finder-results" id="cardFinderResults" hidden></div>
+      </section>
+
+      <section class="home-transit-board" aria-label="包裹还没到">
+        <div class="card-finder-heading">
+          <div>
+            <p class="eyebrow">Package Status</p>
+            <h2>包裹还没到 / 运输中</h2>
+          </div>
+          <span class="card-finder-count" id="homeTransitCount">0 张</span>
+        </div>
+        <div class="home-transit-list" id="homeTransitList"></div>
+      </section>
+
       <section class="notice-panel" aria-label="实时通知">
         <div class="notice-view">
           <div>
@@ -130,6 +156,6 @@
     </main>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260611-status-board"></script>
+    <script src="./app.js?v=20260613-card-finder"></script>
   </body>
 </html>

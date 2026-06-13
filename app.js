@@ -113,6 +113,10 @@ function dealerUrl(name) {
   return `./dealer.html?name=${encodeURIComponent(name)}`;
 }
 
+function normalizeCardLookup(value) {
+  return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 function readJson(key, fallback = []) {
   try {
     return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
@@ -397,6 +401,8 @@ function initIndexPage() {
   const announceMessage = document.querySelector("#announceMessage");
   const announceSecret = document.querySelector("#announceSecret");
   const announceStatus = document.querySelector("#announceStatus");
+  const cardFinderInput = document.querySelector("#cardFinderInput");
+  const cardFinderButton = document.querySelector("#cardFinderButton");
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -457,7 +463,92 @@ function initIndexPage() {
   });
 
   searchInput.addEventListener("input", renderIndexPage);
+  cardFinderInput.addEventListener("input", renderCardDealerFinder);
+  cardFinderInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      renderCardDealerFinder();
+    }
+  });
+  cardFinderButton.addEventListener("click", renderCardDealerFinder);
   renderIndexPage();
+}
+
+function renderCardDealerFinder() {
+  const input = document.querySelector("#cardFinderInput");
+  const results = document.querySelector("#cardFinderResults");
+  const count = document.querySelector("#cardFinderCount");
+  if (!input || !results || !count) return;
+
+  const query = normalizeCardLookup(input.value);
+  results.textContent = "";
+  if (!query) {
+    results.hidden = true;
+    count.textContent = "输入卡号查找";
+    return;
+  }
+
+  const matches = records
+    .filter((record) => normalizeCardLookup(record.cardNumber).includes(query))
+    .sort((a, b) => String(a.dealerName || "").localeCompare(String(b.dealerName || ""), "zh-CN"));
+
+  results.hidden = false;
+  count.textContent = matches.length ? `找到 ${matches.length} 条` : "找不到";
+  if (!matches.length) {
+    const empty = document.createElement("div");
+    empty.className = "card-finder-empty";
+    empty.textContent = `找不到卡号 ${input.value.trim()}`;
+    results.append(empty);
+    return;
+  }
+
+  for (const record of matches) {
+    const result = document.createElement("a");
+    result.className = "card-finder-result";
+    result.href = dealerUrl(record.dealerName || "");
+    result.innerHTML = `
+      <span class="card-finder-number">${escapeHtml(record.cardNumber || "-")}</span>
+      <span class="card-finder-dealer">${escapeHtml(record.dealerName || "未知 Dealer")}</span>
+      <span class="card-finder-status">${escapeHtml(record.status || "-")}</span>
+      <span class="card-finder-open">查看资料</span>
+    `;
+    results.append(result);
+  }
+}
+
+function renderHomeTransitBoard() {
+  const list = document.querySelector("#homeTransitList");
+  const count = document.querySelector("#homeTransitCount");
+  if (!list || !count) return;
+
+  const transitRecords = records
+    .filter((record) => {
+      const trackingNumber = String(record.trackingNumber || "").replace(/[^A-Za-z0-9]/g, "");
+      return trackingNumber.length >= 9 && !String(record.packageStatus || "").includes("\u5df2\u9001\u8fbe");
+    })
+    .sort((a, b) => String(a.cardNumber || "").localeCompare(String(b.cardNumber || "")));
+
+  list.textContent = "";
+  count.textContent = `${transitRecords.length} \u5f20`;
+  if (!transitRecords.length) {
+    const empty = document.createElement("div");
+    empty.className = "home-transit-empty";
+    empty.textContent = "\u6ca1\u6709\u8fd0\u8f93\u4e2d\u7684\u5361";
+    list.append(empty);
+    return;
+  }
+
+  for (const record of transitRecords) {
+    const item = document.createElement("a");
+    item.className = "home-transit-item";
+    item.href = dealerUrl(record.dealerName || "");
+    item.innerHTML = `
+      <strong>${escapeHtml(record.cardNumber || "-")}</strong>
+      <span>${escapeHtml(record.dealerName || "\u672a\u77e5 Dealer")}</span>
+      <em>${escapeHtml(record.packageStatus || "\u672a\u68c0\u67e5")}</em>
+    `;
+    list.append(item);
+  }
 }
 
 function renderIndexPage() {
@@ -503,6 +594,8 @@ function renderIndexPage() {
     card.append(removeButton);
     dealerList.append(card);
   }
+  renderCardDealerFinder();
+  renderHomeTransitBoard();
 }
 
 function initDealerPage() {

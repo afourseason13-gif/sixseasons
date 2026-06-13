@@ -73,16 +73,21 @@ function parseDealer(text, fallbackName = "") {
 function isImportMessage(text, fallbackName = "") {
   const dealer = pickLineValue(text, ["DEALER", "DEALER 名字", "代理"]) || text.match(/#dealer\s+(.+)/i);
 
-  const importantFields = [
-    pickLineValue(text, ["NAMA", "NAME"]),
-    pickLineValue(text, ["IC NO", "IC"]),
-    pickLineValue(text, ["BANK", "NAMA BANK"]),
-    pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
-    pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]),
-    pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
-  ].filter(Boolean);
+  const fields = {
+    name: pickLineValue(text, ["NAMA", "NAME"]),
+    ic: pickLineValue(text, ["IC NO", "IC"]),
+    bank: pickLineValue(text, ["BANK", "NAMA BANK"]),
+    account: pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
+    card: pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]),
+    pin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
+  };
+  const filledCount = Object.values(fields).filter(Boolean).length;
 
-  return Boolean(dealer || clean(fallbackName)) && importantFields.length >= 2;
+  // Require a clearly structured customer record so ordinary group chat is ignored.
+  return Boolean(dealer || clean(fallbackName))
+    && Boolean(fields.name && fields.ic && fields.bank && fields.account)
+    && Boolean(fields.card || fields.pin)
+    && filledCount >= 5;
 }
 
 function parseShipmentCode(text) {
