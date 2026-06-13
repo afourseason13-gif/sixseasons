@@ -754,7 +754,7 @@ function trackingMySlugs(record) {
   const guessed = [];
 
   if (/^[A-Z]{2}\d{9}MY$/.test(number) || /^[A-Z]{3}\d{9,12}MY$/.test(number) || number.endsWith("MY")) {
-    guessed.push("poslaju");
+    guessed.push("poslaju", "pos-malaysia", "pos");
   }
   if (/^\d{10,15}$/.test(number) || /^6\d{9,14}$/.test(number)) {
     guessed.push("jt");
@@ -767,7 +767,7 @@ function trackingMySlugs(record) {
   }
 
   const slugs = [...new Set([selected, ...guessed].filter(Boolean))];
-  return slugs.length ? slugs.slice(0, 3) : ["jt", "poslaju"];
+  return slugs.length ? slugs.slice(0, 5) : ["jt", "poslaju", "pos-malaysia", "pos"];
 }
 
 function officialTrackingUrls(record) {
@@ -903,7 +903,7 @@ function trackingMySocketPayload(html, slug, trackingNumber) {
   return null;
 }
 
-function requestTrackingMySocket(payload, timeoutMs = 15000) {
+function requestTrackingMySocketResponse(payload, acceptResult, timeoutMs = 15000) {
   return new Promise((resolve) => {
     const socket = new WebSocket("wss://www.tracking.my/websocket", {
       headers: {
@@ -929,7 +929,7 @@ function requestTrackingMySocket(payload, timeoutMs = 15000) {
     socket.on("message", (data) => {
       try {
         const result = JSON.parse(data.toString());
-        if (result?.latest_status) finish(result);
+        if (acceptResult(result)) finish(result);
       } catch (error) {
         // Ignore non-result messages and wait for the tracking response.
       }
@@ -937,6 +937,48 @@ function requestTrackingMySocket(payload, timeoutMs = 15000) {
     socket.on("error", () => finish(null));
     socket.on("close", () => finish(null));
   });
+}
+
+function requestTrackingMySocket(payload, timeoutMs = 15000) {
+  return requestTrackingMySocketResponse(payload, (result) => Boolean(result?.latest_status), timeoutMs);
+}
+
+function detectedTrackingMySlugs(result) {
+  const found = [];
+  const knownSlugs = new Set([
+    "jt", "pos", "poslaju", "pos-malaysia", "posmalaysia", "ninjavan",
+    "gdex", "citylink", "flash", "spx", "lazada", "skynet", "abx", "best", "dhl"
+  ]);
+  const visit = (value, key = "") => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, key));
+      return;
+    }
+    if (value && typeof value === "object") {
+      Object.entries(value).forEach(([childKey, childValue]) => visit(childValue, childKey));
+      return;
+    }
+    if (typeof value !== "string") return;
+    const normalizedKey = key.toLowerCase();
+    const normalizedValue = value.trim().toLowerCase();
+    if (
+      /^[a-z0-9-]{2,40}$/.test(normalizedValue) &&
+      (["courier", "courier_code", "courier_slug", "slug", "code"].includes(normalizedKey) || knownSlugs.has(normalizedValue))
+    ) {
+      found.push(normalizedValue);
+    }
+  };
+  visit(result);
+  return [...new Set(found)];
+}
+
+async function detectTrackingMySlugs(trackingNumber) {
+  const result = await requestTrackingMySocketResponse(
+    { action: "detect", tracking_number: clean(trackingNumber) },
+    (response) => detectedTrackingMySlugs(response).length > 0,
+    12000
+  );
+  return detectedTrackingMySlugs(result);
 }
 
 async function fetchTrackingMySocketStatus(slug, trackingNumber) {
@@ -1104,9 +1146,10 @@ async function fetchStatusFromUrls(urls, sourceName, trackingNumber = "") {
 async function fetchPosMalaysiaApiStatus(trackingNumber) {
   const number = clean(trackingNumber);
   if (!number) return { ok: false };
-  const url = `https://apis.pos.com.my/apigateway/as2corporate/api/v2trackntracewebapijson/v1/?id=${encodeURIComponent(number)}`;
+  const apiUrl = `https://apis.pos.com.my/apigateway/as2corporate/api/v2trackntracewebapijson/v1/?id=${encodeURIComponent(number)}`;
+  const officialUrl = `https://tracking.pos.com.my/tracking/${encodeURIComponent(number)}`;
   try {
-    const response = await fetchWithTimeout(url, {
+    const response = await fetchWithTimeout(apiUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0",
         "Accept": "application/json,text/plain,*/*",
@@ -1124,7 +1167,7 @@ async function fetchPosMalaysiaApiStatus(trackingNumber) {
       status,
       label: trackingStatusLabel(status),
       detail: trackingStatusSnippet(text, status),
-      url,
+      url: officialUrl,
       source: "Pos Malaysia"
     };
   } catch (error) {
@@ -1135,15 +1178,17 @@ async function fetchPosMalaysiaApiStatus(trackingNumber) {
 
 async function fetchTrackingMyStatus(record) {
   const number = clean(record.trackingNumber);
-  const slugs = trackingMySlugs(record);
-  if (!number || !slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
+  if (!number) return { ok: false, reason: "missing_tracking_or_courier" };
+  const detectedSlugs = await detectTrackingMySlugs(number);
+  const slugs = [...new Set([...detectedSlugs, ...trackingMySlugs(record)])];
+  if (!slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
 
   for (const slug of slugs) {
     const socketResult = await fetchTrackingMySocketStatus(slug, number);
     if (socketResult.ok) return socketResult;
   }
 
-  if (slugs.includes("poslaju")) {
+  if (slugs.some((slug) => slug.includes("pos"))) {
     const posResult = await fetchPosMalaysiaApiStatus(number);
     if (posResult.ok) return posResult;
   }
@@ -1189,6 +1234,8 @@ function packageStatusText(record) {
 function shouldIncludeTrackingSummary(record, today) {
   if (!isFullTrackingNumber(record.trackingNumber)) return false;
   if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) >= today) return false;
+  if (!record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today) return false;
+  if (record.trackingMyLastError) return false;
   return !(record.packageStatus === "\u5df2\u9001\u8fbe" && record.deliveredAt && record.deliveredAt < today);
 }
 
@@ -1228,7 +1275,11 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
   for (const record of records) {
     if (targetRecordId && record.key !== targetRecordId && record.id !== targetRecordId) continue;
     if (!isFullTrackingNumber(record.trackingNumber)) continue;
-    if (options.onlyOutForDelivery && packageStatusText(record) !== "\u6d3e\u9001\u4e2d") continue;
+    if (
+      options.onlyNeedsEveningCheck &&
+      packageStatusText(record) !== "\u6d3e\u9001\u4e2d" &&
+      !(record.trackingMyLastError || !record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today)
+    ) continue;
 
     if ((record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") && record.deliveredAt && record.deliveredAt < today) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
@@ -1260,6 +1311,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
       packageStatus: result.label,
       trackingMyDetail: result.source ? `${result.source}: ${result.detail}` : result.detail,
       trackingMyUrl: result.url,
+      trackingMyLastError: null,
       trackingMyCheckedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1322,7 +1374,7 @@ async function runScheduledTrackingMyCheck() {
     };
   } else {
     result = await checkTrackingMyRecords("", {
-      onlyOutForDelivery: true,
+      onlyNeedsEveningCheck: true,
       sendDeliveredNotifications: true
     });
   }
