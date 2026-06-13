@@ -754,10 +754,6 @@ function statusClassName(status) {
 }
 
 async function checkTrackingRecord(record) {
-  if (record.trackingNumber && String(record.carrier || "").toLowerCase().includes("pos")) {
-    window.open(`https://tracking.pos.com.my/tracking/${encodeURIComponent(record.trackingNumber.trim())}`, "_blank", "noopener");
-    return;
-  }
   if (!record.trackingNumber) {
     alert("请先填写完整包裹单号，不能只填尾号码。");
     return;
