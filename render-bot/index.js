@@ -279,6 +279,13 @@ function addDays(dateText, days) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
+function daysSince(dateText, todayText) {
+  const start = new Date(`${dateText}T00:00:00Z`).getTime();
+  const end = new Date(`${todayText}T00:00:00Z`).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return 1;
+  return Math.max(1, Math.floor((end - start) / (24 * 60 * 60 * 1000)) + 1);
+}
+
 function hasRejectedMark(text) {
   return /[❌✕×]/.test(text);
 }
@@ -350,6 +357,24 @@ function parseGeneralBulkRecordCommands(text, defaultWarrantyDate = "") {
   return commands.length > 1 ? commands : [];
 }
 
+function parseDriverSignedCommands(text) {
+  const source = String(text || "");
+  if (!source.includes("车手已签收") && !source.includes("车手已拿")) return [];
+
+  const commands = [];
+  const seen = new Set();
+  for (const line of source.split(/\r?\n/)) {
+    const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
+    if (!cardTokens.length) continue;
+    const cardToken = cardTokens[cardTokens.length - 1];
+    if (seen.has(cardToken)) continue;
+    seen.add(cardToken);
+    commands.push({ action: "deleteDriverSigned", cardToken });
+  }
+  return commands;
+}
+
 function undoWordsFromText(text) {
   return ["撤销导入", "撤銷導入", "取消导入", "取消導入"].some((item) => text.includes(item));
 }
@@ -418,9 +443,13 @@ async function applyRecordCommand(command) {
     return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
   }
 
-  if (command.action === "delete") {
+  if (command.action === "delete" || command.action === "deleteDriverSigned") {
     await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
-    return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: "删除" };
+    return {
+      ok: true,
+      cardNumber: record.cardNumber || command.cardToken,
+      status: command.action === "deleteDriverSigned" ? "车手已签收" : "删除"
+    };
   }
 
   const updateData = {
@@ -478,6 +507,22 @@ async function autoExpireWarrantyRecords() {
 
 async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
   await autoExpireWarrantyRecords();
+  const signedCommands = parseDriverSignedCommands(text);
+  if (signedCommands.length) {
+    const results = [];
+    for (const command of signedCommands) {
+      results.push(await applyRecordCommand(command));
+    }
+    const deleted = results.filter((result) => result.ok);
+    const missing = results.filter((result) => !result.ok).map((result) => result.cardToken);
+    const deletedText = deleted.length ? `\n${deleted.map((result) => result.cardNumber).join("\n")}` : "";
+    const missingText = missing.length ? `\n找不到：${missing.join(", ")}` : "";
+    return {
+      handled: true,
+      message: `车手已签收，已删除 ${deleted.length} 条${deletedText}${missingText}`
+    };
+  }
+
   const generalBulkCommands = parseGeneralBulkRecordCommands(text, defaultWarrantyDate);
   if (generalBulkCommands.length) {
     const results = [];
@@ -1231,9 +1276,11 @@ function trackingTail(record) {
   return digits.slice(-4) || "XXXX";
 }
 
-function packageStatusText(record) {
+function packageStatusText(record, today = formatDateInMalaysia(new Date())) {
   const status = clean(record.packageStatus);
-  if (status.includes("\u5df2\u9001\u8fbe") || record.lastTrackingNotifyStatus === "delivered") return "\u9001\u8fbe";
+  if (status.includes("\u5df2\u9001\u8fbe") || record.lastTrackingNotifyStatus === "delivered") {
+    return `\u5df2\u9001\u8fbe\u7b2c${daysSince(record.deliveredAt || today, today)}\u5929`;
+  }
   if (status.includes("\u6d3e\u9001")) return "\u6d3e\u9001\u4e2d";
   if (status.includes("\u5f02\u5e38")) return "\u5f02\u5e38\u6709\u95ee\u9898";
   if (status.includes("\u8fd0\u8f93")) return "\u8fd0\u8f93\u4e2d";
@@ -1244,9 +1291,10 @@ function packageStatusText(record) {
 function shouldIncludeTrackingSummary(record, today) {
   if (!isFullTrackingNumber(record.trackingNumber)) return false;
   if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) >= today) return false;
+  if (record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") return true;
   if (!record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today) return false;
   if (record.trackingMyLastError) return false;
-  return !(record.packageStatus === "\u5df2\u9001\u8fbe" && record.deliveredAt && record.deliveredAt < today);
+  return true;
 }
 
 function buildTrackingSummaryMessage(records, today) {
@@ -1258,7 +1306,7 @@ function buildTrackingSummaryMessage(records, today) {
 
   if (!summaryRecords.length) return "";
   const lines = summaryRecords.map((record) => {
-    return `${clean(record.cardNumber || "-")} ${packageStatusText(record)}`;
+    return `${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}`;
   });
   return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines].join("\n");
 }
@@ -1291,9 +1339,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
       !(record.trackingMyLastError || !record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today)
     ) continue;
 
-    if ((record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") && record.deliveredAt && record.deliveredAt < today) {
-      await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
-      deleted += 1;
+    if (!targetRecordId && (record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered")) {
       continue;
     }
 
