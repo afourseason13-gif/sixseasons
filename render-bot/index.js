@@ -21,7 +21,6 @@ const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 const announceSecret = process.env.ANNOUNCE_SECRET || "";
 const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
 const trackingMoreApiKey = process.env.TRACKINGMORE_API_KEY || "";
-const trackingSummaryEnabled = process.env.TRACKING_SUMMARY_ENABLED === "true";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -1112,10 +1111,7 @@ async function fetchTrackingMyStatus(record) {
     if (socketResult.ok) return socketResult;
   }
 
-  const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "\u5b98\u7f51", number);
-  if (officialResult.ok) return officialResult;
-
-  return { ok: false, reason: trackingMySlug(record) === "jt" ? "jnt_tracking_not_found" : "unable_to_parse_tracking_status" };
+  return { ok: false, reason: "unable_to_parse_tracking_status" };
 }
 
 async function getTrackingChatId() {
@@ -1147,7 +1143,7 @@ function packageStatusText(record) {
   const status = clean(record.packageStatus);
   if (status.includes("\u5df2\u9001\u8fbe") || record.lastTrackingNotifyStatus === "delivered") return "\u9001\u8fbe";
   if (status.includes("\u6d3e\u9001")) return "\u6d3e\u9001\u4e2d";
-  if (status.includes("\u5f02\u5e38")) return "\u5f02\u5e38";
+  if (status.includes("\u5f02\u5e38")) return "\u5f02\u5e38\u6709\u95ee\u9898";
   if (status.includes("\u8fd0\u8f93")) return "\u8fd0\u8f93\u4e2d";
   return status || "\u672a\u68c0\u67e5";
 }
@@ -1167,9 +1163,9 @@ function buildTrackingSummaryMessage(records, today) {
 
   if (!summaryRecords.length) return "";
   const lines = summaryRecords.map((record) => {
-    return `${trackingCarrierCode(record)}(${trackingTail(record)}) ${clean(record.cardNumber || "-")} ${packageStatusText(record)}`;
+    return `${clean(record.cardNumber || "-")} ${packageStatusText(record)}`;
   });
-  return ["\u5305\u88f9\u72b6\u6001\u6c47\u603b", today, "", ...lines].join("\n");
+  return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines].join("\n");
 }
 
 async function sendTrackingSummary(records, today) {
@@ -1194,6 +1190,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
   for (const record of records) {
     if (targetRecordId && record.key !== targetRecordId && record.id !== targetRecordId) continue;
     if (!isFullTrackingNumber(record.trackingNumber)) continue;
+    if (options.onlyOutForDelivery && packageStatusText(record) !== "\u6d3e\u9001\u4e2d") continue;
 
     if ((record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") && record.deliveredAt && record.deliveredAt < today) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
@@ -1211,9 +1208,9 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
     if (!result.ok) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).update({
         trackingMyLastError: result.reason,
-        trackingMyDetail: result.reason === "jnt_tracking_not_found"
-          ? "Tracking.my 和 J&T 官网都暂时没有拿到真实状态，已保留原状态。"
-          : (result.reason === "unable_to_parse_tracking_status" ? "Tracking.my 和官网都暂时查不到真实状态，已保留原状态。" : result.reason),
+        trackingMyDetail: result.reason === "unable_to_parse_tracking_status"
+          ? "Tracking.my 暂时没有返回这个单号的真实状态，已保留原状态。"
+          : result.reason,
         trackingMyCheckedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -1229,7 +1226,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
     };
     if (result.status === "delivered" && !record.deliveredAt) updateData.deliveredAt = today;
 
-    if (options.sendIndividualNotifications && record.lastTrackingNotifyStatus !== result.status && chatId) {
+    if (options.sendDeliveredNotifications && result.status === "delivered" && record.lastTrackingNotifyStatus !== "delivered" && chatId) {
       const message = [
         `\u5305\u88f9${result.label}`,
         "",
@@ -1240,7 +1237,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
         result.source ? `来源: ${result.source}` : "",
         result.detail ? `\u72b6\u6001: ${result.detail}` : ""
       ].filter(Boolean).join("\n");
-      await sendTelegramMessage(chatId, message);
+      await sendTelegramMessage(chatId, `${clean(record.cardNumber || "-")} \u5df2\u9001\u8fbe`);
       updateData.lastTrackingNotifyStatus = result.status;
       notified += 1;
     }
@@ -1249,7 +1246,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
   }
 
   let summarySent = false;
-  if (options.sendSummary && trackingSummaryEnabled) {
+  if (options.sendSummary) {
     const latestSnapshot = await db.ref("dealer-card-tracker/records").get();
     const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
     summarySent = await sendTrackingSummary(latestRecords, today);
@@ -1263,7 +1260,7 @@ async function runScheduledTrackingMyCheck() {
   const malaysia = new Date(now.getTime() + (8 * 60 * 60 * 1000));
   const today = formatDateInMalaysia(now);
   const time = `${String(malaysia.getUTCHours()).padStart(2, "0")}:${String(malaysia.getUTCMinutes()).padStart(2, "0")}`;
-  if (time !== "13:00") return;
+  if (!["12:30", "13:00", "20:00"].includes(time)) return;
 
   const slotKey = time.replace(":", "");
   const runRef = db.ref(`dealer-card-tracker/settings/trackingMySchedule/${today}/${slotKey}`);
@@ -1271,7 +1268,25 @@ async function runScheduledTrackingMyCheck() {
   if (alreadyRun) return;
 
   await runRef.set(new Date().toISOString());
-  const result = await checkTrackingMyRecords("", { sendSummary: true });
+  let result;
+  if (time === "12:30") {
+    result = await checkTrackingMyRecords();
+  } else if (time === "13:00") {
+    const latestSnapshot = await db.ref("dealer-card-tracker/records").get();
+    const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
+    result = {
+      checked: 0,
+      notified: 0,
+      deleted: 0,
+      skippedToday: 0,
+      summarySent: await sendTrackingSummary(latestRecords, today)
+    };
+  } else {
+    result = await checkTrackingMyRecords("", {
+      onlyOutForDelivery: true,
+      sendDeliveredNotifications: true
+    });
+  }
   await db.ref("dealer-card-tracker/settings/trackingMyLastRun").set({
     ...result,
     slot: time,
