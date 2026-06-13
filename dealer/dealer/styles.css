@@ -262,110 +262,6 @@ h1 {
   gap: 14px;
 }
 
-.card-dealer-finder {
-  margin-bottom: 16px;
-  border: 1px solid rgba(14, 107, 99, 0.2);
-  border-radius: 8px;
-  background: linear-gradient(135deg, rgba(7, 25, 24, 0.97), rgba(12, 79, 73, 0.94));
-  box-shadow: 0 16px 38px rgba(7, 45, 42, 0.18);
-  padding: 18px;
-}
-
-.card-finder-heading,
-.card-finder-search {
-  display: flex;
-  align-items: center;
-}
-
-.card-finder-heading {
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 12px;
-}
-
-.card-finder-heading h2 {
-  margin: 0;
-  color: #fff;
-  font-size: 21px;
-}
-
-.card-finder-heading .eyebrow {
-  color: rgba(183, 238, 222, 0.78);
-}
-
-.card-finder-count {
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.card-finder-search {
-  gap: 8px;
-}
-
-.card-finder-search input {
-  min-width: 0;
-  min-height: 44px;
-  flex: 1;
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.96);
-  font-size: 16px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.card-finder-search button {
-  min-height: 44px;
-  background: #eef8f5;
-  color: #07544e;
-}
-
-.card-finder-results {
-  display: grid;
-  gap: 7px;
-  margin-top: 10px;
-}
-
-.card-finder-result {
-  display: grid;
-  grid-template-columns: minmax(110px, 0.8fr) minmax(130px, 1fr) minmax(90px, 0.7fr) auto;
-  gap: 10px;
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.09);
-  color: #fff;
-  padding: 11px 12px;
-  text-decoration: none;
-}
-
-.card-finder-result:hover {
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.card-finder-number,
-.card-finder-dealer {
-  font-weight: 900;
-}
-
-.card-finder-status {
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.card-finder-open {
-  color: #b7eede;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.card-finder-empty {
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  border-radius: 7px;
-  color: rgba(255, 255, 255, 0.82);
-  padding: 13px;
-  text-align: center;
-}
-
 .notice-view h2 {
   margin: 0;
   font-size: 21px;
@@ -566,145 +462,6 @@ textarea:focus {
   margin: 0;
   font-size: 21px;
   line-height: 1.2;
-}
-
-.collapsible-panel {
-  padding: 0;
-}
-
-.collapsible-panel form {
-  padding: 0 16px 16px;
-}
-
-.panel-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  cursor: pointer;
-  list-style: none;
-  padding: 16px;
-}
-
-.panel-summary::-webkit-details-marker {
-  display: none;
-}
-
-.summary-toggle {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  border: 1px solid rgba(14, 107, 99, 0.18);
-  border-radius: 999px;
-  background: #eef8f5;
-  color: var(--primary-strong);
-  padding: 0 12px;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.collapsible-panel[open] .summary-toggle {
-  background: var(--primary);
-  color: #fff;
-  font-size: 0;
-}
-
-.collapsible-panel[open] .summary-toggle::before {
-  content: "\6536\36215";
-  font-size: 12px;
-}
-
-.status-board {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.status-board-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(203, 213, 225, 0.75);
-  border-radius: 10px;
-  background:
-    linear-gradient(135deg, rgba(22, 135, 95, 0.13), rgba(255, 255, 255, 0.94) 44%),
-    #fff;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-  padding: 14px;
-}
-
-.status-board-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: #16875f;
-}
-
-.status-board-card.danger-board {
-  background:
-    linear-gradient(135deg, rgba(194, 106, 9, 0.16), rgba(255, 255, 255, 0.94) 46%),
-    #fff;
-}
-
-.status-board-card.danger-board::before {
-  background: #c26a09;
-}
-
-.status-board-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.status-board-head h2 {
-  margin: 0;
-  color: var(--text);
-  font-size: 18px;
-}
-
-.status-board-head span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 30px;
-  min-height: 30px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.status-board-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.status-board-item {
-  min-height: 34px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #0f172a;
-  padding: 0 10px;
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 13px;
-  font-weight: 900;
-  text-align: left;
-}
-
-.status-board-item:hover {
-  border-color: rgba(14, 107, 99, 0.42);
-  background: #fff;
-}
-
-.status-board-empty {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
 }
 
 form {
@@ -1355,6 +1112,31 @@ tbody tr:hover {
   width: fit-content;
 }
 
+.tracking-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tracking-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid rgba(14, 107, 99, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #0e6b63;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.tracking-link:hover {
+  border-color: rgba(14, 107, 99, 0.38);
+  background: #fff;
+}
+
 .tracking-manual-select {
   width: fit-content;
   min-height: 30px;
@@ -1533,26 +1315,6 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
-  .card-finder-heading,
-  .card-finder-search {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .card-finder-result {
-    grid-template-columns: 1fr auto;
-  }
-
-  .card-finder-dealer,
-  .card-finder-status {
-    grid-column: 1 / -1;
-  }
-
-  .card-finder-open {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
   .index-hero {
     padding: 18px;
   }
@@ -1567,14 +1329,6 @@ tbody tr:hover {
 
   .dealer-overview {
     gap: 10px;
-  }
-
-  .status-board {
-    grid-template-columns: 1fr;
-  }
-
-  .status-board-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .metric-card {
@@ -1608,18 +1362,7 @@ tbody tr:hover {
     flex-direction: column;
   }
 
-  table,
-  tbody {
-    display: block;
-    width: 100%;
-  }
-
-  tbody {
-    padding: 10px;
-  }
-
   tr {
-    display: grid;
     grid-template-columns: 1fr;
     grid-template-areas:
       "card"
@@ -1632,58 +1375,25 @@ tbody tr:hover {
       "details"
       "updated"
       "actions";
-    gap: 11px;
-    border-radius: 9px;
-    padding: 14px 12px 14px 16px;
+    padding: 14px 13px 14px 16px;
   }
 
   td {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 5px;
-    align-items: stretch;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 9px;
+    align-items: center;
     word-break: break-word;
   }
 
   td::before {
     content: attr(data-label);
     color: var(--muted);
-    font-size: 11px;
     font-weight: 900;
-  }
-
-  .record-card-number .inline-edit {
-    min-height: 42px;
-    font-size: 16px;
-    font-weight: 900;
-  }
-
-  .record-tracking {
-    border: 1px solid rgba(14, 107, 99, 0.12);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.58);
-    padding: 10px;
-  }
-
-  .tracking-cell {
-    gap: 8px;
-  }
-
-  .tracking-check-button,
-  .tracking-manual-select {
-    min-height: 34px;
-  }
-
-  .tracking-meta,
-  .tracking-detail {
-    max-width: none;
-    white-space: normal;
   }
 
   .row-actions {
     display: flex;
     grid-template-columns: none;
-    flex-direction: row;
     padding-top: 12px;
   }
 

@@ -113,10 +113,6 @@ function dealerUrl(name) {
   return `./dealer.html?name=${encodeURIComponent(name)}`;
 }
 
-function normalizeCardLookup(value) {
-  return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
 function readJson(key, fallback = []) {
   try {
     return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
@@ -401,8 +397,6 @@ function initIndexPage() {
   const announceMessage = document.querySelector("#announceMessage");
   const announceSecret = document.querySelector("#announceSecret");
   const announceStatus = document.querySelector("#announceStatus");
-  const cardFinderInput = document.querySelector("#cardFinderInput");
-  const cardFinderButton = document.querySelector("#cardFinderButton");
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -463,57 +457,7 @@ function initIndexPage() {
   });
 
   searchInput.addEventListener("input", renderIndexPage);
-  cardFinderInput.addEventListener("input", renderCardDealerFinder);
-  cardFinderInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      renderCardDealerFinder();
-    }
-  });
-  cardFinderButton.addEventListener("click", renderCardDealerFinder);
   renderIndexPage();
-}
-
-function renderCardDealerFinder() {
-  const input = document.querySelector("#cardFinderInput");
-  const results = document.querySelector("#cardFinderResults");
-  const count = document.querySelector("#cardFinderCount");
-  if (!input || !results || !count) return;
-
-  const query = normalizeCardLookup(input.value);
-  results.textContent = "";
-  if (!query) {
-    results.hidden = true;
-    count.textContent = "输入卡号查找";
-    return;
-  }
-
-  const matches = records
-    .filter((record) => normalizeCardLookup(record.cardNumber).includes(query))
-    .sort((a, b) => String(a.dealerName || "").localeCompare(String(b.dealerName || ""), "zh-CN"));
-
-  results.hidden = false;
-  count.textContent = matches.length ? `找到 ${matches.length} 条` : "找不到";
-  if (!matches.length) {
-    const empty = document.createElement("div");
-    empty.className = "card-finder-empty";
-    empty.textContent = `找不到卡号 ${input.value.trim()}`;
-    results.append(empty);
-    return;
-  }
-
-  for (const record of matches) {
-    const result = document.createElement("a");
-    result.className = "card-finder-result";
-    result.href = dealerUrl(record.dealerName || "");
-    result.innerHTML = `
-      <span class="card-finder-number">${escapeHtml(record.cardNumber || "-")}</span>
-      <span class="card-finder-dealer">${escapeHtml(record.dealerName || "未知 Dealer")}</span>
-      <span class="card-finder-status">${escapeHtml(record.status || "-")}</span>
-      <span class="card-finder-open">查看资料</span>
-    `;
-    results.append(result);
-  }
 }
 
 function renderIndexPage() {
@@ -559,7 +503,6 @@ function renderIndexPage() {
     card.append(removeButton);
     dealerList.append(card);
   }
-  renderCardDealerFinder();
 }
 
 function initDealerPage() {
@@ -568,7 +511,6 @@ function initDealerPage() {
   const dealerRate = document.querySelector("#dealerRate");
   const dealerExpense = document.querySelector("#dealerExpense");
   const dealerExtraPay = document.querySelector("#dealerExtraPay");
-  const recordFormPanel = document.querySelector("#recordFormPanel");
   const form = document.querySelector("#recordForm");
   const statusForm = document.querySelector("#statusOptionForm");
   const newStatusOption = document.querySelector("#newStatusOption");
@@ -638,7 +580,6 @@ function initDealerPage() {
   }
 
   function fillForm(record) {
-    if (recordFormPanel) recordFormPanel.open = true;
     recordId.value = record.id;
     parsedDetailsDraft = {
       customerName: record.customerName || "",
@@ -877,6 +818,24 @@ function renderTrackingCell(record) {
   checkButton.disabled = checkingTrackingRecords.has(record.id);
   checkButton.addEventListener("click", () => checkTrackingRecord(record));
 
+  const links = document.createElement("div");
+  links.className = "tracking-links";
+
+  const trackingMyLink = document.createElement("a");
+  trackingMyLink.className = "tracking-link";
+  const courierSlug = (record.carrier || "").toLowerCase().includes("pos") ? "poslaju" : "jt";
+  trackingMyLink.href = `https://www.tracking.my/${courierSlug}/${encodeURIComponent(record.trackingNumber || "")}`;
+  trackingMyLink.target = "_blank";
+  trackingMyLink.rel = "noopener";
+  trackingMyLink.textContent = "Tracking.my";
+
+  const jntLink = document.createElement("a");
+  jntLink.className = "tracking-link";
+  jntLink.href = "https://www.jtexpress.my/tracking";
+  jntLink.target = "_blank";
+  jntLink.rel = "noopener";
+  jntLink.textContent = "J&T";
+
   const manualSelect = document.createElement("select");
   manualSelect.className = "inline-edit tracking-manual-select";
   const manualOptions = [
@@ -906,7 +865,8 @@ function renderTrackingCell(record) {
     await saveRecord(nextRecord);
   });
 
-  wrap.append(numberInput, status, meta, detail, checkButton, manualSelect);
+  links.append(jntLink, trackingMyLink);
+  wrap.append(numberInput, status, meta, detail, checkButton, links, manualSelect);
   return wrap;
 }
 
@@ -915,53 +875,6 @@ function isRecordStale(record) {
   if (!updatedAt) return false;
   const fiveDaysMs = 5 * 24 * 60 * 60 * 1000;
   return Date.now() - new Date(updatedAt).getTime() > fiveDaysMs;
-}
-
-function recordStatusGroup(record) {
-  const status = String(record.status || "");
-  if (status.includes("过保") || status.includes("开保") || status.includes("杩囦繚") || status.includes("寮€淇")) return "active";
-  if (status.includes("弹卡") || status.includes("人头关") || status.includes("寮瑰崱") || status.includes("浜哄ご鍏")) return "problem";
-  return "";
-}
-
-function renderStatusBoard(dealerRecords) {
-  const activeList = document.querySelector("#activeStatusCards");
-  const problemList = document.querySelector("#problemStatusCards");
-  const activeCount = document.querySelector("#activeStatusCount");
-  const problemCount = document.querySelector("#problemStatusCount");
-  if (!activeList || !problemList) return;
-
-  const groups = { active: [], problem: [] };
-  for (const record of dealerRecords) {
-    const group = recordStatusGroup(record);
-    if (group) groups[group].push(record);
-  }
-
-  const renderList = (element, items) => {
-    element.textContent = "";
-    if (!items.length) {
-      const empty = document.createElement("span");
-      empty.className = "status-board-empty";
-      empty.textContent = "\u6ca1\u6709\u5361";
-      element.append(empty);
-      return;
-    }
-    items
-      .sort((a, b) => String(a.cardNumber || "").localeCompare(String(b.cardNumber || "")))
-      .forEach((record) => {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "status-board-item";
-        item.textContent = record.cardNumber || "-";
-        item.addEventListener("click", () => dealerPageFillForm?.(record));
-        element.append(item);
-      });
-  };
-
-  activeCount.textContent = String(groups.active.length);
-  problemCount.textContent = String(groups.problem.length);
-  renderList(activeList, groups.active);
-  renderList(problemList, groups.problem);
 }
 
 function renderDealerPage(dealerName, fillForm) {
@@ -1002,7 +915,6 @@ function renderDealerPage(dealerName, fillForm) {
     .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
 
   renderDealerMetrics(dealerRecords);
-  renderStatusBoard(dealerRecords);
   renderStatusOptionsList();
   recordsBody.textContent = "";
   totalCount.textContent = String(visibleRecords.length);

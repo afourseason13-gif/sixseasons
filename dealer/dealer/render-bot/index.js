@@ -1,6 +1,5 @@
 const express = require("express");
 const admin = require("firebase-admin");
-const WebSocket = require("ws");
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -73,21 +72,16 @@ function parseDealer(text, fallbackName = "") {
 function isImportMessage(text, fallbackName = "") {
   const dealer = pickLineValue(text, ["DEALER", "DEALER 名字", "代理"]) || text.match(/#dealer\s+(.+)/i);
 
-  const fields = {
-    name: pickLineValue(text, ["NAMA", "NAME"]),
-    ic: pickLineValue(text, ["IC NO", "IC"]),
-    bank: pickLineValue(text, ["BANK", "NAMA BANK"]),
-    account: pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
-    card: pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]),
-    pin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
-  };
-  const filledCount = Object.values(fields).filter(Boolean).length;
+  const importantFields = [
+    pickLineValue(text, ["NAMA", "NAME"]),
+    pickLineValue(text, ["IC NO", "IC"]),
+    pickLineValue(text, ["BANK", "NAMA BANK"]),
+    pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
+    pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]),
+    pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
+  ].filter(Boolean);
 
-  // Require a clearly structured customer record so ordinary group chat is ignored.
-  return Boolean(dealer || clean(fallbackName))
-    && Boolean(fields.name && fields.ic && fields.bank && fields.account)
-    && Boolean(fields.card || fields.pin)
-    && filledCount >= 5;
+  return Boolean(dealer || clean(fallbackName)) && importantFields.length >= 2;
 }
 
 function parseShipmentCode(text) {
@@ -315,41 +309,6 @@ function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
   return commands;
 }
 
-function statusFromCommandLine(line) {
-  const source = String(line || "");
-  if (source.includes("\u4eba\u5934\u5173") || source.includes("\u516c\u6237") || source.includes("浜哄ご鍏") || source.includes("鍏埛")) return "\u4eba\u5934\u5173";
-  if (source.includes("\u5f39\u5361") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898") || source.includes("寮瑰崱")) return "\u5f39\u5361";
-  if (source.includes("\u70b8") || hasRejectedMark(source)) return "\u70b8";
-  if (source.includes("\u8fc7\u4fdd") || source.includes("杩囦繚")) return "\u8fc7\u4fdd";
-  if (source.includes("\u5f00\u4fdd") || source.includes("寮€淇")) return "\u5f00\u4fdd";
-  if (source.includes("\u5bc4") || source.includes("瀵")) return "\u5bc4";
-  if (source.includes("\u8f66\u624b\u5df2\u7b7e\u6536") || source.includes("\u7b7e\u6536")) return "\u8f66\u624b\u5df2\u7b7e\u6536";
-  return "";
-}
-
-function parseGeneralBulkRecordCommands(text, defaultWarrantyDate = "") {
-  const commands = [];
-  const seen = new Set();
-  for (const line of String(text || "").split(/\r?\n/)) {
-    const status = statusFromCommandLine(line);
-    if (!status) continue;
-    const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
-    for (const cardToken of cardTokens) {
-      if (seen.has(cardToken)) continue;
-      seen.add(cardToken);
-      commands.push({
-        action: "status",
-        status,
-        cardToken,
-        warrantyDate: parseCommandDate(text) || (status === "\u5f00\u4fdd" ? defaultWarrantyDate : ""),
-        warrantyDays: parseWarrantyDays(text)
-      });
-    }
-  }
-  return commands.length > 1 ? commands : [];
-}
-
 function undoWordsFromText(text) {
   return ["撤销导入", "撤銷導入", "取消导入", "取消導入"].some((item) => text.includes(item));
 }
@@ -358,7 +317,7 @@ function parseRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "")
   const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "炸"];
   const latestUndoWords = ["撤销导入", "撤銷導入", "取消导入", "取消導入"];
   const deleteWords = ["删除", "刪除", "撤回", "撤销", "撤銷", ...latestUndoWords];
-  const status = statuses.find((item) => text.includes(item)) || statusFromCommandLine(text) || problemStatusFromText(text);
+  const status = statuses.find((item) => text.includes(item)) || problemStatusFromText(text);
   const shouldDelete = deleteWords.some((item) => text.includes(item));
   if (!status && !shouldDelete) return null;
   if (replyMessageId && undoWordsFromText(text)) {
@@ -478,25 +437,6 @@ async function autoExpireWarrantyRecords() {
 
 async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
   await autoExpireWarrantyRecords();
-  const generalBulkCommands = parseGeneralBulkRecordCommands(text, defaultWarrantyDate);
-  if (generalBulkCommands.length) {
-    const results = [];
-    for (const command of generalBulkCommands) {
-      results.push(await applyRecordCommand(command));
-    }
-    const summary = {};
-    for (const item of results.filter((result) => result.ok)) {
-      summary[item.status] = (summary[item.status] || 0) + 1;
-    }
-    const summaryText = Object.entries(summary).map(([status, count]) => `${status}${count}`).join("\uff0c") || "0";
-    const missing = results.filter((item) => !item.ok).map((item) => item.cardToken);
-    const missingText = missing.length ? `\n\u627e\u4e0d\u5230\uff1a${missing.join(", ")}` : "";
-    return {
-      handled: true,
-      message: `\u6279\u91cf\u66f4\u65b0\u5b8c\u6210\uff1a${summaryText}${missingText}`
-    };
-  }
-
   const bulkCommands = parseBulkRecordCommands(text, defaultWarrantyDate);
   if (bulkCommands.length) {
     const results = [];
@@ -739,17 +679,16 @@ async function notifyTrackingUpdate(body) {
 function trackingMySlug(record) {
   const source = `${record.carrier || ""} ${record.carrierCode || ""} ${record.trackingMoreCourierCode || ""}`.toLowerCase();
   if (source.includes("j&t") || source.includes("jnt") || source.includes("jtexpress") || source.includes("jt")) return "jt";
-  if (source.includes("pos")) return "pos";
+  if (source.includes("pos")) return "poslaju";
   if (source.includes("ninja")) return "ninjavan";
   if (source.includes("gdex")) return "gdex";
   if (source.includes("city")) return "citylink";
   if (source.includes("flash")) return "flash";
-  if (source.includes("spx") || source.includes("shopee")) return "shopee";
+  if (source.includes("spx") || source.includes("shopee")) return "spx";
   if (source.includes("lazada") || source.includes("lex")) return "lazada";
   if (source.includes("skynet")) return "skynet";
   if (source.includes("abx")) return "abx";
   if (source.includes("best")) return "best";
-  if (source.includes("dhl") && source.includes("ecommerce")) return "dhl-ecommerce";
   if (source.includes("dhl")) return "dhl";
   return "";
 }
@@ -760,7 +699,7 @@ function trackingMySlugs(record) {
   const guessed = [];
 
   if (/^[A-Z]{2}\d{9}MY$/.test(number) || /^[A-Z]{3}\d{9,12}MY$/.test(number) || number.endsWith("MY")) {
-    guessed.push("poslaju", "pos-malaysia", "pos");
+    guessed.push("poslaju");
   }
   if (/^\d{10,15}$/.test(number) || /^6\d{9,14}$/.test(number)) {
     guessed.push("jt");
@@ -769,14 +708,11 @@ function trackingMySlugs(record) {
     guessed.push("ninjavan");
   }
   if (/^MY[A-Z0-9]{8,}$/i.test(number)) {
-    guessed.push("shopee", "spx", "lazada", "jt");
-  }
-  if (/^\d{14,20}$/.test(number)) {
-    guessed.push("dhl-ecommerce", "dhl");
+    guessed.push("spx", "lazada", "jt");
   }
 
   const slugs = [...new Set([selected, ...guessed].filter(Boolean))];
-  return slugs.length ? slugs.slice(0, 5) : ["jt", "poslaju", "pos-malaysia", "pos"];
+  return slugs.length ? slugs.slice(0, 3) : ["jt", "poslaju"];
 }
 
 function officialTrackingUrls(record) {
@@ -845,15 +781,6 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function decodeHtmlEntities(value) {
-  return String(value || "")
-    .replace(/&quot;/gi, "\"")
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&amp;/gi, "&");
-}
-
 async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -861,166 +788,6 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
     return await fetch(url, { ...options, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
-  }
-}
-
-function normalizeTrackingMyLatestStatus(status) {
-  const source = String(status || "").toLowerCase().replace(/[\s-]+/g, "_");
-  if (["delivered", "completed"].includes(source)) return "delivered";
-  if (["out_for_delivery", "outfordelivery", "on_delivery", "ondelivery"].includes(source)) return "out_for_delivery";
-  if (["exception", "attempt_fail", "attemptfail", "delivery_failed", "failed"].includes(source)) return "exception";
-  if (["in_transit", "intransit", "transit", "pending", "info_received"].includes(source)) return "in_transit";
-  return "";
-}
-
-function trackingMyResultDetail(result, status) {
-  const checkpoints = Array.isArray(result?.result)
-    ? result.result
-    : Array.isArray(result?.checkpoints)
-      ? result.checkpoints
-      : [];
-  const latest = checkpoints[0] || {};
-  const parts = [
-    latest.status,
-    latest.description,
-    latest.details,
-    latest.location,
-    latest.date,
-    latest.datetime
-  ].map(clean).filter(Boolean);
-  return parts.join(" - ").slice(0, 220) || trackingStatusLabel(status);
-}
-
-function trackingMySocketPayload(html, slug, trackingNumber) {
-  const source = String(html || "");
-  const matches = [...source.matchAll(/socket\.send\("((?:[^"\\]|\\.)*)"\)/g)];
-  for (const match of matches) {
-    const decoded = decodeHtmlEntities(match[1]).replace(/\\"/g, "\"");
-    try {
-      const payload = JSON.parse(decoded);
-      if (
-        payload.action === "tracking" &&
-        clean(payload.courier).toLowerCase() === clean(slug).toLowerCase() &&
-        clean(payload.tracking_number) === clean(trackingNumber)
-      ) {
-        return payload;
-      }
-    } catch (error) {
-      // Ignore unrelated socket messages on the page.
-    }
-  }
-  return null;
-}
-
-function requestTrackingMySocketResponse(payload, acceptResult, timeoutMs = 15000) {
-  return new Promise((resolve) => {
-    const socket = new WebSocket("wss://www.tracking.my/websocket", {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
-        "Origin": "https://www.tracking.my"
-      }
-    });
-    let finished = false;
-    const finish = (value) => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timeout);
-      try {
-        socket.close();
-      } catch (error) {
-        // Socket may already be closed.
-      }
-      resolve(value);
-    };
-    const timeout = setTimeout(() => finish(null), timeoutMs);
-
-    socket.on("open", () => socket.send(JSON.stringify(payload)));
-    socket.on("message", (data) => {
-      try {
-        const result = JSON.parse(data.toString());
-        if (acceptResult(result)) finish(result);
-      } catch (error) {
-        // Ignore non-result messages and wait for the tracking response.
-      }
-    });
-    socket.on("error", () => finish(null));
-    socket.on("close", () => finish(null));
-  });
-}
-
-function requestTrackingMySocket(payload, timeoutMs = 15000) {
-  return requestTrackingMySocketResponse(payload, (result) => Boolean(result?.latest_status), timeoutMs);
-}
-
-function detectedTrackingMySlugs(result) {
-  const found = [];
-  const knownSlugs = new Set([
-    "jt", "pos", "poslaju", "pos-malaysia", "posmalaysia", "ninjavan",
-    "ninja-van", "gdex", "citylink", "flash", "spx", "shopee", "shopee-express",
-    "lazada", "skynet", "abx", "best", "dhl", "dhl-ecommerce"
-  ]);
-  const visit = (value, key = "") => {
-    if (Array.isArray(value)) {
-      value.forEach((item) => visit(item, key));
-      return;
-    }
-    if (value && typeof value === "object") {
-      Object.entries(value).forEach(([childKey, childValue]) => visit(childValue, childKey));
-      return;
-    }
-    if (typeof value !== "string") return;
-    const normalizedKey = key.toLowerCase();
-    const normalizedValue = value.trim().toLowerCase();
-    if (
-      /^[a-z0-9-]{2,40}$/.test(normalizedValue) &&
-      (["courier", "courier_code", "courier_slug", "slug", "code"].includes(normalizedKey) || knownSlugs.has(normalizedValue))
-    ) {
-      found.push(normalizedValue);
-    }
-  };
-  visit(result);
-  return [...new Set(found)];
-}
-
-async function detectTrackingMySlugs(trackingNumber) {
-  const result = await requestTrackingMySocketResponse(
-    { action: "detect", tracking_number: clean(trackingNumber) },
-    (response) => detectedTrackingMySlugs(response).length > 0,
-    12000
-  );
-  return detectedTrackingMySlugs(result);
-}
-
-async function fetchTrackingMySocketStatus(slug, trackingNumber) {
-  const url = `https://www.tracking.my/${encodeURIComponent(slug)}/${encodeURIComponent(trackingNumber)}`;
-  try {
-    const response = await fetchWithTimeout(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-US,en;q=0.9,ms;q=0.8",
-        "Cache-Control": "no-cache"
-      }
-    }, 10000);
-    if (!response.ok) return { ok: false };
-    const html = await response.text();
-    const payload = trackingMySocketPayload(html, slug, trackingNumber);
-    if (!payload) return { ok: false };
-
-    const result = await requestTrackingMySocket(payload);
-    const status = normalizeTrackingMyLatestStatus(result?.latest_status);
-    if (!status) return { ok: false };
-    return {
-      ok: true,
-      status,
-      label: trackingStatusLabel(status),
-      detail: trackingMyResultDetail(result, status),
-      url,
-      source: "Tracking.my"
-    };
-  } catch (error) {
-    console.error(error);
-    return { ok: false };
   }
 }
 
@@ -1153,57 +920,24 @@ async function fetchStatusFromUrls(urls, sourceName, trackingNumber = "") {
   return { ok: false };
 }
 
-async function fetchPosMalaysiaApiStatus(trackingNumber) {
-  const number = clean(trackingNumber);
-  if (!number) return { ok: false };
-  const apiUrl = `https://apis.pos.com.my/apigateway/as2corporate/api/v2trackntracewebapijson/v1/?id=${encodeURIComponent(number)}`;
-  const officialUrl = `https://tracking.pos.com.my/tracking/${encodeURIComponent(number)}`;
-  try {
-    const response = await fetchWithTimeout(apiUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json,text/plain,*/*",
-        "Referer": "https://tracking.pos.com.my/"
-      }
-    }, 12000);
-    if (!response.ok) return { ok: false };
-    const result = await response.json();
-    const text = JSON.stringify(result);
-    if (!text || text === "{}" || text === "[]" || /not found|no record|invalid/i.test(text)) return { ok: false };
-    const status = normalizeTrackingMyStatus(text);
-    if (!status) return { ok: false };
-    return {
-      ok: true,
-      status,
-      label: trackingStatusLabel(status),
-      detail: trackingStatusSnippet(text, status),
-      url: officialUrl,
-      source: "Pos Malaysia"
-    };
-  } catch (error) {
-    console.error(error);
-    return { ok: false };
-  }
-}
-
 async function fetchTrackingMyStatus(record) {
   const number = clean(record.trackingNumber);
-  if (!number) return { ok: false, reason: "missing_tracking_or_courier" };
-  const detectedSlugs = await detectTrackingMySlugs(number);
-  const slugs = [...new Set([...detectedSlugs, ...trackingMySlugs(record)])];
-  if (!slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
+  const slugs = trackingMySlugs(record);
+  if (!number || !slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
 
-  if (slugs.some((slug) => slug.includes("pos"))) {
-    const posResult = await fetchPosMalaysiaApiStatus(number);
-    if (posResult.ok) return posResult;
-  }
+  const encodedNumber = encodeURIComponent(number);
+  const urls = slugs.flatMap((slug) => {
+    const encodedSlug = encodeURIComponent(slug);
+    return [`https://www.tracking.my/${encodedSlug}/${encodedNumber}`];
+  });
 
-  for (const slug of slugs) {
-    const socketResult = await fetchTrackingMySocketStatus(slug, number);
-    if (socketResult.ok) return socketResult;
-  }
+  const trackingMyResult = await fetchStatusFromUrls(urls, "Tracking.my", number);
+  if (trackingMyResult.ok) return trackingMyResult;
 
-  return { ok: false, reason: "unable_to_parse_tracking_status" };
+  const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "\u5b98\u7f51", number);
+  if (officialResult.ok) return officialResult;
+
+  return { ok: false, reason: trackingMySlug(record) === "jt" ? "jnt_tracking_not_found" : "unable_to_parse_tracking_status" };
 }
 
 async function getTrackingChatId() {
@@ -1235,17 +969,14 @@ function packageStatusText(record) {
   const status = clean(record.packageStatus);
   if (status.includes("\u5df2\u9001\u8fbe") || record.lastTrackingNotifyStatus === "delivered") return "\u9001\u8fbe";
   if (status.includes("\u6d3e\u9001")) return "\u6d3e\u9001\u4e2d";
-  if (status.includes("\u5f02\u5e38")) return "\u5f02\u5e38\u6709\u95ee\u9898";
+  if (status.includes("\u5f02\u5e38")) return "\u5f02\u5e38";
   if (status.includes("\u8fd0\u8f93")) return "\u8fd0\u8f93\u4e2d";
-  if (status.includes("\u6682\u65f6\u67e5\u4e0d\u5230")) return "\u6682\u65f6\u67e5\u4e0d\u5230";
   return status || "\u672a\u68c0\u67e5";
 }
 
 function shouldIncludeTrackingSummary(record, today) {
   if (!isFullTrackingNumber(record.trackingNumber)) return false;
   if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) >= today) return false;
-  if (!record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today) return false;
-  if (record.trackingMyLastError) return false;
   return !(record.packageStatus === "\u5df2\u9001\u8fbe" && record.deliveredAt && record.deliveredAt < today);
 }
 
@@ -1258,9 +989,9 @@ function buildTrackingSummaryMessage(records, today) {
 
   if (!summaryRecords.length) return "";
   const lines = summaryRecords.map((record) => {
-    return `${clean(record.cardNumber || "-")} ${packageStatusText(record)}`;
+    return `${trackingCarrierCode(record)}(${trackingTail(record)}) ${clean(record.cardNumber || "-")} ${packageStatusText(record)}`;
   });
-  return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines].join("\n");
+  return ["\u5305\u88f9\u72b6\u6001\u6c47\u603b", today, "", ...lines].join("\n");
 }
 
 async function sendTrackingSummary(records, today) {
@@ -1285,11 +1016,6 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
   for (const record of records) {
     if (targetRecordId && record.key !== targetRecordId && record.id !== targetRecordId) continue;
     if (!isFullTrackingNumber(record.trackingNumber)) continue;
-    if (
-      options.onlyNeedsEveningCheck &&
-      packageStatusText(record) !== "\u6d3e\u9001\u4e2d" &&
-      !(record.trackingMyLastError || !record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today)
-    ) continue;
 
     if ((record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") && record.deliveredAt && record.deliveredAt < today) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
@@ -1306,11 +1032,10 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
     const result = await fetchTrackingMyStatus(record);
     if (!result.ok) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).update({
-        packageStatus: "\u6682\u65f6\u67e5\u4e0d\u5230",
         trackingMyLastError: result.reason,
-        trackingMyDetail: result.reason === "unable_to_parse_tracking_status"
-          ? "Tracking.my 暂时没有返回这个单号的真实状态，已保留原状态。"
-          : result.reason,
+        trackingMyDetail: result.reason === "jnt_tracking_not_found"
+          ? "Tracking.my 和 J&T 官网都暂时没有拿到真实状态，已保留原状态。"
+          : (result.reason === "unable_to_parse_tracking_status" ? "Tracking.my 和官网都暂时查不到真实状态，已保留原状态。" : result.reason),
         trackingMyCheckedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -1321,13 +1046,12 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
       packageStatus: result.label,
       trackingMyDetail: result.source ? `${result.source}: ${result.detail}` : result.detail,
       trackingMyUrl: result.url,
-      trackingMyLastError: null,
       trackingMyCheckedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     if (result.status === "delivered" && !record.deliveredAt) updateData.deliveredAt = today;
 
-    if (options.sendDeliveredNotifications && result.status === "delivered" && record.lastTrackingNotifyStatus !== "delivered" && chatId) {
+    if (options.sendIndividualNotifications && record.lastTrackingNotifyStatus !== result.status && chatId) {
       const message = [
         `\u5305\u88f9${result.label}`,
         "",
@@ -1338,7 +1062,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
         result.source ? `来源: ${result.source}` : "",
         result.detail ? `\u72b6\u6001: ${result.detail}` : ""
       ].filter(Boolean).join("\n");
-      await sendTelegramMessage(chatId, `${clean(record.cardNumber || "-")} \u5df2\u9001\u8fbe`);
+      await sendTelegramMessage(chatId, message);
       updateData.lastTrackingNotifyStatus = result.status;
       notified += 1;
     }
@@ -1361,7 +1085,7 @@ async function runScheduledTrackingMyCheck() {
   const malaysia = new Date(now.getTime() + (8 * 60 * 60 * 1000));
   const today = formatDateInMalaysia(now);
   const time = `${String(malaysia.getUTCHours()).padStart(2, "0")}:${String(malaysia.getUTCMinutes()).padStart(2, "0")}`;
-  if (!["12:30", "13:00", "20:00"].includes(time)) return;
+  if (time !== "13:00") return;
 
   const slotKey = time.replace(":", "");
   const runRef = db.ref(`dealer-card-tracker/settings/trackingMySchedule/${today}/${slotKey}`);
@@ -1369,25 +1093,7 @@ async function runScheduledTrackingMyCheck() {
   if (alreadyRun) return;
 
   await runRef.set(new Date().toISOString());
-  let result;
-  if (time === "12:30") {
-    result = await checkTrackingMyRecords();
-  } else if (time === "13:00") {
-    const latestSnapshot = await db.ref("dealer-card-tracker/records").get();
-    const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
-    result = {
-      checked: 0,
-      notified: 0,
-      deleted: 0,
-      skippedToday: 0,
-      summarySent: await sendTrackingSummary(latestRecords, today)
-    };
-  } else {
-    result = await checkTrackingMyRecords("", {
-      onlyNeedsEveningCheck: true,
-      sendDeliveredNotifications: true
-    });
-  }
+  const result = await checkTrackingMyRecords("", { sendSummary: true });
   await db.ref("dealer-card-tracker/settings/trackingMyLastRun").set({
     ...result,
     slot: time,

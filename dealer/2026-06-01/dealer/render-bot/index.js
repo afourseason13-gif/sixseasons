@@ -73,21 +73,16 @@ function parseDealer(text, fallbackName = "") {
 function isImportMessage(text, fallbackName = "") {
   const dealer = pickLineValue(text, ["DEALER", "DEALER 名字", "代理"]) || text.match(/#dealer\s+(.+)/i);
 
-  const fields = {
-    name: pickLineValue(text, ["NAMA", "NAME"]),
-    ic: pickLineValue(text, ["IC NO", "IC"]),
-    bank: pickLineValue(text, ["BANK", "NAMA BANK"]),
-    account: pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
-    card: pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]),
-    pin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
-  };
-  const filledCount = Object.values(fields).filter(Boolean).length;
+  const importantFields = [
+    pickLineValue(text, ["NAMA", "NAME"]),
+    pickLineValue(text, ["IC NO", "IC"]),
+    pickLineValue(text, ["BANK", "NAMA BANK"]),
+    pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
+    pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]),
+    pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
+  ].filter(Boolean);
 
-  // Require a clearly structured customer record so ordinary group chat is ignored.
-  return Boolean(dealer || clean(fallbackName))
-    && Boolean(fields.name && fields.ic && fields.bank && fields.account)
-    && Boolean(fields.card || fields.pin)
-    && filledCount >= 5;
+  return Boolean(dealer || clean(fallbackName)) && importantFields.length >= 2;
 }
 
 function parseShipmentCode(text) {
@@ -739,17 +734,16 @@ async function notifyTrackingUpdate(body) {
 function trackingMySlug(record) {
   const source = `${record.carrier || ""} ${record.carrierCode || ""} ${record.trackingMoreCourierCode || ""}`.toLowerCase();
   if (source.includes("j&t") || source.includes("jnt") || source.includes("jtexpress") || source.includes("jt")) return "jt";
-  if (source.includes("pos")) return "pos";
+  if (source.includes("pos")) return "poslaju";
   if (source.includes("ninja")) return "ninjavan";
   if (source.includes("gdex")) return "gdex";
   if (source.includes("city")) return "citylink";
   if (source.includes("flash")) return "flash";
-  if (source.includes("spx") || source.includes("shopee")) return "shopee";
+  if (source.includes("spx") || source.includes("shopee")) return "spx";
   if (source.includes("lazada") || source.includes("lex")) return "lazada";
   if (source.includes("skynet")) return "skynet";
   if (source.includes("abx")) return "abx";
   if (source.includes("best")) return "best";
-  if (source.includes("dhl") && source.includes("ecommerce")) return "dhl-ecommerce";
   if (source.includes("dhl")) return "dhl";
   return "";
 }
@@ -760,7 +754,7 @@ function trackingMySlugs(record) {
   const guessed = [];
 
   if (/^[A-Z]{2}\d{9}MY$/.test(number) || /^[A-Z]{3}\d{9,12}MY$/.test(number) || number.endsWith("MY")) {
-    guessed.push("poslaju", "pos-malaysia", "pos");
+    guessed.push("poslaju");
   }
   if (/^\d{10,15}$/.test(number) || /^6\d{9,14}$/.test(number)) {
     guessed.push("jt");
@@ -769,14 +763,11 @@ function trackingMySlugs(record) {
     guessed.push("ninjavan");
   }
   if (/^MY[A-Z0-9]{8,}$/i.test(number)) {
-    guessed.push("shopee", "spx", "lazada", "jt");
-  }
-  if (/^\d{14,20}$/.test(number)) {
-    guessed.push("dhl-ecommerce", "dhl");
+    guessed.push("spx", "lazada", "jt");
   }
 
   const slugs = [...new Set([selected, ...guessed].filter(Boolean))];
-  return slugs.length ? slugs.slice(0, 5) : ["jt", "poslaju", "pos-malaysia", "pos"];
+  return slugs.length ? slugs.slice(0, 3) : ["jt", "poslaju"];
 }
 
 function officialTrackingUrls(record) {
@@ -912,7 +903,7 @@ function trackingMySocketPayload(html, slug, trackingNumber) {
   return null;
 }
 
-function requestTrackingMySocketResponse(payload, acceptResult, timeoutMs = 15000) {
+function requestTrackingMySocket(payload, timeoutMs = 15000) {
   return new Promise((resolve) => {
     const socket = new WebSocket("wss://www.tracking.my/websocket", {
       headers: {
@@ -938,7 +929,7 @@ function requestTrackingMySocketResponse(payload, acceptResult, timeoutMs = 1500
     socket.on("message", (data) => {
       try {
         const result = JSON.parse(data.toString());
-        if (acceptResult(result)) finish(result);
+        if (result?.latest_status) finish(result);
       } catch (error) {
         // Ignore non-result messages and wait for the tracking response.
       }
@@ -946,49 +937,6 @@ function requestTrackingMySocketResponse(payload, acceptResult, timeoutMs = 1500
     socket.on("error", () => finish(null));
     socket.on("close", () => finish(null));
   });
-}
-
-function requestTrackingMySocket(payload, timeoutMs = 15000) {
-  return requestTrackingMySocketResponse(payload, (result) => Boolean(result?.latest_status), timeoutMs);
-}
-
-function detectedTrackingMySlugs(result) {
-  const found = [];
-  const knownSlugs = new Set([
-    "jt", "pos", "poslaju", "pos-malaysia", "posmalaysia", "ninjavan",
-    "ninja-van", "gdex", "citylink", "flash", "spx", "shopee", "shopee-express",
-    "lazada", "skynet", "abx", "best", "dhl", "dhl-ecommerce"
-  ]);
-  const visit = (value, key = "") => {
-    if (Array.isArray(value)) {
-      value.forEach((item) => visit(item, key));
-      return;
-    }
-    if (value && typeof value === "object") {
-      Object.entries(value).forEach(([childKey, childValue]) => visit(childValue, childKey));
-      return;
-    }
-    if (typeof value !== "string") return;
-    const normalizedKey = key.toLowerCase();
-    const normalizedValue = value.trim().toLowerCase();
-    if (
-      /^[a-z0-9-]{2,40}$/.test(normalizedValue) &&
-      (["courier", "courier_code", "courier_slug", "slug", "code"].includes(normalizedKey) || knownSlugs.has(normalizedValue))
-    ) {
-      found.push(normalizedValue);
-    }
-  };
-  visit(result);
-  return [...new Set(found)];
-}
-
-async function detectTrackingMySlugs(trackingNumber) {
-  const result = await requestTrackingMySocketResponse(
-    { action: "detect", tracking_number: clean(trackingNumber) },
-    (response) => detectedTrackingMySlugs(response).length > 0,
-    12000
-  );
-  return detectedTrackingMySlugs(result);
 }
 
 async function fetchTrackingMySocketStatus(slug, trackingNumber) {
@@ -1188,19 +1136,17 @@ async function fetchPosMalaysiaApiStatus(trackingNumber) {
 
 async function fetchTrackingMyStatus(record) {
   const number = clean(record.trackingNumber);
-  if (!number) return { ok: false, reason: "missing_tracking_or_courier" };
-  const detectedSlugs = await detectTrackingMySlugs(number);
-  const slugs = [...new Set([...detectedSlugs, ...trackingMySlugs(record)])];
-  if (!slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
-
-  if (slugs.some((slug) => slug.includes("pos"))) {
-    const posResult = await fetchPosMalaysiaApiStatus(number);
-    if (posResult.ok) return posResult;
-  }
+  const slugs = trackingMySlugs(record);
+  if (!number || !slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
 
   for (const slug of slugs) {
     const socketResult = await fetchTrackingMySocketStatus(slug, number);
     if (socketResult.ok) return socketResult;
+  }
+
+  if (slugs.includes("poslaju")) {
+    const posResult = await fetchPosMalaysiaApiStatus(number);
+    if (posResult.ok) return posResult;
   }
 
   return { ok: false, reason: "unable_to_parse_tracking_status" };
@@ -1244,8 +1190,6 @@ function packageStatusText(record) {
 function shouldIncludeTrackingSummary(record, today) {
   if (!isFullTrackingNumber(record.trackingNumber)) return false;
   if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) >= today) return false;
-  if (!record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today) return false;
-  if (record.trackingMyLastError) return false;
   return !(record.packageStatus === "\u5df2\u9001\u8fbe" && record.deliveredAt && record.deliveredAt < today);
 }
 
@@ -1285,11 +1229,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
   for (const record of records) {
     if (targetRecordId && record.key !== targetRecordId && record.id !== targetRecordId) continue;
     if (!isFullTrackingNumber(record.trackingNumber)) continue;
-    if (
-      options.onlyNeedsEveningCheck &&
-      packageStatusText(record) !== "\u6d3e\u9001\u4e2d" &&
-      !(record.trackingMyLastError || !record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today)
-    ) continue;
+    if (options.onlyOutForDelivery && packageStatusText(record) !== "\u6d3e\u9001\u4e2d") continue;
 
     if ((record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") && record.deliveredAt && record.deliveredAt < today) {
       await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
@@ -1321,7 +1261,6 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
       packageStatus: result.label,
       trackingMyDetail: result.source ? `${result.source}: ${result.detail}` : result.detail,
       trackingMyUrl: result.url,
-      trackingMyLastError: null,
       trackingMyCheckedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1384,7 +1323,7 @@ async function runScheduledTrackingMyCheck() {
     };
   } else {
     result = await checkTrackingMyRecords("", {
-      onlyNeedsEveningCheck: true,
+      onlyOutForDelivery: true,
       sendDeliveredNotifications: true
     });
   }

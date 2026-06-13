@@ -262,110 +262,6 @@ h1 {
   gap: 14px;
 }
 
-.card-dealer-finder {
-  margin-bottom: 16px;
-  border: 1px solid rgba(14, 107, 99, 0.2);
-  border-radius: 8px;
-  background: linear-gradient(135deg, rgba(7, 25, 24, 0.97), rgba(12, 79, 73, 0.94));
-  box-shadow: 0 16px 38px rgba(7, 45, 42, 0.18);
-  padding: 18px;
-}
-
-.card-finder-heading,
-.card-finder-search {
-  display: flex;
-  align-items: center;
-}
-
-.card-finder-heading {
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 12px;
-}
-
-.card-finder-heading h2 {
-  margin: 0;
-  color: #fff;
-  font-size: 21px;
-}
-
-.card-finder-heading .eyebrow {
-  color: rgba(183, 238, 222, 0.78);
-}
-
-.card-finder-count {
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.card-finder-search {
-  gap: 8px;
-}
-
-.card-finder-search input {
-  min-width: 0;
-  min-height: 44px;
-  flex: 1;
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.96);
-  font-size: 16px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.card-finder-search button {
-  min-height: 44px;
-  background: #eef8f5;
-  color: #07544e;
-}
-
-.card-finder-results {
-  display: grid;
-  gap: 7px;
-  margin-top: 10px;
-}
-
-.card-finder-result {
-  display: grid;
-  grid-template-columns: minmax(110px, 0.8fr) minmax(130px, 1fr) minmax(90px, 0.7fr) auto;
-  gap: 10px;
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.09);
-  color: #fff;
-  padding: 11px 12px;
-  text-decoration: none;
-}
-
-.card-finder-result:hover {
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.card-finder-number,
-.card-finder-dealer {
-  font-weight: 900;
-}
-
-.card-finder-status {
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.card-finder-open {
-  color: #b7eede;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.card-finder-empty {
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  border-radius: 7px;
-  color: rgba(255, 255, 255, 0.82);
-  padding: 13px;
-  text-align: center;
-}
-
 .notice-view h2 {
   margin: 0;
   font-size: 21px;
@@ -1531,26 +1427,6 @@ tbody tr:hover {
 
   .announce-form {
     grid-template-columns: 1fr;
-  }
-
-  .card-finder-heading,
-  .card-finder-search {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .card-finder-result {
-    grid-template-columns: 1fr auto;
-  }
-
-  .card-finder-dealer,
-  .card-finder-status {
-    grid-column: 1 / -1;
-  }
-
-  .card-finder-open {
-    grid-column: 2;
-    grid-row: 1;
   }
 
   .index-hero {
