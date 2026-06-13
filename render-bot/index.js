@@ -734,16 +734,17 @@ async function notifyTrackingUpdate(body) {
 function trackingMySlug(record) {
   const source = `${record.carrier || ""} ${record.carrierCode || ""} ${record.trackingMoreCourierCode || ""}`.toLowerCase();
   if (source.includes("j&t") || source.includes("jnt") || source.includes("jtexpress") || source.includes("jt")) return "jt";
-  if (source.includes("pos")) return "poslaju";
+  if (source.includes("pos")) return "pos";
   if (source.includes("ninja")) return "ninjavan";
   if (source.includes("gdex")) return "gdex";
   if (source.includes("city")) return "citylink";
   if (source.includes("flash")) return "flash";
-  if (source.includes("spx") || source.includes("shopee")) return "spx";
+  if (source.includes("spx") || source.includes("shopee")) return "shopee";
   if (source.includes("lazada") || source.includes("lex")) return "lazada";
   if (source.includes("skynet")) return "skynet";
   if (source.includes("abx")) return "abx";
   if (source.includes("best")) return "best";
+  if (source.includes("dhl") && source.includes("ecommerce")) return "dhl-ecommerce";
   if (source.includes("dhl")) return "dhl";
   return "";
 }
@@ -763,7 +764,10 @@ function trackingMySlugs(record) {
     guessed.push("ninjavan");
   }
   if (/^MY[A-Z0-9]{8,}$/i.test(number)) {
-    guessed.push("spx", "lazada", "jt");
+    guessed.push("shopee", "spx", "lazada", "jt");
+  }
+  if (/^\d{14,20}$/.test(number)) {
+    guessed.push("dhl-ecommerce", "dhl");
   }
 
   const slugs = [...new Set([selected, ...guessed].filter(Boolean))];
@@ -947,7 +951,8 @@ function detectedTrackingMySlugs(result) {
   const found = [];
   const knownSlugs = new Set([
     "jt", "pos", "poslaju", "pos-malaysia", "posmalaysia", "ninjavan",
-    "gdex", "citylink", "flash", "spx", "lazada", "skynet", "abx", "best", "dhl"
+    "ninja-van", "gdex", "citylink", "flash", "spx", "shopee", "shopee-express",
+    "lazada", "skynet", "abx", "best", "dhl", "dhl-ecommerce"
   ]);
   const visit = (value, key = "") => {
     if (Array.isArray(value)) {
@@ -1183,14 +1188,14 @@ async function fetchTrackingMyStatus(record) {
   const slugs = [...new Set([...detectedSlugs, ...trackingMySlugs(record)])];
   if (!slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
 
-  for (const slug of slugs) {
-    const socketResult = await fetchTrackingMySocketStatus(slug, number);
-    if (socketResult.ok) return socketResult;
-  }
-
   if (slugs.some((slug) => slug.includes("pos"))) {
     const posResult = await fetchPosMalaysiaApiStatus(number);
     if (posResult.ok) return posResult;
+  }
+
+  for (const slug of slugs) {
+    const socketResult = await fetchTrackingMySocketStatus(slug, number);
+    if (socketResult.ok) return socketResult;
   }
 
   return { ok: false, reason: "unable_to_parse_tracking_status" };
