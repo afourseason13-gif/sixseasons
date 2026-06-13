@@ -1,5 +1,6 @@
 const express = require("express");
 const admin = require("firebase-admin");
+const WebSocket = require("ws");
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -836,6 +837,15 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function decodeHtmlEntities(value) {
+  return String(value || "")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&amp;/gi, "&");
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -843,6 +853,123 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
     return await fetch(url, { ...options, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+function normalizeTrackingMyLatestStatus(status) {
+  const source = String(status || "").toLowerCase().replace(/[\s-]+/g, "_");
+  if (["delivered", "completed"].includes(source)) return "delivered";
+  if (["out_for_delivery", "outfordelivery", "on_delivery", "ondelivery"].includes(source)) return "out_for_delivery";
+  if (["exception", "attempt_fail", "attemptfail", "delivery_failed", "failed"].includes(source)) return "exception";
+  if (["in_transit", "intransit", "transit", "pending", "info_received"].includes(source)) return "in_transit";
+  return "";
+}
+
+function trackingMyResultDetail(result, status) {
+  const checkpoints = Array.isArray(result?.result)
+    ? result.result
+    : Array.isArray(result?.checkpoints)
+      ? result.checkpoints
+      : [];
+  const latest = checkpoints[0] || {};
+  const parts = [
+    latest.status,
+    latest.description,
+    latest.details,
+    latest.location,
+    latest.date,
+    latest.datetime
+  ].map(clean).filter(Boolean);
+  return parts.join(" - ").slice(0, 220) || trackingStatusLabel(status);
+}
+
+function trackingMySocketPayload(html, slug, trackingNumber) {
+  const source = String(html || "");
+  const matches = [...source.matchAll(/socket\.send\("((?:[^"\\]|\\.)*)"\)/g)];
+  for (const match of matches) {
+    const decoded = decodeHtmlEntities(match[1]).replace(/\\"/g, "\"");
+    try {
+      const payload = JSON.parse(decoded);
+      if (
+        payload.action === "tracking" &&
+        clean(payload.courier).toLowerCase() === clean(slug).toLowerCase() &&
+        clean(payload.tracking_number) === clean(trackingNumber)
+      ) {
+        return payload;
+      }
+    } catch (error) {
+      // Ignore unrelated socket messages on the page.
+    }
+  }
+  return null;
+}
+
+function requestTrackingMySocket(payload, timeoutMs = 15000) {
+  return new Promise((resolve) => {
+    const socket = new WebSocket("wss://www.tracking.my/websocket", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+        "Origin": "https://www.tracking.my"
+      }
+    });
+    let finished = false;
+    const finish = (value) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      try {
+        socket.close();
+      } catch (error) {
+        // Socket may already be closed.
+      }
+      resolve(value);
+    };
+    const timeout = setTimeout(() => finish(null), timeoutMs);
+
+    socket.on("open", () => socket.send(JSON.stringify(payload)));
+    socket.on("message", (data) => {
+      try {
+        const result = JSON.parse(data.toString());
+        if (result?.latest_status) finish(result);
+      } catch (error) {
+        // Ignore non-result messages and wait for the tracking response.
+      }
+    });
+    socket.on("error", () => finish(null));
+    socket.on("close", () => finish(null));
+  });
+}
+
+async function fetchTrackingMySocketStatus(slug, trackingNumber) {
+  const url = `https://www.tracking.my/${encodeURIComponent(slug)}/${encodeURIComponent(trackingNumber)}`;
+  try {
+    const response = await fetchWithTimeout(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9,ms;q=0.8",
+        "Cache-Control": "no-cache"
+      }
+    }, 10000);
+    if (!response.ok) return { ok: false };
+    const html = await response.text();
+    const payload = trackingMySocketPayload(html, slug, trackingNumber);
+    if (!payload) return { ok: false };
+
+    const result = await requestTrackingMySocket(payload);
+    const status = normalizeTrackingMyLatestStatus(result?.latest_status);
+    if (!status) return { ok: false };
+    return {
+      ok: true,
+      status,
+      label: trackingStatusLabel(status),
+      detail: trackingMyResultDetail(result, status),
+      url,
+      source: "Tracking.my"
+    };
+  } catch (error) {
+    console.error(error);
+    return { ok: false };
   }
 }
 
@@ -980,14 +1107,10 @@ async function fetchTrackingMyStatus(record) {
   const slugs = trackingMySlugs(record);
   if (!number || !slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
 
-  const encodedNumber = encodeURIComponent(number);
-  const urls = slugs.flatMap((slug) => {
-    const encodedSlug = encodeURIComponent(slug);
-    return [`https://www.tracking.my/${encodedSlug}/${encodedNumber}`];
-  });
-
-  const trackingMyResult = await fetchStatusFromUrls(urls, "Tracking.my", number);
-  if (trackingMyResult.ok) return trackingMyResult;
+  for (const slug of slugs) {
+    const socketResult = await fetchTrackingMySocketStatus(slug, number);
+    if (socketResult.ok) return socketResult;
+  }
 
   const officialResult = await fetchStatusFromUrls(officialTrackingUrls(record), "\u5b98\u7f51", number);
   if (officialResult.ok) return officialResult;
