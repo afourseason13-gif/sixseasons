@@ -696,6 +696,10 @@ async function rememberTelegramChat(chatId) {
   await db.ref("dealer-card-tracker/settings/telegramChatId").set(String(chatId));
 }
 
+async function setTrackingNotificationChat(chatId) {
+  await db.ref("dealer-card-tracker/settings/trackingNotificationChatId").set(String(chatId));
+}
+
 async function sendTelegramMessage(chatId, text) {
   const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: "POST",
@@ -1252,7 +1256,8 @@ async function fetchTrackingMyStatus(record) {
 }
 
 async function getTrackingChatId() {
-  return announceChatId || (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
+  const selectedChatId = (await db.ref("dealer-card-tracker/settings/trackingNotificationChatId").get()).val();
+  return selectedChatId || announceChatId || (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
 }
 
 function trackingCarrierCode(record) {
@@ -1289,6 +1294,7 @@ function packageStatusText(record, today = formatDateInMalaysia(new Date())) {
 }
 
 function shouldIncludeTrackingSummary(record, today) {
+  if (clean(record.status) !== "\u5bc4") return false;
   if (!isFullTrackingNumber(record.trackingNumber)) return false;
   if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) >= today) return false;
   if (record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") return true;
@@ -1331,6 +1337,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
 
   for (const record of records) {
     if (targetRecordId && record.key !== targetRecordId && record.id !== targetRecordId) continue;
+    if (clean(record.status) !== "\u5bc4") continue;
     if (!isFullTrackingNumber(record.trackingNumber)) continue;
     if (
       options.onlyNeedsEveningCheck &&
@@ -1528,6 +1535,24 @@ app.post("/telegram", async (req, res) => {
     const text = messageText;
     if (!text) {
       res.status(200).send("ignored");
+      return;
+    }
+    if (["设置通知群", "\/setnotifygroup", "\/setnotifygroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
+      await setTrackingNotificationChat(chatId);
+      await reply(chatId, `已设置这里为包裹通知群\n群 ID: ${chatId}`);
+      res.status(200).send("ok");
+      return;
+    }
+    if (text.toLowerCase().startsWith("/chatid") || text === "群ID" || text === "群 ID") {
+      await reply(chatId, `这个群的 ID: ${chatId}`);
+      res.status(200).send("ok");
+      return;
+    }
+    if (text === "立即发送包裹通知") {
+      await setTrackingNotificationChat(chatId);
+      const result = await checkTrackingMyRecords("", { sendSummary: true });
+      await reply(chatId, result.summarySent ? "已发送今天的包裹通知" : "目前没有可以发送的包裹记录");
+      res.status(200).send("ok");
       return;
     }
     const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
