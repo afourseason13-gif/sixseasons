@@ -1293,7 +1293,6 @@ function shouldIncludeTrackingSummary(record, today) {
   if (formatDateInMalaysia(new Date(record.createdAt || record.updatedAt || Date.now())) >= today) return false;
   if (record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered") return true;
   if (!record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today) return false;
-  if (record.trackingMyLastError) return false;
   return true;
 }
 
@@ -1407,43 +1406,51 @@ async function runScheduledTrackingMyCheck() {
   const malaysia = new Date(now.getTime() + (8 * 60 * 60 * 1000));
   const today = formatDateInMalaysia(now);
   const time = `${String(malaysia.getUTCHours()).padStart(2, "0")}:${String(malaysia.getUTCMinutes()).padStart(2, "0")}`;
-  if (!["12:30", "13:00", "20:00"].includes(time)) return;
+  const slots = [
+    { time: "12:30", action: "check" },
+    { time: "13:00", action: "summary" },
+    { time: "20:00", action: "evening" }
+  ];
 
-  const slotKey = time.replace(":", "");
-  const runRef = db.ref(`dealer-card-tracker/settings/trackingMySchedule/${today}/${slotKey}`);
-  const alreadyRun = (await runRef.get()).val();
-  if (alreadyRun) return;
+  for (const slot of slots) {
+    if (time < slot.time) continue;
+    const slotKey = slot.time.replace(":", "");
+    const runRef = db.ref(`dealer-card-tracker/settings/trackingMySchedule/${today}/${slotKey}`);
+    if ((await runRef.get()).val()) continue;
 
-  await runRef.set(new Date().toISOString());
-  let result;
-  if (time === "12:30") {
-    result = await checkTrackingMyRecords();
-  } else if (time === "13:00") {
-    const latestSnapshot = await db.ref("dealer-card-tracker/records").get();
-    const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
-    result = {
-      checked: 0,
-      notified: 0,
-      deleted: 0,
-      skippedToday: 0,
-      summarySent: await sendTrackingSummary(latestRecords, today)
-    };
-  } else {
-    result = await checkTrackingMyRecords("", {
-      onlyNeedsEveningCheck: true,
-      sendDeliveredNotifications: true
+    let result;
+    if (slot.action === "check") {
+      result = await checkTrackingMyRecords();
+    } else if (slot.action === "summary") {
+      const latestSnapshot = await db.ref("dealer-card-tracker/records").get();
+      const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
+      result = {
+        checked: 0,
+        notified: 0,
+        deleted: 0,
+        skippedToday: 0,
+        summarySent: await sendTrackingSummary(latestRecords, today)
+      };
+    } else {
+      result = await checkTrackingMyRecords("", {
+        onlyNeedsEveningCheck: true,
+        sendDeliveredNotifications: true
+      });
+    }
+
+    await runRef.set(new Date().toISOString());
+    await db.ref("dealer-card-tracker/settings/trackingMyLastRun").set({
+      ...result,
+      slot: slot.time,
+      date: today,
+      updatedAt: new Date().toISOString()
     });
   }
-  await db.ref("dealer-card-tracker/settings/trackingMyLastRun").set({
-    ...result,
-    slot: time,
-    date: today,
-    updatedAt: new Date().toISOString()
-  });
 }
 
 app.get("/", (_req, res) => {
   res.send("Dealer Telegram bot is running.");
+  runScheduledTrackingMyCheck().catch((error) => console.error(error));
 });
 
 app.options("/announce", (_req, res) => {
@@ -1547,6 +1554,7 @@ const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`Telegram bot listening on ${port}`);
   autoExpireWarrantyRecords().catch((error) => console.error(error));
+  runScheduledTrackingMyCheck().catch((error) => console.error(error));
 });
 
 setInterval(() => {
