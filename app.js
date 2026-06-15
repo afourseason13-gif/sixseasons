@@ -977,6 +977,9 @@ function renderTrackingCell(record) {
 }
 
 function isRecordStale(record) {
+  const status = String(record.status || "");
+  const completedStatuses = ["过保", "弹卡", "人头关"];
+  if (completedStatuses.some((item) => status.includes(item))) return false;
   const updatedAt = record.updatedAt || record.createdAt;
   if (!updatedAt) return false;
   const fiveDaysMs = 5 * 24 * 60 * 60 * 1000;
