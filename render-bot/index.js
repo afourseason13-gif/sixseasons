@@ -43,13 +43,22 @@ function firebaseKey(value) {
 
 function pickLineValue(text, labels) {
   const lines = text.split(/\r?\n/);
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
     const cleaned = line.replace(/\*/g, "").trim();
     const match = cleaned.match(/^([^:：]+)[:：]\s*(.*)$/);
     if (!match) continue;
     const label = match[1].trim().toUpperCase();
+    if (!labels.some((item) => label === item || label.includes(item))) continue;
     const value = match[2].trim();
-    if (labels.some((item) => label === item || label.includes(item))) return value;
+    if (value) return value;
+
+    for (let nextIndex = index + 1; nextIndex < lines.length; nextIndex += 1) {
+      const nextValue = lines[nextIndex].replace(/\*/g, "").trim();
+      if (!nextValue || /^-+$/.test(nextValue)) continue;
+      if (/^[^:：]+[:：]/.test(nextValue)) break;
+      return nextValue;
+    }
   }
   return "";
 }
