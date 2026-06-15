@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dealer 资料</title>
-    <link rel="stylesheet" href="./styles.css?v=20260613-home-tools" />
+    <link rel="stylesheet" href="./styles.css?v=20260615-brand-stage-v6c" />
   </head>
-  <body>
+  <body class="dealer-page">
     <main class="app-shell">
       <section class="topbar" aria-label="Dealer 资料">
         <div>
-          <p class="eyebrow"><a class="back-link" href="./index.html">返回 Dealer 名单</a></p>
+          <p class="eyebrow"><a class="back-link" href="./index.html">← 返回管理中心</a></p>
           <h1 id="dealerTitle">Dealer 资料</h1>
         </div>
         <div class="sync-card" id="syncStatus">
@@ -57,11 +57,12 @@
         </div>
       </section>
 
+      <section class="dealer-workbench" aria-label="Dealer 工作台">
       <details class="panel form-panel feature-panel collapsible-panel" id="recordFormPanel">
         <summary class="panel-summary">
           <div>
-            <p class="eyebrow">Record</p>
-            <h2>&#28155;&#21152;&#36164;&#26009;</h2>
+            <p class="eyebrow">RECORD EDITOR</p>
+            <h2>资料录入</h2>
           </div>
           <span class="summary-toggle">&#23637;&#24320;</span>
         </summary>
@@ -102,30 +103,31 @@
         </form>
       </details>
 
-      <section class="status-board" aria-label="&#21345;&#21495;&#29366;&#24577;&#27719;&#24635;">
+      <section class="status-board" aria-label="卡号状态汇总">
         <article class="status-board-card">
           <div class="status-board-head">
-            <h2>&#36807;&#20445; / &#24320;&#20445;</h2>
+            <h2>过保 / 开保</h2>
             <span id="activeStatusCount">0</span>
           </div>
           <div class="status-board-list" id="activeStatusCards"></div>
         </article>
         <article class="status-board-card danger-board">
           <div class="status-board-head">
-            <h2>&#24377;&#21345; / &#20154;&#22836;&#20851;</h2>
+            <h2>问题状态</h2>
             <span id="problemStatusCount">0</span>
           </div>
           <div class="status-board-list" id="problemStatusCards"></div>
         </article>
       </section>
 
-      <section class="panel status-panel" aria-label="状态选项">
-        <div class="panel-title compact">
+      <details class="panel status-panel" aria-label="状态选项">
+        <summary class="panel-title compact">
           <div>
-            <p class="eyebrow">Status</p>
-            <h2>状态选项</h2>
+            <p class="eyebrow">STATUS SETTINGS</p>
+            <h2>状态选项管理</h2>
           </div>
-        </div>
+          <span class="summary-toggle">展开</span>
+        </summary>
         <form id="statusOptionForm" class="status-option-form" autocomplete="off">
           <label>
             <span>新增状态选项</span>
@@ -134,6 +136,7 @@
           <button class="primary" type="submit">添加状态</button>
         </form>
         <div class="status-option-list" id="statusOptionList"></div>
+      </details>
       </section>
 
       <section class="toolbar" aria-label="记录工具">
@@ -155,6 +158,13 @@
       </section>
 
       <section class="records" aria-label="记录列表">
+        <div class="records-heading">
+          <div>
+            <p class="eyebrow">RECORD DIRECTORY</p>
+            <h2>资料记录</h2>
+          </div>
+          <span>左右滑动可查看全部栏位</span>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -211,6 +221,6 @@
     </div>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260615-human-stealing-status"></script>
+    <script src="./app.js?v=20260615-brand-stage-v6c"></script>
   </body>
 </html>

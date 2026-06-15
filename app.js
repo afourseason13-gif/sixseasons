@@ -597,11 +597,12 @@ function renderIndexPage() {
   if (noticeMessage) noticeMessage.textContent = noticeText || "暂无运营通知";
   emptyState.style.display = names.length ? "none" : "block";
 
-  for (const name of names) {
+  for (const [dealerIndex, name] of names.entries()) {
     const stats = dealerStats(name);
     const card = document.createElement("div");
     card.className = "dealer-card";
     card.innerHTML = `
+      <span class="dealer-rank">${String(dealerIndex + 1).padStart(2, "0")}</span>
       <a class="dealer-open" href="${dealerUrl(name)}">
         <span class="dealer-title-line">
           <span class="dealer-name">${escapeHtml(name)}</span>

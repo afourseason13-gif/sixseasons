@@ -2202,6 +2202,2191 @@ tbody tr:hover {
   }
 }
 
+/* Operations V3: unified desktop and compact mobile workspace */
+.index-page,
+.dealer-page {
+  --v3-ink: #10191d;
+  --v3-muted: #65747c;
+  --v3-line: #d8e1e4;
+  --v3-surface: #ffffff;
+  --v3-soft: #f3f7f7;
+  --v3-green: #08756b;
+  --v3-blue: #286eaa;
+  --v3-gold: #af771b;
+  --v3-red: #b64c43;
+  background:
+    linear-gradient(180deg, #0a1517 0, #101d20 250px, #edf2f3 250px, #edf2f3 100%);
+  color: var(--v3-ink);
+  overflow-x: hidden;
+}
+
+.index-page::before,
+.dealer-page::before {
+  top: 26px;
+  color: rgba(255, 255, 255, 0.075);
+  font-size: clamp(68px, 12vw, 156px);
+  letter-spacing: 0;
+}
+
+.index-page .app-shell,
+.dealer-page .app-shell {
+  width: min(1320px, calc(100% - 32px));
+  padding: 22px 0 48px;
+}
+
+.index-page .topbar,
+.dealer-page .topbar {
+  min-height: 58px;
+  margin-bottom: 18px;
+  padding: 0 4px;
+}
+
+.index-page .topbar h1,
+.dealer-page .topbar h1 {
+  color: #fff;
+  font-size: 28px;
+}
+
+.index-page .topbar .eyebrow,
+.dealer-page .topbar .eyebrow,
+.dealer-page .back-link {
+  color: #9cc7c1;
+}
+
+.index-page .sync-card,
+.dealer-page .sync-card {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4eeee;
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+}
+
+.index-page .eyebrow,
+.dealer-page .eyebrow {
+  color: var(--v3-green);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.index-page .index-hero {
+  min-height: 178px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background:
+    linear-gradient(115deg, rgba(10, 103, 92, 0.92), rgba(10, 24, 27, 0.98) 72%),
+    #0b1a1c;
+  box-shadow: 0 20px 48px rgba(8, 24, 28, 0.23);
+  padding: 26px 28px;
+}
+
+.index-page .index-hero h2 {
+  font-size: 34px;
+}
+
+.index-page .hero-stats {
+  grid-template-columns: repeat(3, minmax(100px, 1fr));
+}
+
+.index-page .hero-stat {
+  min-width: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.home-command-grid,
+.home-communications-grid {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.home-command-grid > *,
+.home-communications-grid > * {
+  min-width: 0;
+}
+
+.home-command-grid {
+  grid-template-columns: minmax(360px, 0.85fr) minmax(0, 1.15fr);
+}
+
+.home-communications-grid {
+  grid-template-columns: minmax(300px, 0.75fr) minmax(0, 1.25fr);
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .notice-panel,
+.index-page .announce-panel,
+.index-page .toolbar,
+.index-page .dealer-section,
+.dealer-page .panel,
+.dealer-page .records,
+.dealer-page .toolbar,
+.dealer-page .metric-card,
+.dealer-page .status-board-card {
+  border: 1px solid var(--v3-line);
+  border-radius: 6px;
+  background: var(--v3-surface);
+  color: var(--v3-ink);
+  box-shadow: 0 10px 28px rgba(26, 49, 58, 0.07);
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .notice-panel,
+.index-page .announce-panel {
+  height: 100%;
+  margin: 0;
+  padding: 18px;
+}
+
+.index-page .card-dealer-finder {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  border-top: 4px solid var(--v3-green);
+  background: #fff;
+}
+
+.index-page .card-dealer-finder::before {
+  display: none;
+}
+
+.index-page .card-dealer-finder .card-finder-heading,
+.index-page .home-transit-board .card-finder-heading {
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.index-page .card-finder-search {
+  margin-top: auto;
+  border-color: #cbd8db;
+  border-radius: 5px;
+  box-shadow: none;
+}
+
+.index-page .card-finder-search input {
+  min-height: 44px;
+  background: #f7f9fa;
+  color: var(--v3-ink);
+  font-weight: 700;
+  text-transform: none;
+}
+
+.index-page .card-finder-search button,
+.index-page .primary {
+  background: var(--v3-green);
+  color: #fff;
+}
+
+.index-page .card-finder-results {
+  max-height: 270px;
+  overflow: auto;
+}
+
+.index-page .home-transit-board {
+  border-top: 4px solid var(--v3-blue);
+  background: #fff;
+}
+
+.index-page .home-transit-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.index-page .home-transit-item {
+  min-height: 86px;
+  border-color: #dce6ea;
+  background: #f7fafb;
+  box-shadow: none;
+}
+
+.index-page .notice-panel {
+  border-left: 0;
+  border-top: 4px solid var(--v3-gold);
+  background: #fff;
+}
+
+.index-page .notice-message {
+  min-height: 84px;
+  border: 0;
+  border-radius: 4px;
+  background: #faf7ef;
+  color: #3d372d;
+  box-shadow: none;
+}
+
+.index-page .announce-panel {
+  border-left: 0;
+  border-top: 4px solid #3986b9;
+  background: #fff;
+}
+
+.index-page .announce-form {
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 230px);
+}
+
+.index-page .quote-panel {
+  min-height: 58px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: linear-gradient(100deg, #102b2b, #122024);
+  color: #f2f6f5;
+  box-shadow: 0 10px 28px rgba(26, 49, 58, 0.1);
+}
+
+.index-page .toolbar {
+  margin: 0;
+  border-radius: 6px 6px 0 0;
+  box-shadow: none;
+}
+
+.index-page .dealer-section {
+  margin: 0 0 20px;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 12px 30px rgba(26, 49, 58, 0.07);
+}
+
+.index-page .dealer-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.index-page .dealer-card {
+  min-height: 94px;
+  border-color: #dbe4e6;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.index-page .dealer-card:hover {
+  border-color: #85b8b1;
+  box-shadow: 0 8px 20px rgba(18, 71, 65, 0.1);
+}
+
+.index-page .index-add-panel {
+  border-color: #bfd3cf;
+  background: #fff;
+}
+
+/* Dealer workspace */
+.dealer-page .dealer-overview {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.dealer-page .metric-card {
+  min-height: 92px;
+  padding: 13px;
+  box-shadow: none;
+}
+
+.dealer-page .metric-card::before {
+  content: "";
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--v3-green);
+}
+
+.dealer-page .metric-card:nth-child(4)::before,
+.dealer-page .metric-card:nth-child(5)::before {
+  background: var(--v3-blue);
+}
+
+.dealer-page .metric-card:nth-child(6)::before,
+.dealer-page .salary-breakdown::before {
+  background: var(--v3-gold);
+}
+
+.dealer-page .metric-card span {
+  color: var(--v3-muted);
+  font-size: 11px;
+}
+
+.dealer-page .metric-card strong {
+  color: var(--v3-ink);
+  font-size: 22px;
+}
+
+.dealer-page .salary-breakdown {
+  grid-column: span 3;
+}
+
+.dealer-page .salary-breakdown strong {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.dealer-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.7fr);
+  grid-template-areas:
+    "status form"
+    "status options";
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.dealer-page .status-board {
+  grid-area: status;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+
+.dealer-page .status-board-card {
+  padding: 15px;
+}
+
+.dealer-page .status-board-card::before {
+  height: 4px;
+  background: var(--v3-green);
+}
+
+.dealer-page .status-board-card.danger-board::before {
+  background: var(--v3-red);
+}
+
+.dealer-page .status-board-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dealer-page .status-board-item {
+  border-radius: 4px;
+  background: #f5f9f8;
+}
+
+.dealer-page #recordFormPanel {
+  grid-area: form;
+  margin: 0;
+  overflow: hidden;
+}
+
+.dealer-page #recordFormPanel[open] {
+  max-height: 690px;
+  overflow: auto;
+}
+
+.dealer-page .status-panel {
+  grid-area: options;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dealer-page .status-panel > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 16px;
+}
+
+.dealer-page .status-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dealer-page .status-panel[open] .status-option-form,
+.dealer-page .status-panel[open] .status-option-list {
+  margin: 0 16px 14px;
+}
+
+.dealer-page .toolbar {
+  margin: 0 0 10px;
+  padding: 10px;
+  box-shadow: none;
+}
+
+.dealer-page .records {
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(26, 49, 58, 0.08);
+}
+
+.records-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--v3-line);
+  padding: 15px 16px;
+}
+
+.records-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.records-heading > span {
+  color: var(--v3-muted);
+  font-size: 11px;
+}
+
+.dealer-page .table-wrap {
+  overflow: auto;
+}
+
+.dealer-page table {
+  min-width: 1260px;
+}
+
+.dealer-page thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #152326;
+  color: #e9f1f1;
+}
+
+.dealer-page tbody tr {
+  background: #fff;
+}
+
+.dealer-page tbody tr:nth-child(even) {
+  background: #f8fafb;
+}
+
+.dealer-page .record-row td {
+  border-color: #e2e9eb;
+}
+
+.dealer-page .stale-alert {
+  margin: 0 0 10px;
+}
+
+@media (max-width: 1080px) {
+  .index-page .dealer-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dealer-page .dealer-overview {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dealer-page .salary-breakdown {
+    grid-column: span 3;
+  }
+
+  .dealer-workbench {
+    grid-template-columns: minmax(0, 1.15fr) minmax(310px, 0.85fr);
+  }
+
+  .dealer-page .status-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .index-page,
+  .dealer-page {
+    background:
+      linear-gradient(180deg, #0a1517 0, #101d20 190px, #edf2f3 190px, #edf2f3 100%);
+  }
+
+  .index-page .app-shell,
+  .dealer-page .app-shell {
+    width: calc(100% - 16px);
+    padding: 12px 0 32px;
+  }
+
+  .index-page .topbar,
+  .dealer-page .topbar {
+    min-height: 48px;
+    margin-bottom: 10px;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .index-page .topbar > div:first-child,
+  .dealer-page .topbar > div:first-child {
+    min-width: 0;
+  }
+
+  .index-page .topbar h1,
+  .dealer-page .topbar h1 {
+    font-size: 19px;
+    white-space: nowrap;
+  }
+
+  .index-page .sync-card,
+  .dealer-page .sync-card {
+    min-height: 34px;
+    max-width: 148px;
+    overflow: hidden;
+    padding: 7px 9px;
+    font-size: 10px;
+    text-overflow: ellipsis;
+  }
+
+  .index-page .card-dealer-finder,
+  .index-page .home-transit-board {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .index-page .index-hero {
+    min-height: 128px;
+    padding: 16px;
+  }
+
+  .index-page .index-hero h2 {
+    font-size: 23px;
+  }
+
+  .index-page .hero-copy {
+    font-size: 11px;
+  }
+
+  .index-page .hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .index-page .hero-stat {
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .index-page .hero-stat span {
+    font-size: 9px;
+  }
+
+  .index-page .hero-stat strong {
+    font-size: 21px;
+  }
+
+  .home-command-grid,
+  .home-communications-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .index-page .card-dealer-finder,
+  .index-page .home-transit-board,
+  .index-page .notice-panel,
+  .index-page .announce-panel {
+    padding: 12px;
+  }
+
+  .index-page .home-transit-list {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+
+  .index-page .home-transit-item {
+    min-width: 165px;
+    min-height: 76px;
+  }
+
+  .index-page .announce-form {
+    grid-template-columns: minmax(0, 1fr) 150px;
+  }
+
+  .index-page .dealer-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .index-page .dealer-card {
+    min-height: 84px;
+    padding: 10px;
+  }
+
+  .index-page .dealer-name {
+    font-size: 13px;
+  }
+
+  .index-page .dealer-meta {
+    font-size: 9px;
+  }
+
+  .dealer-page .dealer-overview {
+    grid-template-columns: repeat(4, minmax(115px, 1fr));
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+
+  .dealer-page .dealer-overview,
+  .dealer-page .status-board {
+    scrollbar-width: thin;
+  }
+
+  .dealer-page .dealer-overview::-webkit-scrollbar,
+  .dealer-page .status-board::-webkit-scrollbar,
+  .dealer-page .table-wrap::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .dealer-page .metric-card {
+    min-height: 76px;
+    padding: 10px;
+  }
+
+  .dealer-page .salary-breakdown {
+    grid-column: span 2;
+    min-width: 250px;
+  }
+
+  .dealer-workbench {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "status"
+      "form"
+      "options";
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .dealer-page .status-board {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+
+  .dealer-page .status-board-card {
+    min-height: 170px;
+  }
+
+  .dealer-page .toolbar {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 6px;
+  }
+
+  .dealer-page .toolbar .search-wrap {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .dealer-page .toolbar .summary {
+    display: none;
+  }
+
+  .records-heading {
+    padding: 11px 12px;
+  }
+
+  .records-heading h2 {
+    font-size: 17px;
+  }
+
+  .dealer-page .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dealer-page table {
+    display: table;
+    min-width: 1180px;
+  }
+
+  .dealer-page thead {
+    display: table-header-group;
+  }
+
+  .dealer-page tbody {
+    display: table-row-group;
+  }
+
+  .dealer-page .record-row {
+    display: table-row;
+  }
+
+  .dealer-page .record-row td {
+    display: table-cell;
+    width: auto;
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .dealer-page .record-row td::before,
+  .dealer-page .record-row::before {
+    display: none;
+  }
+}
+
+.index-page .index-add-panel:not([open]) {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  opacity: 0.72;
+}
+
+.index-page .index-add-panel:not([open]):hover {
+  opacity: 1;
+}
+
+.index-page .index-add-panel:not([open]) > summary {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+}
+
+.index-page .index-add-panel:not([open]) .index-add-toggle {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  font-size: 0;
+  padding: 0;
+}
+
+.index-page .index-add-panel:not([open]) .index-add-toggle::after {
+  content: "+";
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* Signature V4: layered executive console */
+.index-page,
+.dealer-page {
+  --sig-dark: #081214;
+  --sig-deep: #102124;
+  --sig-paper: #f4f5f2;
+  --sig-white: #fff;
+  --sig-ink: #142023;
+  --sig-muted: #718084;
+  --sig-line: #dce3e1;
+  --sig-green: #08766b;
+  --sig-mint: #dceee9;
+  --sig-gold: #b98a3a;
+  --sig-blue: #3276a3;
+  background:
+    linear-gradient(180deg, var(--sig-dark) 0, var(--sig-deep) 330px, var(--sig-paper) 330px, var(--sig-paper) 100%);
+}
+
+.index-page::before,
+.dealer-page::before {
+  top: 12px;
+  color: rgba(255, 255, 255, 0.045);
+  font-size: clamp(82px, 15vw, 190px);
+  letter-spacing: 0;
+}
+
+.index-page .app-shell,
+.dealer-page .app-shell {
+  width: min(1360px, calc(100% - 42px));
+  padding-top: 24px;
+}
+
+.index-page .topbar,
+.dealer-page .topbar {
+  min-height: 64px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0 2px 14px;
+}
+
+.index-page .topbar h1,
+.dealer-page .topbar h1 {
+  font-size: 27px;
+  font-weight: 700;
+}
+
+.index-page .sync-card,
+.dealer-page .sync-card {
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0;
+  background: transparent;
+  padding-right: 0;
+}
+
+.index-page .index-hero {
+  min-height: 205px;
+  margin-bottom: 0;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(100deg, rgba(8, 118, 107, 0.38), transparent 52%),
+    linear-gradient(135deg, #10292b, #0a1719);
+  box-shadow: none;
+  padding: 34px 38px 48px;
+}
+
+.index-page .index-hero::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 38%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--sig-gold));
+}
+
+.index-page .index-hero h2 {
+  max-width: 600px;
+  font-size: 43px;
+  font-weight: 650;
+}
+
+.index-page .hero-copy {
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 14px;
+}
+
+.index-page .hero-stats {
+  gap: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.index-page .hero-stat,
+.index-page .hero-stat:last-child {
+  gap: 10px;
+  min-width: 130px;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0;
+  background: transparent;
+  padding: 18px 22px;
+  backdrop-filter: none;
+}
+
+.index-page .hero-stat:last-child {
+  border-right: 0;
+}
+
+.index-page .hero-stat strong {
+  font-size: 38px;
+  font-weight: 500;
+}
+
+.home-command-grid {
+  grid-template-columns: minmax(360px, 0.74fr) minmax(0, 1.26fr);
+  gap: 0;
+  margin: -24px 22px 22px;
+  position: relative;
+  z-index: 4;
+  box-shadow: 0 24px 55px rgba(23, 44, 47, 0.13);
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board {
+  min-height: 210px;
+  border: 0;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: none;
+  padding: 24px 26px;
+}
+
+.index-page .card-dealer-finder {
+  border-top: 0;
+  border-right: 1px solid var(--sig-line);
+}
+
+.index-page .home-transit-board {
+  border-top: 0;
+}
+
+.index-page .card-finder-heading h2,
+.index-page .home-transit-board .card-finder-heading h2 {
+  font-size: 25px;
+  font-weight: 650;
+}
+
+.index-page .card-finder-search {
+  border: 0;
+  border-bottom: 2px solid var(--sig-ink);
+  border-radius: 0;
+  background: transparent;
+}
+
+.index-page .card-finder-search input {
+  background: transparent;
+  padding-left: 0;
+}
+
+.index-page .card-finder-search button {
+  min-width: 86px;
+  min-height: 42px;
+  margin-bottom: 4px;
+  border-radius: 3px;
+}
+
+.index-page .home-transit-list {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid var(--sig-line);
+}
+
+.index-page .home-transit-item {
+  min-width: 180px;
+  min-height: 94px;
+  border: 0;
+  border-right: 1px solid var(--sig-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 15px 18px 10px 0;
+}
+
+.index-page .home-transit-item + .home-transit-item {
+  padding-left: 18px;
+}
+
+.index-page .home-transit-item em {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.home-communications-grid {
+  grid-template-columns: minmax(330px, 0.72fr) minmax(0, 1.28fr);
+  gap: 0;
+  margin-bottom: 22px;
+  border-top: 1px solid #cfd9d6;
+  border-bottom: 1px solid #cfd9d6;
+}
+
+.index-page .notice-panel,
+.index-page .announce-panel {
+  min-height: 230px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 24px 28px;
+}
+
+.index-page .notice-panel {
+  border-top: 0;
+  border-right: 1px solid #cfd9d6;
+}
+
+.index-page .announce-panel {
+  border-top: 0;
+}
+
+.index-page .notice-message {
+  min-height: 115px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sig-ink);
+  font-size: 18px;
+  padding: 16px 0;
+}
+
+.index-page .announce-form {
+  border-top: 1px solid var(--sig-line);
+  padding-top: 14px;
+}
+
+.index-page .quote-panel {
+  min-height: 72px;
+  margin-bottom: 22px;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, #0d2425, #152a2d 62%, #1c292b);
+  box-shadow: none;
+}
+
+.index-page .quote-panel::before {
+  color: rgba(255, 255, 255, 0.06);
+}
+
+.index-page .toolbar {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid #cfd8d6;
+  border-bottom: 1px solid #cfd8d6;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 14px 0;
+}
+
+.index-page .search-wrap {
+  border: 0;
+  border-bottom: 1px solid #9aaba7;
+  border-radius: 0;
+  background: transparent;
+}
+
+.index-page .dealer-section {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 24px 0 0;
+}
+
+.index-page .dealer-section > .panel-title {
+  margin-bottom: 14px;
+}
+
+.index-page .dealer-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 32px;
+  border-top: 1px solid #cfd8d6;
+}
+
+.index-page .dealer-card {
+  min-height: 90px;
+  border: 0;
+  border-bottom: 1px solid #cfd8d6;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 16px 0;
+}
+
+.index-page .dealer-card:hover {
+  border-color: var(--sig-green);
+  background: linear-gradient(90deg, rgba(8, 118, 107, 0.06), transparent);
+  box-shadow: none;
+  transform: none;
+}
+
+.index-page .dealer-open {
+  display: grid;
+  gap: 8px;
+}
+
+.index-page .dealer-name {
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.index-page .dealer-count-badge {
+  border: 0;
+  background: var(--sig-deep);
+  color: #fff;
+}
+
+.index-page .dealer-delete {
+  opacity: 0.45;
+  border: 0;
+  background: transparent;
+}
+
+.index-page .dealer-card:hover .dealer-delete {
+  opacity: 1;
+}
+
+/* Signature Dealer page */
+.dealer-page .dealer-overview {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0;
+  margin-bottom: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.17);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.17);
+}
+
+.dealer-page .metric-card {
+  min-height: 112px;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+  padding: 20px 15px;
+}
+
+.dealer-page .metric-card::before {
+  width: 20px;
+  background: #64bbae;
+}
+
+.dealer-page .metric-card span {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dealer-page .metric-card strong {
+  color: #fff;
+  font-size: 27px;
+  font-weight: 550;
+}
+
+.dealer-page .metric-card input,
+.dealer-page .metric-card select {
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  padding-left: 0;
+}
+
+.dealer-page .metric-card select option {
+  color: #111;
+}
+
+.dealer-page .salary-breakdown {
+  grid-column: span 3;
+}
+
+.dealer-workbench {
+  grid-template-columns: minmax(0, 1.38fr) minmax(360px, 0.62fr);
+  gap: 0 24px;
+  margin-bottom: 22px;
+}
+
+.dealer-page .status-board {
+  gap: 0;
+  border-top: 1px solid #cfd8d6;
+  border-bottom: 1px solid #cfd8d6;
+}
+
+.dealer-page .status-board-card {
+  min-height: 330px;
+  border: 0;
+  border-right: 1px solid #cfd8d6;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 22px 22px 22px 0;
+}
+
+.dealer-page .status-board-card + .status-board-card {
+  border-right: 0;
+  padding-left: 22px;
+}
+
+.dealer-page .status-board-card::before {
+  width: 36px;
+  height: 3px;
+}
+
+.dealer-page .status-board-head h2 {
+  font-size: 24px;
+  font-weight: 650;
+}
+
+.dealer-page .status-board-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.dealer-page .status-board-item {
+  min-height: 46px;
+  border: 0;
+  border-bottom: 1px solid var(--sig-line);
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 0;
+}
+
+.dealer-page #recordFormPanel,
+.dealer-page .status-panel {
+  border: 0;
+  border-top: 3px solid var(--sig-green);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(28, 52, 56, 0.09);
+}
+
+.dealer-page .status-panel {
+  border-top-color: var(--sig-gold);
+}
+
+.dealer-page .panel-summary,
+.dealer-page .status-panel > summary {
+  min-height: 78px;
+  padding: 20px 22px;
+}
+
+.dealer-page .toolbar {
+  margin-bottom: 0;
+  border: 0;
+  border-top: 1px solid #cfd8d6;
+  border-bottom: 1px solid #cfd8d6;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 14px 0;
+}
+
+.dealer-page .records {
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(28, 52, 56, 0.08);
+}
+
+.dealer-page .records-heading {
+  min-height: 84px;
+  border-bottom: 0;
+  background: #102124;
+  color: #fff;
+  padding: 20px 24px;
+}
+
+.dealer-page .records-heading .eyebrow {
+  color: #79beb4;
+}
+
+.dealer-page .records-heading h2 {
+  color: #fff;
+  font-size: 25px;
+}
+
+.dealer-page .records-heading > span {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dealer-page thead th {
+  background: #182b2e;
+  font-weight: 600;
+}
+
+.dealer-page tbody tr:nth-child(even) {
+  background: #f5f8f7;
+}
+
+@media (max-width: 760px) {
+  .index-page,
+  .dealer-page {
+    background:
+      linear-gradient(180deg, var(--sig-dark) 0, var(--sig-deep) 245px, var(--sig-paper) 245px, var(--sig-paper) 100%);
+  }
+
+  .index-page .app-shell,
+  .dealer-page .app-shell {
+    width: calc(100% - 18px);
+  }
+
+  .index-page .index-hero {
+    min-height: 185px;
+    padding: 22px 18px 38px;
+  }
+
+  .index-page .index-hero h2 {
+    font-size: 29px;
+  }
+
+  .home-command-grid {
+    grid-template-columns: 1fr;
+    margin: -20px 8px 16px;
+    box-shadow: 0 18px 40px rgba(23, 44, 47, 0.14);
+  }
+
+  .index-page .card-dealer-finder,
+  .index-page .home-transit-board {
+    min-height: 180px;
+    border-right: 0;
+    border-bottom: 1px solid var(--sig-line);
+    padding: 18px;
+  }
+
+  .home-communications-grid {
+    grid-template-columns: 1fr;
+    margin-bottom: 16px;
+  }
+
+  .index-page .notice-panel,
+  .index-page .announce-panel {
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid #cfd9d6;
+    padding: 18px 10px;
+  }
+
+  .index-page .announce-form {
+    grid-template-columns: 1fr 145px;
+  }
+
+  .index-page .dealer-list {
+    grid-template-columns: 1fr;
+  }
+
+  .index-page .dealer-card {
+    min-height: 82px;
+  }
+
+  .dealer-page .dealer-overview {
+    grid-template-columns: repeat(8, 120px);
+    overflow-x: auto;
+  }
+
+  .dealer-page .metric-card {
+    min-height: 94px;
+    padding: 14px 12px;
+  }
+
+  .dealer-workbench {
+    gap: 14px;
+  }
+
+  .dealer-page .status-board {
+    gap: 0;
+  }
+
+  .dealer-page .status-board-card {
+    min-height: 250px;
+    padding: 18px 16px 18px 0;
+  }
+
+  .dealer-page .status-board-card + .status-board-card {
+    padding-left: 16px;
+  }
+
+  .dealer-page .records-heading {
+    min-height: 70px;
+    padding: 15px;
+  }
+}
+
+/* Command Room V5 */
+.index-page {
+  background:
+    linear-gradient(180deg, #050b0d 0, #0a1517 660px, #eef1ee 660px, #eef1ee 100%);
+}
+
+.index-page .topbar {
+  position: relative;
+  z-index: 8;
+  margin-bottom: 0;
+  border: 0;
+  padding: 14px 20px;
+}
+
+.index-page .topbar h1 {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.index-page .index-hero {
+  min-height: 430px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  align-items: end;
+  margin: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(118deg, rgba(7, 132, 117, 0.31), transparent 45%),
+    #081315;
+  background-size: 46px 46px, 46px 46px, auto, auto;
+  padding: 52px 56px 76px;
+}
+
+.index-page .index-hero::before {
+  inset: auto 0 0;
+  width: auto;
+  height: 5px;
+  background: linear-gradient(90deg, #0da28f 0 42%, #d2a64d 42% 65%, #377da8 65% 100%);
+}
+
+.index-page .index-hero::after {
+  content: "SIX / 06";
+  right: 42px;
+  bottom: 196px;
+  color: rgba(255, 255, 255, 0.05);
+  font-size: 92px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.index-page .index-hero h2 {
+  max-width: 700px;
+  color: #f5f8f7;
+  font-size: clamp(48px, 6vw, 78px);
+  font-weight: 520;
+  line-height: 0.98;
+}
+
+.index-page .index-hero .hero-copy {
+  max-width: 570px;
+  margin-top: 22px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.index-page .hero-stats {
+  align-self: stretch;
+  grid-template-columns: 1fr;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.index-page .hero-stat,
+.index-page .hero-stat:last-child {
+  align-content: center;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 20px 30px;
+}
+
+.index-page .hero-stat:first-child {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.index-page .hero-stat strong {
+  font-size: 48px;
+  font-weight: 400;
+}
+
+.index-page .hero-stat:last-child strong {
+  color: #86d1c5;
+}
+
+.index-page .home-command-grid {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  margin: -48px 36px 28px;
+  border: 1px solid rgba(10, 38, 40, 0.18);
+  background: #fff;
+  box-shadow: 0 30px 70px rgba(9, 28, 31, 0.2);
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board {
+  min-height: 235px;
+  padding: 30px 32px;
+}
+
+.index-page .card-dealer-finder {
+  background:
+    linear-gradient(135deg, rgba(12, 124, 111, 0.08), transparent 55%),
+    #fff;
+}
+
+.index-page .card-dealer-finder .card-finder-heading h2,
+.index-page .home-transit-board .card-finder-heading h2 {
+  font-size: 28px;
+}
+
+.index-page .card-finder-search {
+  border-bottom: 2px solid #0d282a;
+}
+
+.index-page .home-transit-board {
+  background: #0d1d20;
+  color: #fff;
+}
+
+.index-page .home-transit-board .card-finder-heading h2 {
+  color: #fff;
+}
+
+.index-page .home-transit-board .section-copy,
+.index-page .home-transit-board .card-finder-count {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.index-page .home-transit-list {
+  border-top-color: rgba(255, 255, 255, 0.14);
+  overflow-x: auto;
+}
+
+.index-page .home-transit-item {
+  color: #fff;
+  border-right-color: rgba(255, 255, 255, 0.14);
+}
+
+.index-page .home-transit-item strong {
+  color: #fff;
+}
+
+.index-page .home-transit-item span {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.index-page .home-transit-item em {
+  color: #7fd3c5;
+}
+
+.index-page .home-transit-empty {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.index-page .home-communications-grid {
+  margin: 0 36px 30px;
+  border: 0;
+  background: #e5eae7;
+}
+
+.index-page .notice-panel,
+.index-page .announce-panel {
+  padding: 30px 34px;
+}
+
+.index-page .notice-panel {
+  background: #edf0eb;
+}
+
+.index-page .announce-panel {
+  background: #fff;
+}
+
+.index-page .quote-panel {
+  margin: 0 36px 30px;
+  background:
+    linear-gradient(90deg, rgba(7, 126, 111, 0.23), transparent 35%),
+    #071416;
+}
+
+.index-page .toolbar,
+.index-page .dealer-section {
+  margin-left: 36px;
+  margin-right: 36px;
+}
+
+.index-page .dealer-section {
+  padding-bottom: 48px;
+}
+
+.index-page .dealer-section > .panel-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  min-height: 92px;
+  margin: 0;
+  border-bottom: 2px solid #112426;
+}
+
+.index-page .dealer-section > .panel-title h2 {
+  font-size: 34px;
+}
+
+.index-page .dealer-list {
+  gap: 0;
+  border-top: 0;
+}
+
+.index-page .dealer-card {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  min-height: 112px;
+  padding: 0;
+}
+
+.index-page .dealer-rank {
+  display: grid;
+  align-self: stretch;
+  place-items: center;
+  border-right: 1px solid #cfd8d6;
+  color: #97a39f;
+  font-family: Georgia, serif;
+  font-size: 18px;
+}
+
+.index-page .dealer-open {
+  padding: 20px 18px;
+}
+
+.index-page .dealer-name {
+  font-size: 21px;
+}
+
+.index-page .dealer-meta {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.index-page .dealer-delete {
+  margin-right: 12px;
+}
+
+/* Full-row status gradients */
+.dealer-page .record-row {
+  position: relative;
+  background:
+    linear-gradient(96deg, var(--row-tint-strong, rgba(148, 163, 184, 0.2)) 0%, var(--row-tint, rgba(148, 163, 184, 0.12)) 48%, rgba(255, 255, 255, 0.92) 100%) !important;
+}
+
+.dealer-page .record-row::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--status-color, #94a3b8);
+  pointer-events: none;
+}
+
+.dealer-page .record-row td {
+  background: transparent !important;
+}
+
+.dealer-page .record-row:hover {
+  background:
+    linear-gradient(96deg, var(--row-tint-strong, rgba(148, 163, 184, 0.28)) 0%, var(--row-tint, rgba(148, 163, 184, 0.18)) 65%, rgba(255, 255, 255, 0.98) 100%) !important;
+}
+
+.dealer-page .record-row .inline-edit,
+.dealer-page .record-row select,
+.dealer-page .record-row input {
+  border-color: color-mix(in srgb, var(--status-color, #94a3b8) 24%, #cbd5e1);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dealer-page .record-row .status-select {
+  border-color: var(--status-color, #94a3b8);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--status-text, #334155);
+  font-weight: 900;
+}
+
+@media (max-width: 760px) {
+  html:has(.index-page) {
+    overflow-x: hidden;
+  }
+
+  .index-page {
+    overflow-x: hidden;
+    background:
+      linear-gradient(180deg, #050b0d 0, #0a1517 520px, #eef1ee 520px, #eef1ee 100%);
+  }
+
+  .index-page .index-hero {
+    min-height: 340px;
+    grid-template-columns: 1fr;
+    align-items: end;
+    padding: 34px 22px 42px;
+  }
+
+  .index-page .index-hero h2 {
+    font-size: 44px;
+  }
+
+  .index-page .hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    border-left: 0;
+  }
+
+  .index-page .hero-stat,
+  .index-page .hero-stat:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.14);
+    border-bottom: 0;
+    padding: 12px 8px;
+  }
+
+  .index-page .hero-stat:first-child {
+    border-top: 0;
+  }
+
+  .index-page .hero-stat strong {
+    font-size: 25px;
+  }
+
+  .index-page .home-command-grid {
+    grid-template-columns: minmax(0, 1fr);
+    margin: -24px 8px 18px;
+  }
+
+  .index-page .home-transit-list {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-x: visible;
+  }
+
+  .index-page .home-transit-item {
+    width: auto;
+    min-width: 0;
+  }
+
+  .index-page .card-dealer-finder,
+  .index-page .home-transit-board {
+    min-height: 195px;
+    padding: 20px;
+  }
+
+  .index-page .home-communications-grid,
+  .index-page .quote-panel,
+  .index-page .toolbar,
+  .index-page .dealer-section {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
+  .index-page .home-communications-grid {
+    margin-bottom: 18px;
+  }
+
+  .index-page .dealer-card {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    min-height: 98px;
+  }
+
+  .index-page .dealer-rank {
+    font-size: 14px;
+  }
+
+  .index-page .dealer-open {
+    padding: 15px 12px;
+  }
+
+  .dealer-page .record-row {
+    background:
+      linear-gradient(96deg, var(--row-tint-strong, rgba(148, 163, 184, 0.24)) 0%, var(--row-tint, rgba(148, 163, 184, 0.14)) 70%, rgba(255, 255, 255, 0.94) 100%) !important;
+  }
+}
+
+/* Black gold homepage theme */
+.index-page {
+  --index-gold: #d4aa55;
+  --index-gold-soft: #f0d79d;
+  --index-ink: #080a0b;
+  --index-panel: #111517;
+  --index-panel-soft: #171c1e;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(180, 137, 54, 0.16), transparent 28%),
+    linear-gradient(180deg, #050708 0%, #0b0e0f 100%);
+  color: #f3f0e8;
+}
+
+.index-page::before {
+  color: rgba(212, 170, 85, 0.12);
+}
+
+.index-page .topbar h1,
+.index-page .index-hero h2,
+.index-page .card-finder-heading h2,
+.index-page .notice-view h2,
+.index-page .panel-title h2,
+.index-page .dealer-name,
+.index-page .card-finder-number,
+.index-page .card-finder-dealer,
+.index-page .home-transit-item strong,
+.index-page .empty-state h2 {
+  color: #f8f4e9;
+}
+
+.index-page .eyebrow,
+.index-page .card-dealer-finder .card-finder-heading .eyebrow,
+.index-page .home-transit-board .card-finder-heading .eyebrow,
+.index-page .home-transit-board .card-finder-count {
+  color: var(--index-gold);
+}
+
+.index-page .index-hero {
+  border-color: rgba(212, 170, 85, 0.28);
+  background:
+    linear-gradient(125deg, rgba(30, 28, 22, 0.96), rgba(7, 9, 10, 0.98) 68%),
+    #080a0b;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.46);
+}
+
+.index-page .index-hero::before {
+  background: linear-gradient(100deg, transparent 38%, rgba(212, 170, 85, 0.13));
+}
+
+.index-page .index-hero::after {
+  color: rgba(212, 170, 85, 0.09);
+}
+
+.index-page .hero-stat {
+  border-color: rgba(212, 170, 85, 0.24);
+  background: rgba(212, 170, 85, 0.07);
+}
+
+.index-page .hero-stat:last-child {
+  border-color: rgba(212, 170, 85, 0.42);
+  background: rgba(212, 170, 85, 0.14);
+}
+
+.index-page .hero-stat span,
+.index-page .section-copy,
+.index-page .card-finder-count,
+.index-page .summary,
+.index-page .empty-state p,
+.index-page .dealer-meta,
+.index-page .home-transit-item span,
+.index-page .card-finder-status,
+.index-page .card-finder-tracking,
+.index-page label span,
+.index-page .search-wrap > span {
+  color: #aaa69c;
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .notice-panel,
+.index-page .announce-panel,
+.index-page .index-add-panel,
+.index-page .toolbar,
+.index-page .dealer-section {
+  border-color: rgba(212, 170, 85, 0.2);
+  background: linear-gradient(145deg, #15191a, #0d1011);
+  color: #f3f0e8;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.3);
+}
+
+.index-page .card-dealer-finder::before {
+  background: linear-gradient(180deg, #f0d79d, #a77729);
+}
+
+.index-page .card-finder-search,
+.index-page .search-wrap,
+.index-page input,
+.index-page textarea {
+  border-color: rgba(212, 170, 85, 0.25);
+  background: #090c0d;
+  color: #f8f4e9;
+  box-shadow: none;
+}
+
+.index-page input::placeholder,
+.index-page textarea::placeholder {
+  color: #79766f;
+}
+
+.index-page .card-finder-search input {
+  background: #090c0d;
+  color: #f8f4e9;
+}
+
+.index-page .primary,
+.index-page .card-finder-search button {
+  background: linear-gradient(135deg, #d4aa55, #a9782e);
+  color: #111;
+  font-weight: 900;
+}
+
+.index-page .primary:hover,
+.index-page .card-finder-search button:hover {
+  background: linear-gradient(135deg, #efd28e, #bd8b37);
+}
+
+.index-page .ghost {
+  border-color: rgba(212, 170, 85, 0.28);
+  background: #171a1b;
+  color: var(--index-gold-soft);
+}
+
+.index-page .ghost:hover {
+  border-color: var(--index-gold);
+  color: #fff0c7;
+}
+
+.index-page .card-finder-results {
+  border-top-color: rgba(212, 170, 85, 0.17);
+}
+
+.index-page .card-finder-result,
+.index-page .home-transit-item,
+.index-page .dealer-card,
+.index-page .notice-message,
+.index-page .card-finder-empty,
+.index-page .home-transit-empty {
+  border-color: rgba(212, 170, 85, 0.16);
+  background: linear-gradient(145deg, #1a1e1f, #101314);
+  color: #f3f0e8;
+  box-shadow: none;
+}
+
+.index-page .card-finder-result:hover,
+.index-page .home-transit-item:hover,
+.index-page .dealer-card:hover {
+  border-color: rgba(212, 170, 85, 0.62);
+  background: linear-gradient(145deg, #202425, #141718);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.index-page .card-finder-open,
+.index-page .home-transit-item em,
+.index-page .summary strong {
+  color: var(--index-gold-soft);
+}
+
+.index-page .home-transit-item em,
+.index-page .announce-status {
+  border: 1px solid rgba(212, 170, 85, 0.2);
+  background: rgba(212, 170, 85, 0.1);
+  color: var(--index-gold-soft);
+}
+
+.index-page .notice-panel,
+.index-page .announce-panel,
+.index-page .index-add-panel {
+  border-left-color: var(--index-gold);
+}
+
+.index-page .notice-message {
+  border-left-color: var(--index-gold);
+}
+
+.index-page .quote-panel {
+  border-color: rgba(212, 170, 85, 0.3);
+  background: linear-gradient(105deg, #18150f, #080a0b);
+  color: var(--index-gold-soft);
+}
+
+.index-page .toolbar {
+  border-bottom-color: rgba(212, 170, 85, 0.12);
+}
+
+.index-page .dealer-delete {
+  border-color: rgba(212, 170, 85, 0.2);
+  background: #191512;
+  color: #c9a667;
+}
+
+@media (max-width: 820px) {
+  .index-page {
+    background:
+      radial-gradient(circle at 18% 5%, rgba(180, 137, 54, 0.14), transparent 24%),
+      linear-gradient(180deg, #050708, #0b0e0f);
+  }
+}
+
+/* Clear premium homepage: dark header, bright working surfaces */
+.index-page {
+  --index-green: #0b766d;
+  --index-blue: #286ba6;
+  --index-gold: #b47b18;
+  background:
+    radial-gradient(circle at 16% 4%, rgba(44, 135, 122, 0.22), transparent 26%),
+    linear-gradient(180deg, #091311 0, #111a1b 390px, #edf1f3 390px, #edf1f3 100%);
+  color: #16232d;
+}
+
+.index-page::before {
+  color: rgba(255, 255, 255, 0.1);
+}
+
+.index-page .index-hero {
+  border-color: rgba(255, 255, 255, 0.17);
+  background:
+    linear-gradient(125deg, rgba(11, 86, 77, 0.92), rgba(9, 16, 18, 0.98) 68%),
+    #091311;
+}
+
+.index-page .index-hero::before {
+  background: linear-gradient(100deg, transparent 38%, rgba(65, 145, 199, 0.14));
+}
+
+.index-page .index-hero::after {
+  color: rgba(255, 255, 255, 0.07);
+}
+
+.index-page .hero-stat {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.index-page .hero-stat:last-child {
+  border-color: rgba(95, 196, 161, 0.36);
+  background: rgba(43, 153, 119, 0.14);
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .notice-panel,
+.index-page .announce-panel,
+.index-page .index-add-panel,
+.index-page .toolbar,
+.index-page .dealer-section {
+  border-color: #d4dde3;
+  background: #ffffff;
+  color: #16232d;
+  box-shadow: 0 15px 36px rgba(26, 45, 57, 0.09);
+}
+
+.index-page .card-dealer-finder {
+  background: linear-gradient(105deg, #edf8f5, #ffffff 42%);
+}
+
+.index-page .home-transit-board {
+  background: linear-gradient(120deg, #eff7fd, #ffffff 48%);
+}
+
+.index-page .notice-panel {
+  background: linear-gradient(120deg, #fff9eb, #ffffff 48%);
+}
+
+.index-page .announce-panel {
+  background: linear-gradient(120deg, #eef7ff, #ffffff 48%);
+}
+
+.index-page .index-add-panel {
+  background: linear-gradient(120deg, #eff9f5, #ffffff 48%);
+}
+
+.index-page .card-dealer-finder::before {
+  background: var(--index-green);
+}
+
+.index-page .notice-panel {
+  border-left-color: var(--index-gold);
+}
+
+.index-page .announce-panel {
+  border-left-color: var(--index-blue);
+}
+
+.index-page .index-add-panel {
+  border-left-color: var(--index-green);
+}
+
+.index-page .topbar h1,
+.index-page .index-hero h2 {
+  color: #ffffff;
+}
+
+.index-page .card-finder-heading h2,
+.index-page .notice-view h2,
+.index-page .panel-title h2,
+.index-page .dealer-name,
+.index-page .card-finder-number,
+.index-page .card-finder-dealer,
+.index-page .home-transit-item strong,
+.index-page .empty-state h2,
+.index-page .summary strong {
+  color: #16232d;
+}
+
+.index-page .eyebrow,
+.index-page .card-dealer-finder .card-finder-heading .eyebrow {
+  color: var(--index-green);
+}
+
+.index-page .home-transit-board .card-finder-heading .eyebrow,
+.index-page .home-transit-board .card-finder-count {
+  color: var(--index-blue);
+}
+
+.index-page .notice-panel .eyebrow {
+  color: var(--index-gold);
+}
+
+.index-page .announce-panel .eyebrow {
+  color: var(--index-blue);
+}
+
+.index-page .hero-stat span {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.index-page .section-copy,
+.index-page .card-finder-count,
+.index-page .summary,
+.index-page .empty-state p,
+.index-page .dealer-meta,
+.index-page .home-transit-item span,
+.index-page .card-finder-status,
+.index-page .card-finder-tracking,
+.index-page label span,
+.index-page .search-wrap > span {
+  color: #637282;
+}
+
+.index-page .card-finder-search,
+.index-page .search-wrap,
+.index-page input,
+.index-page textarea,
+.index-page .card-finder-search input {
+  border-color: #cbd7de;
+  background: #ffffff;
+  color: #16232d;
+}
+
+.index-page input::placeholder,
+.index-page textarea::placeholder {
+  color: #89959f;
+}
+
+.index-page .primary,
+.index-page .card-finder-search button {
+  background: var(--index-green);
+  color: #ffffff;
+}
+
+.index-page .primary:hover,
+.index-page .card-finder-search button:hover {
+  background: #075c55;
+}
+
+.index-page .ghost {
+  border-color: #cbd7de;
+  background: #ffffff;
+  color: #243641;
+}
+
+.index-page .ghost:hover {
+  border-color: var(--index-green);
+  color: var(--index-green);
+}
+
+.index-page .card-finder-results {
+  border-top-color: #dbe3e8;
+}
+
+.index-page .card-finder-result,
+.index-page .home-transit-item,
+.index-page .dealer-card,
+.index-page .notice-message,
+.index-page .card-finder-empty,
+.index-page .home-transit-empty {
+  border-color: #d7e1e6;
+  background: #ffffff;
+  color: #16232d;
+  box-shadow: 0 7px 18px rgba(27, 52, 67, 0.06);
+}
+
+.index-page .card-finder-result:hover,
+.index-page .home-transit-item:hover,
+.index-page .dealer-card:hover {
+  border-color: #77aaa4;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(26, 66, 63, 0.13);
+}
+
+.index-page .card-finder-open {
+  color: var(--index-green);
+}
+
+.index-page .home-transit-item em {
+  border-color: #c4ddef;
+  background: #eaf5fc;
+  color: #226b9d;
+}
+
+.index-page .announce-status {
+  border-color: #c5dfef;
+  background: #edf7fd;
+  color: #226b9d;
+}
+
+.index-page .notice-message {
+  border-left-color: var(--index-gold);
+}
+
+.index-page .quote-panel {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: linear-gradient(105deg, #173b36, #111a1b);
+  color: #ffffff;
+}
+
+.index-page .dealer-delete {
+  border-color: #ead6d3;
+  background: #fff6f5;
+  color: #a54337;
+}
+
+@media (max-width: 820px) {
+  .index-page {
+    background:
+      radial-gradient(circle at 16% 3%, rgba(44, 135, 122, 0.2), transparent 24%),
+      linear-gradient(180deg, #091311 0, #111a1b 340px, #edf1f3 340px, #edf1f3 100%);
+  }
+}
+
 /* Black gold homepage theme */
 .index-page {
   --index-gold: #d4aa55;
@@ -3012,452 +5197,538 @@ tbody tr:hover {
   }
 }
 
-/* Black gold homepage theme */
+/* Brand Stage V6 */
+:root,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+}
+
+h1,
+h2,
+h3,
+.dealer-name,
+.hero-stat strong,
+.card-finder-number {
+  font-family: "Segoe UI Variable Display", "Microsoft YaHei UI", Arial, sans-serif;
+  letter-spacing: 0;
+}
+
 .index-page {
-  --index-gold: #d4aa55;
-  --index-gold-soft: #f0d79d;
-  --index-ink: #080a0b;
-  --index-panel: #111517;
-  --index-panel-soft: #171c1e;
-  background:
-    radial-gradient(circle at 18% 8%, rgba(180, 137, 54, 0.16), transparent 28%),
-    linear-gradient(180deg, #050708 0%, #0b0e0f 100%);
-  color: #f3f0e8;
+  --stage-ink: #071114;
+  --stage-ink-soft: #0c1b1f;
+  --stage-green: #087f70;
+  --stage-mint: #68c9b5;
+  --stage-blue: #3b87b7;
+  --stage-gold: #d2a653;
+  background: #eef2f1;
+  color: #14252a;
+  overflow-x: clip;
 }
 
 .index-page::before {
-  color: rgba(212, 170, 85, 0.12);
+  display: none;
 }
 
-.index-page .topbar h1,
-.index-page .index-hero h2,
-.index-page .card-finder-heading h2,
-.index-page .notice-view h2,
-.index-page .panel-title h2,
-.index-page .dealer-name,
-.index-page .card-finder-number,
-.index-page .card-finder-dealer,
-.index-page .home-transit-item strong,
-.index-page .empty-state h2 {
-  color: #f8f4e9;
+.index-page .app-shell {
+  width: 100%;
+  max-width: none;
+  padding: 0 0 70px;
 }
 
-.index-page .eyebrow,
-.index-page .card-dealer-finder .card-finder-heading .eyebrow,
-.index-page .home-transit-board .card-finder-heading .eyebrow,
-.index-page .home-transit-board .card-finder-count {
-  color: var(--index-gold);
+.index-page .topbar {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 50%;
+  width: min(1380px, calc(100% - 72px));
+  transform: translateX(-50%);
+  margin: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 22px 2px 18px;
 }
 
-.index-page .index-hero {
-  border-color: rgba(212, 170, 85, 0.28);
-  background:
-    linear-gradient(125deg, rgba(30, 28, 22, 0.96), rgba(7, 9, 10, 0.98) 68%),
-    #080a0b;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.46);
+.index-page .topbar h1 {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 650;
 }
 
-.index-page .index-hero::before {
-  background: linear-gradient(100deg, transparent 38%, rgba(212, 170, 85, 0.13));
+.index-page .topbar .eyebrow {
+  color: var(--stage-mint);
 }
 
-.index-page .index-hero::after {
-  color: rgba(212, 170, 85, 0.09);
-}
-
-.index-page .hero-stat {
-  border-color: rgba(212, 170, 85, 0.24);
-  background: rgba(212, 170, 85, 0.07);
-}
-
-.index-page .hero-stat:last-child {
-  border-color: rgba(212, 170, 85, 0.42);
-  background: rgba(212, 170, 85, 0.14);
-}
-
-.index-page .hero-stat span,
-.index-page .section-copy,
-.index-page .card-finder-count,
-.index-page .summary,
-.index-page .empty-state p,
-.index-page .dealer-meta,
-.index-page .home-transit-item span,
-.index-page .card-finder-status,
-.index-page .card-finder-tracking,
-.index-page label span,
-.index-page .search-wrap > span {
-  color: #aaa69c;
-}
-
-.index-page .card-dealer-finder,
-.index-page .home-transit-board,
-.index-page .notice-panel,
-.index-page .announce-panel,
-.index-page .index-add-panel,
-.index-page .toolbar,
-.index-page .dealer-section {
-  border-color: rgba(212, 170, 85, 0.2);
-  background: linear-gradient(145deg, #15191a, #0d1011);
-  color: #f3f0e8;
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.3);
-}
-
-.index-page .card-dealer-finder::before {
-  background: linear-gradient(180deg, #f0d79d, #a77729);
-}
-
-.index-page .card-finder-search,
-.index-page .search-wrap,
-.index-page input,
-.index-page textarea {
-  border-color: rgba(212, 170, 85, 0.25);
-  background: #090c0d;
-  color: #f8f4e9;
+.index-page .sync-card {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(18px);
   box-shadow: none;
 }
 
-.index-page input::placeholder,
-.index-page textarea::placeholder {
-  color: #79766f;
+.index-page .index-hero {
+  min-height: 560px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  align-items: end;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 70% 40%, rgba(44, 156, 137, 0.2), transparent 28%),
+    linear-gradient(118deg, #061619 0%, #0b2828 52%, #071114 100%);
+  background-size: 54px 54px, 54px 54px, auto, auto;
+  padding: 150px max(42px, calc((100vw - 1380px) / 2)) 118px;
+  box-shadow: none;
 }
 
-.index-page .card-finder-search input {
-  background: #090c0d;
-  color: #f8f4e9;
-}
-
-.index-page .primary,
-.index-page .card-finder-search button {
-  background: linear-gradient(135deg, #d4aa55, #a9782e);
-  color: #111;
+.index-page .index-hero::before {
+  content: "SIXSEASONS";
+  position: absolute;
+  inset: auto auto 18px max(42px, calc((100vw - 1380px) / 2));
+  width: auto;
+  height: auto;
+  background: none;
+  color: rgba(255, 255, 255, 0.055);
+  font-family: "Arial Black", "Segoe UI Black", sans-serif;
+  font-size: clamp(78px, 12vw, 190px);
   font-weight: 900;
-}
-
-.index-page .primary:hover,
-.index-page .card-finder-search button:hover {
-  background: linear-gradient(135deg, #efd28e, #bd8b37);
-}
-
-.index-page .ghost {
-  border-color: rgba(212, 170, 85, 0.28);
-  background: #171a1b;
-  color: var(--index-gold-soft);
-}
-
-.index-page .ghost:hover {
-  border-color: var(--index-gold);
-  color: #fff0c7;
-}
-
-.index-page .card-finder-results {
-  border-top-color: rgba(212, 170, 85, 0.17);
-}
-
-.index-page .card-finder-result,
-.index-page .home-transit-item,
-.index-page .dealer-card,
-.index-page .notice-message,
-.index-page .card-finder-empty,
-.index-page .home-transit-empty {
-  border-color: rgba(212, 170, 85, 0.16);
-  background: linear-gradient(145deg, #1a1e1f, #101314);
-  color: #f3f0e8;
-  box-shadow: none;
-}
-
-.index-page .card-finder-result:hover,
-.index-page .home-transit-item:hover,
-.index-page .dealer-card:hover {
-  border-color: rgba(212, 170, 85, 0.62);
-  background: linear-gradient(145deg, #202425, #141718);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
-}
-
-.index-page .card-finder-open,
-.index-page .home-transit-item em,
-.index-page .summary strong {
-  color: var(--index-gold-soft);
-}
-
-.index-page .home-transit-item em,
-.index-page .announce-status {
-  border: 1px solid rgba(212, 170, 85, 0.2);
-  background: rgba(212, 170, 85, 0.1);
-  color: var(--index-gold-soft);
-}
-
-.index-page .notice-panel,
-.index-page .announce-panel,
-.index-page .index-add-panel {
-  border-left-color: var(--index-gold);
-}
-
-.index-page .notice-message {
-  border-left-color: var(--index-gold);
-}
-
-.index-page .quote-panel {
-  border-color: rgba(212, 170, 85, 0.3);
-  background: linear-gradient(105deg, #18150f, #080a0b);
-  color: var(--index-gold-soft);
-}
-
-.index-page .toolbar {
-  border-bottom-color: rgba(212, 170, 85, 0.12);
-}
-
-.index-page .dealer-delete {
-  border-color: rgba(212, 170, 85, 0.2);
-  background: #191512;
-  color: #c9a667;
-}
-
-@media (max-width: 820px) {
-  .index-page {
-    background:
-      radial-gradient(circle at 18% 5%, rgba(180, 137, 54, 0.14), transparent 24%),
-      linear-gradient(180deg, #050708, #0b0e0f);
-  }
-}
-
-/* Clear premium homepage: dark header, bright working surfaces */
-.index-page {
-  --index-green: #0b766d;
-  --index-blue: #286ba6;
-  --index-gold: #b47b18;
-  background:
-    radial-gradient(circle at 16% 4%, rgba(44, 135, 122, 0.22), transparent 26%),
-    linear-gradient(180deg, #091311 0, #111a1b 390px, #edf1f3 390px, #edf1f3 100%);
-  color: #16232d;
-}
-
-.index-page::before {
-  color: rgba(255, 255, 255, 0.1);
-}
-
-.index-page .index-hero {
-  border-color: rgba(255, 255, 255, 0.17);
-  background:
-    linear-gradient(125deg, rgba(11, 86, 77, 0.92), rgba(9, 16, 18, 0.98) 68%),
-    #091311;
-}
-
-.index-page .index-hero::before {
-  background: linear-gradient(100deg, transparent 38%, rgba(65, 145, 199, 0.14));
+  line-height: 0.72;
+  letter-spacing: 0;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .index-page .index-hero::after {
-  color: rgba(255, 255, 255, 0.07);
+  content: "06 / OPERATIONS";
+  top: 145px;
+  right: max(42px, calc((100vw - 1380px) / 2));
+  bottom: auto;
+  color: rgba(255, 255, 255, 0.24);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
 }
 
-.index-page .hero-stat {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.09);
+.index-page .index-hero > div:first-child {
+  position: relative;
+  z-index: 1;
+}
+
+.index-page .index-hero h2 {
+  max-width: 850px;
+  margin-top: 12px;
+  color: #fff;
+  font-size: clamp(60px, 7vw, 106px);
+  font-weight: 680;
+  line-height: 0.88;
+}
+
+.index-page .index-hero .hero-copy {
+  max-width: 610px;
+  margin-top: 30px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.index-page .hero-stats {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  grid-template-columns: 1fr;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(4, 17, 19, 0.4);
+  backdrop-filter: blur(16px);
+}
+
+.index-page .hero-stat,
+.index-page .hero-stat:last-child {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  padding: 18px 22px;
 }
 
 .index-page .hero-stat:last-child {
-  border-color: rgba(95, 196, 161, 0.36);
-  background: rgba(43, 153, 119, 0.14);
-}
-
-.index-page .card-dealer-finder,
-.index-page .home-transit-board,
-.index-page .notice-panel,
-.index-page .announce-panel,
-.index-page .index-add-panel,
-.index-page .toolbar,
-.index-page .dealer-section {
-  border-color: #d4dde3;
-  background: #ffffff;
-  color: #16232d;
-  box-shadow: 0 15px 36px rgba(26, 45, 57, 0.09);
-}
-
-.index-page .card-dealer-finder {
-  background: linear-gradient(105deg, #edf8f5, #ffffff 42%);
-}
-
-.index-page .home-transit-board {
-  background: linear-gradient(120deg, #eff7fd, #ffffff 48%);
-}
-
-.index-page .notice-panel {
-  background: linear-gradient(120deg, #fff9eb, #ffffff 48%);
-}
-
-.index-page .announce-panel {
-  background: linear-gradient(120deg, #eef7ff, #ffffff 48%);
-}
-
-.index-page .index-add-panel {
-  background: linear-gradient(120deg, #eff9f5, #ffffff 48%);
-}
-
-.index-page .card-dealer-finder::before {
-  background: var(--index-green);
-}
-
-.index-page .notice-panel {
-  border-left-color: var(--index-gold);
-}
-
-.index-page .announce-panel {
-  border-left-color: var(--index-blue);
-}
-
-.index-page .index-add-panel {
-  border-left-color: var(--index-green);
-}
-
-.index-page .topbar h1,
-.index-page .index-hero h2 {
-  color: #ffffff;
-}
-
-.index-page .card-finder-heading h2,
-.index-page .notice-view h2,
-.index-page .panel-title h2,
-.index-page .dealer-name,
-.index-page .card-finder-number,
-.index-page .card-finder-dealer,
-.index-page .home-transit-item strong,
-.index-page .empty-state h2,
-.index-page .summary strong {
-  color: #16232d;
-}
-
-.index-page .eyebrow,
-.index-page .card-dealer-finder .card-finder-heading .eyebrow {
-  color: var(--index-green);
-}
-
-.index-page .home-transit-board .card-finder-heading .eyebrow,
-.index-page .home-transit-board .card-finder-count {
-  color: var(--index-blue);
-}
-
-.index-page .notice-panel .eyebrow {
-  color: var(--index-gold);
-}
-
-.index-page .announce-panel .eyebrow {
-  color: var(--index-blue);
+  border-bottom: 0;
 }
 
 .index-page .hero-stat span {
-  color: rgba(255, 255, 255, 0.76);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 650;
 }
 
-.index-page .section-copy,
-.index-page .card-finder-count,
-.index-page .summary,
-.index-page .empty-state p,
-.index-page .dealer-meta,
-.index-page .home-transit-item span,
-.index-page .card-finder-status,
-.index-page .card-finder-tracking,
-.index-page label span,
-.index-page .search-wrap > span {
-  color: #637282;
+.index-page .hero-stat strong {
+  color: #fff;
+  font-size: 30px;
+  font-weight: 550;
 }
 
-.index-page .card-finder-search,
-.index-page .search-wrap,
-.index-page input,
-.index-page textarea,
+.index-page .hero-stat:last-child strong {
+  color: var(--stage-mint);
+}
+
+.index-page .home-command-grid {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: min(1380px, calc(100% - 72px));
+  margin: -58px auto 30px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.index-page .card-dealer-finder {
+  min-height: auto;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: center;
+  border: 1px solid rgba(16, 55, 57, 0.15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 24px 28px;
+  box-shadow: 0 28px 65px rgba(5, 31, 33, 0.23);
+  backdrop-filter: blur(20px);
+}
+
+.index-page .card-dealer-finder::before {
+  width: 4px;
+  background: linear-gradient(180deg, var(--stage-mint), var(--stage-green));
+}
+
+.index-page .card-dealer-finder .card-finder-heading {
+  padding-right: 24px;
+}
+
+.index-page .card-dealer-finder .card-finder-heading h2 {
+  color: #12272a;
+  font-size: 24px;
+  font-weight: 680;
+}
+
+.index-page .card-dealer-finder .section-copy {
+  margin-top: 5px;
+  color: #7d8b8c;
+}
+
+.index-page .card-finder-search {
+  min-height: 58px;
+  border: 1px solid #cedbd9;
+  border-radius: 7px;
+  background: #f6f9f8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
 .index-page .card-finder-search input {
-  border-color: #cbd7de;
-  background: #ffffff;
-  color: #16232d;
+  background: transparent;
+  color: #14272a;
+  font-size: 15px;
+  font-weight: 550;
 }
 
-.index-page input::placeholder,
-.index-page textarea::placeholder {
-  color: #89959f;
-}
-
-.index-page .primary,
 .index-page .card-finder-search button {
-  background: var(--index-green);
-  color: #ffffff;
-}
-
-.index-page .primary:hover,
-.index-page .card-finder-search button:hover {
-  background: #075c55;
-}
-
-.index-page .ghost {
-  border-color: #cbd7de;
-  background: #ffffff;
-  color: #243641;
-}
-
-.index-page .ghost:hover {
-  border-color: var(--index-green);
-  color: var(--index-green);
+  min-width: 118px;
+  border-radius: 5px;
+  background: var(--stage-ink-soft);
+  color: #fff;
 }
 
 .index-page .card-finder-results {
-  border-top-color: #dbe3e8;
+  grid-column: 1 / -1;
 }
 
-.index-page .card-finder-result,
-.index-page .home-transit-item,
-.index-page .dealer-card,
-.index-page .notice-message,
-.index-page .card-finder-empty,
-.index-page .home-transit-empty {
-  border-color: #d7e1e6;
-  background: #ffffff;
-  color: #16232d;
-  box-shadow: 0 7px 18px rgba(27, 52, 67, 0.06);
+.index-page .home-transit-board {
+  min-height: auto;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  align-items: stretch;
+  margin-top: 24px;
+  border: 0;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(27, 126, 112, 0.22), transparent 35%),
+    var(--stage-ink);
+  color: #fff;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 18px 42px rgba(5, 26, 28, 0.19);
 }
 
-.index-page .card-finder-result:hover,
-.index-page .home-transit-item:hover,
-.index-page .dealer-card:hover {
-  border-color: #77aaa4;
-  background: #ffffff;
-  box-shadow: 0 12px 26px rgba(26, 66, 63, 0.13);
+.index-page .home-transit-board .card-finder-heading {
+  display: grid;
+  align-content: center;
+  margin: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 24px 28px;
 }
 
-.index-page .card-finder-open {
-  color: var(--index-green);
+.index-page .home-transit-board .card-finder-heading h2 {
+  color: #fff;
+  font-size: 21px;
+}
+
+.index-page .home-transit-board .section-copy {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.index-page .home-transit-board .card-finder-count {
+  margin-top: 12px;
+  color: var(--stage-mint);
+}
+
+.index-page .home-transit-list {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.index-page .home-transit-item {
+  width: 230px;
+  min-width: 230px;
+  min-height: 138px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  padding: 24px;
+  box-shadow: none;
+}
+
+.index-page .home-transit-item:hover {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.index-page .home-transit-item strong {
+  color: #fff;
+  font-size: 18px;
+}
+
+.index-page .home-transit-item span {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .index-page .home-transit-item em {
-  border-color: #c4ddef;
-  background: #eaf5fc;
-  color: #226b9d;
+  width: fit-content;
+  border: 1px solid rgba(104, 201, 181, 0.24);
+  border-radius: 3px;
+  background: rgba(104, 201, 181, 0.09);
+  color: var(--stage-mint);
+  padding: 3px 7px;
 }
 
-.index-page .announce-status {
-  border-color: #c5dfef;
-  background: #edf7fd;
-  color: #226b9d;
+.index-page .home-communications-grid,
+.index-page .quote-panel,
+.index-page .toolbar,
+.index-page .dealer-section {
+  width: min(1380px, calc(100% - 72px));
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.index-page .notice-message {
-  border-left-color: var(--index-gold);
+.index-page .home-communications-grid {
+  gap: 18px;
+  border: 0;
+  background: transparent;
+}
+
+.index-page .notice-panel,
+.index-page .announce-panel {
+  border: 1px solid #d7dfdd;
+  border-radius: 8px;
+  background: #fff;
+  padding: 28px 30px;
+  box-shadow: 0 12px 30px rgba(20, 43, 45, 0.07);
 }
 
 .index-page .quote-panel {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: linear-gradient(105deg, #173b36, #111a1b);
-  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(21, 147, 128, 0.16), transparent 38%),
+    var(--stage-ink-soft);
+  box-shadow: 0 16px 38px rgba(16, 39, 42, 0.15);
 }
 
-.index-page .dealer-delete {
-  border-color: #ead6d3;
-  background: #fff6f5;
-  color: #a54337;
+.index-page .toolbar {
+  border: 1px solid #d5dfdd;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: #fff;
+}
+
+.index-page .dealer-section {
+  border: 1px solid #d5dfdd;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  padding: 0 30px 40px;
+}
+
+.index-page .dealer-card {
+  border-color: #d9e1df;
+  background: #fff;
+}
+
+.index-page .dealer-card:hover {
+  border-color: #73aaa2;
+  background: #f6faf9;
+}
+
+.index-page .dealer-name {
+  font-weight: 680;
+}
+
+.dealer-page {
+  font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+}
+
+.dealer-page h1,
+.dealer-page h2,
+.dealer-page h3,
+.dealer-page .record-card-number {
+  font-family: "Segoe UI Variable Display", "Microsoft YaHei UI", Arial, sans-serif;
+  letter-spacing: 0;
 }
 
 @media (max-width: 820px) {
+  html:has(.index-page),
   .index-page {
-    background:
-      radial-gradient(circle at 16% 3%, rgba(44, 135, 122, 0.2), transparent 24%),
-      linear-gradient(180deg, #091311 0, #111a1b 340px, #edf1f3 340px, #edf1f3 100%);
+    overflow-x: hidden;
+  }
+
+  .index-page .topbar {
+    width: calc(100% - 28px);
+    padding-top: 16px;
+  }
+
+  .index-page .topbar h1 {
+    font-size: 14px;
+  }
+
+  .index-page .sync-card {
+    font-size: 10px;
+  }
+
+  .index-page .index-hero {
+    min-height: 530px;
+    grid-template-columns: 1fr;
+    padding: 118px 20px 100px;
+  }
+
+  .index-page .index-hero::before {
+    left: 18px;
+    bottom: 25px;
+    font-size: 65px;
+  }
+
+  .index-page .index-hero::after {
+    display: none;
+  }
+
+  .index-page .index-hero h2 {
+    font-size: 50px;
+  }
+
+  .index-page .index-hero .hero-copy {
+    margin-top: 18px;
+    font-size: 13px;
+  }
+
+  .index-page .hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 28px;
+  }
+
+  .index-page .hero-stat,
+  .index-page .hero-stat:last-child {
+    display: block;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 0;
+    padding: 12px 10px;
+  }
+
+  .index-page .hero-stat strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 24px;
+  }
+
+  .index-page .home-command-grid,
+  .index-page .home-communications-grid,
+  .index-page .quote-panel,
+  .index-page .toolbar,
+  .index-page .dealer-section {
+    width: calc(100% - 20px);
+  }
+
+  .index-page .home-command-grid {
+    margin-top: -58px;
+  }
+
+  .index-page .card-dealer-finder {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .index-page .card-dealer-finder .card-finder-heading {
+    padding: 0 0 14px;
+  }
+
+  .index-page .card-finder-search {
+    min-height: 52px;
+  }
+
+  .index-page .card-finder-search button {
+    min-width: 78px;
+  }
+
+  .index-page .home-transit-board {
+    grid-template-columns: 1fr;
+  }
+
+  .index-page .home-transit-board .card-finder-heading {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 20px;
+  }
+
+  .index-page .home-transit-list {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .index-page .home-transit-item {
+    width: 210px;
+    min-width: 210px;
+    min-height: 120px;
+    padding: 20px;
+  }
+
+  .index-page .home-communications-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .index-page .dealer-section {
+    padding: 0 14px 28px;
   }
 }

@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260615-floating-dealer" />
+    <link rel="stylesheet" href="./styles.css?v=20260615-brand-stage-v6c" />
   </head>
   <body class="index-page">
     <main class="app-shell">
       <section class="topbar" aria-label="总览">
         <div>
-          <p class="eyebrow">SIXSEASONS · OPERATIONS</p>
-          <h1>Dealer 管理中心</h1>
+          <p class="eyebrow">SIXSEASONS · LIVE OPERATIONS</p>
+          <h1>运营指挥中心</h1>
         </div>
         <div class="sync-card" id="syncStatus">
           <span class="dot"></span>
@@ -21,9 +21,9 @@
 
       <section class="index-hero" aria-label="Dealer 运营总览">
         <div>
-          <p class="eyebrow">DEALER OPERATIONS</p>
-          <h2>Dealer 运营总览</h2>
-          <p class="hero-copy">集中管理 Dealer 档案、卡号资料、包裹进度与薪资状态。</p>
+          <p class="eyebrow">CONTROL ROOM / 01</p>
+          <h2>SIXSEASONS<br />运营系统</h2>
+          <p class="hero-copy">Dealer 档案、卡号状态、包裹进度与薪资数据，在同一个实时工作区集中运作。</p>
         </div>
         <div class="hero-stats">
           <div class="hero-stat">
@@ -41,6 +41,7 @@
         </div>
       </section>
 
+      <section class="home-command-grid" aria-label="核心工具">
       <section class="card-dealer-finder" aria-label="资料快速检索">
         <div class="card-finder-heading">
           <div>
@@ -68,7 +69,9 @@
         </div>
         <div class="home-transit-list" id="homeTransitList"></div>
       </section>
+      </section>
 
+      <section class="home-communications-grid" aria-label="通知与公告">
       <section class="notice-panel" aria-label="运营通知">
         <div class="notice-view">
           <div>
@@ -88,10 +91,6 @@
             <button class="ghost" type="button" id="cancelNoticeButton">取消</button>
           </div>
         </form>
-      </section>
-
-      <section class="quote-panel" aria-label="团队语录">
-        <p>先斩后奏 · 行走西方 · 取之社会 · 回归社会</p>
       </section>
 
       <section class="announce-panel" aria-label="发送群公告">
@@ -115,6 +114,11 @@
             <button class="primary" type="submit">发送到群</button>
           </div>
         </form>
+      </section>
+      </section>
+
+      <section class="quote-panel" aria-label="团队语录">
+        <p>先斩后奏 · 行走西方 · 取之社会 · 回归社会</p>
       </section>
 
       <details class="panel form-panel index-add-panel" aria-label="添加 dealer">
@@ -163,6 +167,6 @@
     </main>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260615-premium-home"></script>
+    <script src="./app.js?v=20260615-brand-stage-v6c"></script>
   </body>
 </html>
