@@ -452,13 +452,19 @@ async function applyRecordCommand(command) {
     return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
   }
 
-  if (command.action === "delete" || command.action === "deleteDriverSigned") {
+  if (command.action === "delete") {
     await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
-    return {
-      ok: true,
-      cardNumber: record.cardNumber || command.cardToken,
-      status: command.action === "deleteDriverSigned" ? "车手已签收" : "删除"
-    };
+    return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: "删除" };
+  }
+
+  if (command.action === "deleteDriverSigned") {
+    await db.ref(`dealer-card-tracker/records/${record.key}`).update({
+      status: "车手已签收",
+      packageStatus: "车手已签收",
+      trackingStoppedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: "车手已签收" };
   }
 
   const updateData = {
@@ -522,13 +528,13 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
     for (const command of signedCommands) {
       results.push(await applyRecordCommand(command));
     }
-    const deleted = results.filter((result) => result.ok);
+    const stopped = results.filter((result) => result.ok);
     const missing = results.filter((result) => !result.ok).map((result) => result.cardToken);
-    const deletedText = deleted.length ? `\n${deleted.map((result) => result.cardNumber).join("\n")}` : "";
+    const stoppedText = stopped.length ? `\n${stopped.map((result) => result.cardNumber).join("\n")}` : "";
     const missingText = missing.length ? `\n找不到：${missing.join(", ")}` : "";
     return {
       handled: true,
-      message: `车手已签收，已删除 ${deleted.length} 条${deletedText}${missingText}`
+      message: `车手已签收，已停止查询 ${stopped.length} 条${stoppedText}${missingText}`
     };
   }
 
@@ -1293,7 +1299,8 @@ function trackingTail(record) {
 function packageStatusText(record, today = formatDateInMalaysia(new Date())) {
   const status = clean(record.packageStatus);
   if (status.includes("\u5df2\u9001\u8fbe") || record.lastTrackingNotifyStatus === "delivered") {
-    return `\u5df2\u9001\u8fbe\u7b2c${daysSince(record.deliveredAt || today, today)}\u5929`;
+    const deliveredDays = daysSince(record.deliveredAt || today, today);
+    return deliveredDays <= 1 ? "\u5df2\u9001\u8fbe" : `\u5df2\u9001\u8fbe\u7b2c${deliveredDays}\u5929`;
   }
   if (status.includes("\u6d3e\u9001")) return "\u6d3e\u9001\u4e2d";
   if (status.includes("\u5f02\u5e38")) return "\u5f02\u5e38\u6709\u95ee\u9898";

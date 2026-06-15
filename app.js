@@ -524,7 +524,9 @@ function renderHomeTransitBoard() {
   const transitRecords = records
     .filter((record) => {
       const trackingNumber = String(record.trackingNumber || "").replace(/[^A-Za-z0-9]/g, "");
-      return trackingNumber.length >= 9 && !String(record.packageStatus || "").includes("\u5df2\u9001\u8fbe");
+      return record.status === "\u5bc4"
+        && trackingNumber.length >= 9
+        && !String(record.packageStatus || "").includes("\u5df2\u9001\u8fbe");
     })
     .sort((a, b) => String(a.cardNumber || "").localeCompare(String(b.cardNumber || "")));
 
