@@ -1841,3 +1841,813 @@ tbody tr:hover {
     width: auto;
   }
 }
+
+/* Premium operations homepage */
+.index-page {
+  background:
+    linear-gradient(180deg, rgba(5, 18, 17, 0.97) 0, rgba(9, 31, 28, 0.96) 430px, #edf2f1 430px, #edf2f1 100%);
+}
+
+.index-page::before {
+  top: 28px;
+  color: rgba(255, 255, 255, 0.11);
+  font-size: clamp(70px, 13vw, 176px);
+}
+
+.index-page .app-shell {
+  width: min(1240px, calc(100% - 34px));
+  padding-top: 24px;
+}
+
+.index-page .topbar {
+  margin-bottom: 20px;
+  padding: 0 4px;
+}
+
+.index-page .topbar h1 {
+  font-size: 30px;
+}
+
+.index-page .sync-card {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.86);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+}
+
+.index-page .index-hero {
+  min-height: 210px;
+  margin-bottom: 18px;
+  border-color: rgba(255, 255, 255, 0.16);
+  background:
+    linear-gradient(125deg, rgba(8, 83, 73, 0.9), rgba(7, 22, 21, 0.96) 66%),
+    #071715;
+  box-shadow: 0 28px 64px rgba(3, 14, 13, 0.3);
+  padding: 32px;
+}
+
+.index-page .index-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 42%, rgba(197, 139, 36, 0.1));
+  pointer-events: none;
+}
+
+.index-page .index-hero::after {
+  right: 10px;
+  bottom: -16px;
+  color: rgba(255, 255, 255, 0.075);
+  font-size: 82px;
+}
+
+.index-page .index-hero h2 {
+  font-size: 38px;
+}
+
+.index-page .index-hero .hero-copy {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.index-page .hero-stats {
+  grid-template-columns: repeat(3, minmax(106px, 1fr));
+}
+
+.index-page .hero-stat {
+  min-width: 112px;
+  border-color: rgba(255, 255, 255, 0.19);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 16px;
+}
+
+.index-page .hero-stat:last-child {
+  border-color: rgba(210, 166, 75, 0.38);
+  background: rgba(197, 139, 36, 0.12);
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .notice-panel,
+.index-page .announce-panel,
+.index-page .index-add-panel,
+.index-page .toolbar,
+.index-page .dealer-section {
+  border: 1px solid rgba(35, 66, 60, 0.14);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 16px 38px rgba(17, 39, 35, 0.09);
+}
+
+.index-page .card-dealer-finder {
+  grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
+  padding: 22px 24px 22px 28px;
+}
+
+.index-page .card-dealer-finder::before {
+  width: 6px;
+  background: linear-gradient(180deg, #0e766c, #c58b24);
+}
+
+.index-page .card-dealer-finder .card-finder-count {
+  display: block;
+  margin-top: 8px;
+}
+
+.index-page .section-copy {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.index-page .card-finder-search {
+  border-color: rgba(14, 107, 99, 0.22);
+  box-shadow: 0 8px 22px rgba(14, 107, 99, 0.08);
+}
+
+.index-page .card-finder-search input {
+  font-weight: 700;
+}
+
+.index-page .card-finder-search button {
+  min-width: 104px;
+  border-radius: 0;
+}
+
+.index-page .card-finder-results {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.index-page .card-finder-result {
+  grid-template-columns: minmax(120px, 0.8fr) minmax(130px, 1fr) minmax(90px, 0.7fr) minmax(110px, 0.7fr) auto;
+}
+
+.index-page .card-finder-tracking {
+  color: #536477;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.index-page .home-transit-board {
+  padding: 22px;
+}
+
+.index-page .home-transit-board .card-finder-heading {
+  margin-bottom: 14px;
+}
+
+.index-page .home-transit-board .card-finder-heading h2,
+.index-page .notice-view h2,
+.index-page .panel-title h2 {
+  font-size: 22px;
+}
+
+.index-page .home-transit-item {
+  min-height: 94px;
+  border-color: rgba(21, 91, 120, 0.15);
+  background: linear-gradient(145deg, #ffffff, #f4f9fa);
+  padding: 14px;
+}
+
+.index-page .home-transit-item strong {
+  font-size: 16px;
+}
+
+.index-page .home-transit-item em {
+  width: fit-content;
+  border-radius: 999px;
+  background: #e6f2f6;
+  color: #16627d;
+  padding: 4px 8px;
+}
+
+.index-page .notice-panel {
+  border-left: 5px solid #c58b24;
+}
+
+.index-page .quote-panel {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(105deg, #092d29, #111b1b);
+  box-shadow: 0 16px 38px rgba(17, 39, 35, 0.15);
+}
+
+.index-page .announce-panel {
+  border-left: 5px solid #2386c8;
+}
+
+.index-page .index-add-panel {
+  border-left: 5px solid #0e766c;
+}
+
+.index-page .toolbar {
+  margin: 18px 0 0;
+  border-radius: 8px 8px 0 0;
+  box-shadow: none;
+}
+
+.index-page .dealer-section {
+  margin-top: 0;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+
+.index-page .dealer-card {
+  min-height: 102px;
+  border-color: #d7e4e1;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(18, 54, 48, 0.06);
+}
+
+.index-page .dealer-card:hover {
+  border-color: #0e766c;
+  box-shadow: 0 12px 26px rgba(14, 107, 99, 0.13);
+}
+
+@media (max-width: 820px) {
+  .index-page {
+    background:
+      linear-gradient(180deg, rgba(5, 18, 17, 0.98) 0, rgba(9, 31, 28, 0.97) 360px, #edf2f1 360px, #edf2f1 100%);
+  }
+
+  .index-page .app-shell {
+    width: min(100% - 20px, 600px);
+  }
+
+  .index-page .index-hero {
+    min-height: auto;
+    padding: 22px;
+  }
+
+  .index-page .index-hero h2 {
+    font-size: 27px;
+  }
+
+  .index-page .hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .index-page .hero-stat {
+    min-width: 0;
+    padding: 12px 10px;
+  }
+
+  .index-page .hero-stat strong {
+    font-size: 25px;
+  }
+
+  .index-page .card-dealer-finder {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .index-page .card-finder-result {
+    grid-template-columns: 1fr auto;
+  }
+
+  .index-page .card-finder-dealer,
+  .index-page .card-finder-tracking,
+  .index-page .card-finder-status {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Compact collapsible Dealer onboarding */
+.index-page .index-add-panel {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 20;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 16px 36px rgba(12, 30, 34, 0.2);
+}
+
+.index-page .index-add-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 42px;
+  cursor: pointer;
+  list-style: none;
+  padding: 0;
+  user-select: none;
+}
+
+.index-page .index-add-panel:not([open]) > summary > div {
+  display: none;
+}
+
+.index-page .index-add-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.index-page .index-add-panel > summary .eyebrow {
+  margin-bottom: 2px;
+  font-size: 10px;
+}
+
+.index-page .index-add-panel > summary h2 {
+  font-size: 17px;
+}
+
+.index-page .index-add-toggle {
+  border: 0;
+  border-radius: 0;
+  background: #102c29;
+  color: #dcefeb;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 13px 15px;
+}
+
+.index-page .index-add-panel[open] {
+  width: min(380px, calc(100% - 36px));
+}
+
+.index-page .index-add-panel[open] > summary {
+  min-height: 58px;
+  padding-left: 16px;
+}
+
+.index-page .index-add-panel[open] .index-add-toggle {
+  font-size: 0;
+  margin-left: auto;
+}
+
+.index-page .index-add-panel[open] .index-add-toggle::after {
+  content: "关闭";
+  font-size: 12px;
+}
+
+.index-page .index-add-panel form {
+  margin: 0;
+  border-top: 1px solid #dbe5e2;
+  padding: 14px 16px 16px;
+}
+
+@media (max-width: 700px) {
+  .index-page .index-add-panel {
+    bottom: 12px;
+    left: 12px;
+  }
+
+  .index-page .index-add-panel[open] {
+    width: calc(100% - 24px);
+  }
+}
+
+/* Black gold homepage theme */
+.index-page {
+  --index-gold: #d4aa55;
+  --index-gold-soft: #f0d79d;
+  --index-ink: #080a0b;
+  --index-panel: #111517;
+  --index-panel-soft: #171c1e;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(180, 137, 54, 0.16), transparent 28%),
+    linear-gradient(180deg, #050708 0%, #0b0e0f 100%);
+  color: #f3f0e8;
+}
+
+.index-page::before {
+  color: rgba(212, 170, 85, 0.12);
+}
+
+.index-page .topbar h1,
+.index-page .index-hero h2,
+.index-page .card-finder-heading h2,
+.index-page .notice-view h2,
+.index-page .panel-title h2,
+.index-page .dealer-name,
+.index-page .card-finder-number,
+.index-page .card-finder-dealer,
+.index-page .home-transit-item strong,
+.index-page .empty-state h2 {
+  color: #f8f4e9;
+}
+
+.index-page .eyebrow,
+.index-page .card-dealer-finder .card-finder-heading .eyebrow,
+.index-page .home-transit-board .card-finder-heading .eyebrow,
+.index-page .home-transit-board .card-finder-count {
+  color: var(--index-gold);
+}
+
+.index-page .index-hero {
+  border-color: rgba(212, 170, 85, 0.28);
+  background:
+    linear-gradient(125deg, rgba(30, 28, 22, 0.96), rgba(7, 9, 10, 0.98) 68%),
+    #080a0b;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.46);
+}
+
+.index-page .index-hero::before {
+  background: linear-gradient(100deg, transparent 38%, rgba(212, 170, 85, 0.13));
+}
+
+.index-page .index-hero::after {
+  color: rgba(212, 170, 85, 0.09);
+}
+
+.index-page .hero-stat {
+  border-color: rgba(212, 170, 85, 0.24);
+  background: rgba(212, 170, 85, 0.07);
+}
+
+.index-page .hero-stat:last-child {
+  border-color: rgba(212, 170, 85, 0.42);
+  background: rgba(212, 170, 85, 0.14);
+}
+
+.index-page .hero-stat span,
+.index-page .section-copy,
+.index-page .card-finder-count,
+.index-page .summary,
+.index-page .empty-state p,
+.index-page .dealer-meta,
+.index-page .home-transit-item span,
+.index-page .card-finder-status,
+.index-page .card-finder-tracking,
+.index-page label span,
+.index-page .search-wrap > span {
+  color: #aaa69c;
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .notice-panel,
+.index-page .announce-panel,
+.index-page .index-add-panel,
+.index-page .toolbar,
+.index-page .dealer-section {
+  border-color: rgba(212, 170, 85, 0.2);
+  background: linear-gradient(145deg, #15191a, #0d1011);
+  color: #f3f0e8;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.3);
+}
+
+.index-page .card-dealer-finder::before {
+  background: linear-gradient(180deg, #f0d79d, #a77729);
+}
+
+.index-page .card-finder-search,
+.index-page .search-wrap,
+.index-page input,
+.index-page textarea {
+  border-color: rgba(212, 170, 85, 0.25);
+  background: #090c0d;
+  color: #f8f4e9;
+  box-shadow: none;
+}
+
+.index-page input::placeholder,
+.index-page textarea::placeholder {
+  color: #79766f;
+}
+
+.index-page .card-finder-search input {
+  background: #090c0d;
+  color: #f8f4e9;
+}
+
+.index-page .primary,
+.index-page .card-finder-search button {
+  background: linear-gradient(135deg, #d4aa55, #a9782e);
+  color: #111;
+  font-weight: 900;
+}
+
+.index-page .primary:hover,
+.index-page .card-finder-search button:hover {
+  background: linear-gradient(135deg, #efd28e, #bd8b37);
+}
+
+.index-page .ghost {
+  border-color: rgba(212, 170, 85, 0.28);
+  background: #171a1b;
+  color: var(--index-gold-soft);
+}
+
+.index-page .ghost:hover {
+  border-color: var(--index-gold);
+  color: #fff0c7;
+}
+
+.index-page .card-finder-results {
+  border-top-color: rgba(212, 170, 85, 0.17);
+}
+
+.index-page .card-finder-result,
+.index-page .home-transit-item,
+.index-page .dealer-card,
+.index-page .notice-message,
+.index-page .card-finder-empty,
+.index-page .home-transit-empty {
+  border-color: rgba(212, 170, 85, 0.16);
+  background: linear-gradient(145deg, #1a1e1f, #101314);
+  color: #f3f0e8;
+  box-shadow: none;
+}
+
+.index-page .card-finder-result:hover,
+.index-page .home-transit-item:hover,
+.index-page .dealer-card:hover {
+  border-color: rgba(212, 170, 85, 0.62);
+  background: linear-gradient(145deg, #202425, #141718);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.index-page .card-finder-open,
+.index-page .home-transit-item em,
+.index-page .summary strong {
+  color: var(--index-gold-soft);
+}
+
+.index-page .home-transit-item em,
+.index-page .announce-status {
+  border: 1px solid rgba(212, 170, 85, 0.2);
+  background: rgba(212, 170, 85, 0.1);
+  color: var(--index-gold-soft);
+}
+
+.index-page .notice-panel,
+.index-page .announce-panel,
+.index-page .index-add-panel {
+  border-left-color: var(--index-gold);
+}
+
+.index-page .notice-message {
+  border-left-color: var(--index-gold);
+}
+
+.index-page .quote-panel {
+  border-color: rgba(212, 170, 85, 0.3);
+  background: linear-gradient(105deg, #18150f, #080a0b);
+  color: var(--index-gold-soft);
+}
+
+.index-page .toolbar {
+  border-bottom-color: rgba(212, 170, 85, 0.12);
+}
+
+.index-page .dealer-delete {
+  border-color: rgba(212, 170, 85, 0.2);
+  background: #191512;
+  color: #c9a667;
+}
+
+@media (max-width: 820px) {
+  .index-page {
+    background:
+      radial-gradient(circle at 18% 5%, rgba(180, 137, 54, 0.14), transparent 24%),
+      linear-gradient(180deg, #050708, #0b0e0f);
+  }
+}
+
+/* Clear premium homepage: dark header, bright working surfaces */
+.index-page {
+  --index-green: #0b766d;
+  --index-blue: #286ba6;
+  --index-gold: #b47b18;
+  background:
+    radial-gradient(circle at 16% 4%, rgba(44, 135, 122, 0.22), transparent 26%),
+    linear-gradient(180deg, #091311 0, #111a1b 390px, #edf1f3 390px, #edf1f3 100%);
+  color: #16232d;
+}
+
+.index-page::before {
+  color: rgba(255, 255, 255, 0.1);
+}
+
+.index-page .index-hero {
+  border-color: rgba(255, 255, 255, 0.17);
+  background:
+    linear-gradient(125deg, rgba(11, 86, 77, 0.92), rgba(9, 16, 18, 0.98) 68%),
+    #091311;
+}
+
+.index-page .index-hero::before {
+  background: linear-gradient(100deg, transparent 38%, rgba(65, 145, 199, 0.14));
+}
+
+.index-page .index-hero::after {
+  color: rgba(255, 255, 255, 0.07);
+}
+
+.index-page .hero-stat {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.index-page .hero-stat:last-child {
+  border-color: rgba(95, 196, 161, 0.36);
+  background: rgba(43, 153, 119, 0.14);
+}
+
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .notice-panel,
+.index-page .announce-panel,
+.index-page .index-add-panel,
+.index-page .toolbar,
+.index-page .dealer-section {
+  border-color: #d4dde3;
+  background: #ffffff;
+  color: #16232d;
+  box-shadow: 0 15px 36px rgba(26, 45, 57, 0.09);
+}
+
+.index-page .card-dealer-finder {
+  background: linear-gradient(105deg, #edf8f5, #ffffff 42%);
+}
+
+.index-page .home-transit-board {
+  background: linear-gradient(120deg, #eff7fd, #ffffff 48%);
+}
+
+.index-page .notice-panel {
+  background: linear-gradient(120deg, #fff9eb, #ffffff 48%);
+}
+
+.index-page .announce-panel {
+  background: linear-gradient(120deg, #eef7ff, #ffffff 48%);
+}
+
+.index-page .index-add-panel {
+  background: linear-gradient(120deg, #eff9f5, #ffffff 48%);
+}
+
+.index-page .card-dealer-finder::before {
+  background: var(--index-green);
+}
+
+.index-page .notice-panel {
+  border-left-color: var(--index-gold);
+}
+
+.index-page .announce-panel {
+  border-left-color: var(--index-blue);
+}
+
+.index-page .index-add-panel {
+  border-left-color: var(--index-green);
+}
+
+.index-page .topbar h1,
+.index-page .index-hero h2 {
+  color: #ffffff;
+}
+
+.index-page .card-finder-heading h2,
+.index-page .notice-view h2,
+.index-page .panel-title h2,
+.index-page .dealer-name,
+.index-page .card-finder-number,
+.index-page .card-finder-dealer,
+.index-page .home-transit-item strong,
+.index-page .empty-state h2,
+.index-page .summary strong {
+  color: #16232d;
+}
+
+.index-page .eyebrow,
+.index-page .card-dealer-finder .card-finder-heading .eyebrow {
+  color: var(--index-green);
+}
+
+.index-page .home-transit-board .card-finder-heading .eyebrow,
+.index-page .home-transit-board .card-finder-count {
+  color: var(--index-blue);
+}
+
+.index-page .notice-panel .eyebrow {
+  color: var(--index-gold);
+}
+
+.index-page .announce-panel .eyebrow {
+  color: var(--index-blue);
+}
+
+.index-page .hero-stat span {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.index-page .section-copy,
+.index-page .card-finder-count,
+.index-page .summary,
+.index-page .empty-state p,
+.index-page .dealer-meta,
+.index-page .home-transit-item span,
+.index-page .card-finder-status,
+.index-page .card-finder-tracking,
+.index-page label span,
+.index-page .search-wrap > span {
+  color: #637282;
+}
+
+.index-page .card-finder-search,
+.index-page .search-wrap,
+.index-page input,
+.index-page textarea,
+.index-page .card-finder-search input {
+  border-color: #cbd7de;
+  background: #ffffff;
+  color: #16232d;
+}
+
+.index-page input::placeholder,
+.index-page textarea::placeholder {
+  color: #89959f;
+}
+
+.index-page .primary,
+.index-page .card-finder-search button {
+  background: var(--index-green);
+  color: #ffffff;
+}
+
+.index-page .primary:hover,
+.index-page .card-finder-search button:hover {
+  background: #075c55;
+}
+
+.index-page .ghost {
+  border-color: #cbd7de;
+  background: #ffffff;
+  color: #243641;
+}
+
+.index-page .ghost:hover {
+  border-color: var(--index-green);
+  color: var(--index-green);
+}
+
+.index-page .card-finder-results {
+  border-top-color: #dbe3e8;
+}
+
+.index-page .card-finder-result,
+.index-page .home-transit-item,
+.index-page .dealer-card,
+.index-page .notice-message,
+.index-page .card-finder-empty,
+.index-page .home-transit-empty {
+  border-color: #d7e1e6;
+  background: #ffffff;
+  color: #16232d;
+  box-shadow: 0 7px 18px rgba(27, 52, 67, 0.06);
+}
+
+.index-page .card-finder-result:hover,
+.index-page .home-transit-item:hover,
+.index-page .dealer-card:hover {
+  border-color: #77aaa4;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(26, 66, 63, 0.13);
+}
+
+.index-page .card-finder-open {
+  color: var(--index-green);
+}
+
+.index-page .home-transit-item em {
+  border-color: #c4ddef;
+  background: #eaf5fc;
+  color: #226b9d;
+}
+
+.index-page .announce-status {
+  border-color: #c5dfef;
+  background: #edf7fd;
+  color: #226b9d;
+}
+
+.index-page .notice-message {
+  border-left-color: var(--index-gold);
+}
+
+.index-page .quote-panel {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: linear-gradient(105deg, #173b36, #111a1b);
+  color: #ffffff;
+}
+
+.index-page .dealer-delete {
+  border-color: #ead6d3;
+  background: #fff6f5;
+  color: #a54337;
+}
+
+@media (max-width: 820px) {
+  .index-page {
+    background:
+      radial-gradient(circle at 16% 3%, rgba(44, 135, 122, 0.2), transparent 24%),
+      linear-gradient(180deg, #091311 0, #111a1b 340px, #edf1f3 340px, #edf1f3 100%);
+  }
+}

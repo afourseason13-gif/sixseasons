@@ -3,79 +3,85 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dealer 名单</title>
-    <link rel="stylesheet" href="./styles.css?v=20260614-card-search" />
+    <title>SIXSEASONS Dealer 管理中心</title>
+    <link rel="stylesheet" href="./styles.css?v=20260615-floating-dealer" />
   </head>
-  <body>
+  <body class="index-page">
     <main class="app-shell">
       <section class="topbar" aria-label="总览">
         <div>
-          <p class="eyebrow">Dealer Tracking</p>
-          <h1>Dealer 名单</h1>
+          <p class="eyebrow">SIXSEASONS · OPERATIONS</p>
+          <h1>Dealer 管理中心</h1>
         </div>
         <div class="sync-card" id="syncStatus">
           <span class="dot"></span>
-          <span>正在检查同步</span>
+          <span>正在连接云端</span>
         </div>
       </section>
 
-      <section class="index-hero" aria-label="Dealer 工作台">
+      <section class="index-hero" aria-label="Dealer 运营总览">
         <div>
-          <p class="eyebrow">Workspace · 新版名单</p>
-          <h2>Dealer 工作台</h2>
-          <p class="hero-copy">每个 Dealer 都有自己的独立资料页，点卡片进入管理。</p>
+          <p class="eyebrow">DEALER OPERATIONS</p>
+          <h2>Dealer 运营总览</h2>
+          <p class="hero-copy">集中管理 Dealer 档案、卡号资料、包裹进度与薪资状态。</p>
         </div>
         <div class="hero-stats">
           <div class="hero-stat">
-            <span>当前名单</span>
+            <span>Dealer 总数</span>
             <strong id="heroDealerCount">0</strong>
           </div>
           <div class="hero-stat">
-            <span>实时同步</span>
+            <span>资料记录</span>
+            <strong id="heroRecordCount">0</strong>
+          </div>
+          <div class="hero-stat">
+            <span>云端同步</span>
             <strong>ON</strong>
           </div>
         </div>
       </section>
 
-      <section class="card-dealer-finder" aria-label="卡号查找 Dealer">
+      <section class="card-dealer-finder" aria-label="资料快速检索">
         <div class="card-finder-heading">
           <div>
-            <p class="eyebrow">Card Lookup</p>
-            <h2>卡号查 Dealer</h2>
+            <p class="eyebrow">QUICK LOOKUP</p>
+            <h2>资料快速检索</h2>
+            <p class="section-copy">支持卡号、包裹单号或包裹尾号</p>
           </div>
-          <span class="card-finder-count" id="cardFinderCount">输入卡号查找</span>
+          <span class="card-finder-count" id="cardFinderCount">等待输入</span>
         </div>
         <div class="card-finder-search">
-          <input id="cardFinderInput" autocomplete="off" placeholder="例如：MBB1234" />
-          <button class="primary" type="button" id="cardFinderButton">查找</button>
+          <input id="cardFinderInput" autocomplete="off" placeholder="输入卡号 / 包裹单号 / 尾号" />
+          <button class="primary" type="button" id="cardFinderButton">检索</button>
         </div>
         <div class="card-finder-results" id="cardFinderResults" hidden></div>
       </section>
 
-      <section class="home-transit-board" aria-label="包裹还没到">
+      <section class="home-transit-board" aria-label="在途包裹监控">
         <div class="card-finder-heading">
           <div>
-            <p class="eyebrow">Package Status</p>
-            <h2>包裹还没到 / 运输中</h2>
+            <p class="eyebrow">SHIPMENT MONITOR</p>
+            <h2>在途包裹监控</h2>
+            <p class="section-copy">集中查看尚未送达的包裹记录</p>
           </div>
-          <span class="card-finder-count" id="homeTransitCount">0 张</span>
+          <span class="card-finder-count" id="homeTransitCount">0 件</span>
         </div>
         <div class="home-transit-list" id="homeTransitList"></div>
       </section>
 
-      <section class="notice-panel" aria-label="实时通知">
+      <section class="notice-panel" aria-label="运营通知">
         <div class="notice-view">
           <div>
-            <p class="eyebrow">Live Notice</p>
-            <h2>实时通知</h2>
+            <p class="eyebrow">OPERATIONS NOTICE</p>
+            <h2>运营通知</h2>
           </div>
-          <button class="ghost notice-edit" type="button" id="editNoticeButton">修改通知</button>
+          <button class="ghost notice-edit" type="button" id="editNoticeButton">编辑通知</button>
         </div>
-        <p class="notice-message" id="noticeMessage">暂无通知</p>
+        <p class="notice-message" id="noticeMessage">暂无运营通知</p>
         <form id="noticeForm" class="notice-form" autocomplete="off" hidden>
           <label>
             <span>通知内容</span>
-            <textarea id="noticeInput" rows="3" placeholder="输入要让大家看到的实时消息"></textarea>
+              <textarea id="noticeInput" rows="3" placeholder="输入需要展示的运营通知"></textarea>
           </label>
           <div class="actions">
             <button class="primary" type="submit">保存通知</button>
@@ -91,10 +97,10 @@
       <section class="announce-panel" aria-label="发送群公告">
         <div class="notice-view">
           <div>
-            <p class="eyebrow">Telegram</p>
-            <h2>发送群公告</h2>
+            <p class="eyebrow">TELEGRAM BROADCAST</p>
+            <h2>群组公告发布</h2>
           </div>
-          <span class="announce-status" id="announceStatus">机器人公告</span>
+          <span class="announce-status" id="announceStatus">Telegram Bot</span>
         </div>
         <form id="announceForm" class="announce-form" autocomplete="off">
           <label class="wide">
@@ -111,51 +117,52 @@
         </form>
       </section>
 
-      <section class="panel form-panel index-add-panel" aria-label="添加 dealer">
-        <div class="panel-title compact">
+      <details class="panel form-panel index-add-panel" aria-label="添加 dealer">
+        <summary class="panel-title compact">
           <div>
-            <p class="eyebrow">New Dealer</p>
-            <h2>添加 Dealer</h2>
+            <p class="eyebrow">DEALER ONBOARDING</p>
+            <h2>新增 Dealer</h2>
           </div>
-        </div>
+          <span class="index-add-toggle">＋ Dealer</span>
+        </summary>
         <form id="dealerForm" autocomplete="off">
           <label class="wide">
-            <span>Dealer 名字</span>
-            <input id="newDealerName" required placeholder="例如: Dealer 1" />
+            <span>Dealer 名称</span>
+            <input id="newDealerName" required placeholder="输入 Dealer 名称" />
           </label>
           <div class="actions">
-            <button class="primary" type="submit">添加到名单</button>
+            <button class="primary" type="submit">建立 Dealer 档案</button>
           </div>
         </form>
-      </section>
+      </details>
 
       <section class="toolbar" aria-label="搜索">
         <div class="search-wrap">
           <span aria-hidden="true">⌕</span>
-          <input id="searchInput" placeholder="搜索 dealer 名字" />
+          <input id="searchInput" placeholder="搜索 Dealer 名称" />
         </div>
         <div class="summary">
           <strong id="totalCount">0</strong>
-          <span>个 dealer</span>
+          <span>个 Dealer</span>
         </div>
       </section>
 
       <section class="dealer-section" aria-label="Dealer 列表">
         <div class="panel-title compact">
           <div>
-            <p class="eyebrow">Directory</p>
-            <h2>Dealer 列表</h2>
+            <p class="eyebrow">DEALER DIRECTORY</p>
+            <h2>Dealer 档案</h2>
           </div>
         </div>
         <div class="dealer-list" id="dealerList"></div>
         <div class="empty-state" id="emptyState">
-          <h2>还没有 Dealer</h2>
-          <p>先添加一个 Dealer，然后点进去管理他的卡号资料。</p>
+          <h2>暂无 Dealer 档案</h2>
+          <p>建立首个 Dealer 档案后，即可开始管理卡号与包裹资料。</p>
         </div>
       </section>
     </main>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260615-tracking-stop"></script>
+    <script src="./app.js?v=20260615-premium-home"></script>
   </body>
 </html>

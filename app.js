@@ -117,6 +117,31 @@ function normalizeCardLookup(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function recordLookupValues(record) {
+  const trackingNumber = normalizeCardLookup(record.trackingNumber);
+  return [
+    normalizeCardLookup(record.cardNumber),
+    trackingNumber,
+    normalizeCardLookup(record.tailNumber),
+    trackingNumber.slice(-4),
+  ].filter(Boolean);
+}
+
+function parcelReference(record) {
+  const carrier = String(record.carrier || "").toUpperCase();
+  const carrierCode = carrier.includes("J&T") || carrier.includes("JNT") ? "JNT"
+    : carrier.includes("POS") ? "POS"
+      : carrier.includes("SHOPEE") || carrier.includes("SPX") ? "SPX"
+        : carrier.includes("NINJA") ? "NINJA"
+          : carrier.includes("GDEX") ? "GDEX"
+            : carrier.includes("SKYNET") ? "SKYNET"
+              : carrier.includes("DHL") ? "DHL"
+                : "PKG";
+  const trackingNumber = normalizeCardLookup(record.trackingNumber);
+  const tail = normalizeCardLookup(record.tailNumber) || trackingNumber.slice(-4) || "XXXX";
+  return `${carrierCode}${tail}`;
+}
+
 function readJson(key, fallback = []) {
   try {
     return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
@@ -484,20 +509,20 @@ function renderCardDealerFinder() {
   results.textContent = "";
   if (!query) {
     results.hidden = true;
-    count.textContent = "输入卡号查找";
+    count.textContent = "等待输入";
     return;
   }
 
   const matches = records
-    .filter((record) => normalizeCardLookup(record.cardNumber).includes(query))
+    .filter((record) => recordLookupValues(record).some((value) => value.includes(query)))
     .sort((a, b) => String(a.dealerName || "").localeCompare(String(b.dealerName || ""), "zh-CN"));
 
   results.hidden = false;
-  count.textContent = matches.length ? `找到 ${matches.length} 条` : "找不到";
+  count.textContent = matches.length ? `匹配 ${matches.length} 条记录` : "未找到匹配资料";
   if (!matches.length) {
     const empty = document.createElement("div");
     empty.className = "card-finder-empty";
-    empty.textContent = `找不到卡号 ${input.value.trim()}`;
+    empty.textContent = `未找到与“${input.value.trim()}”匹配的卡号或包裹资料`;
     results.append(empty);
     return;
   }
@@ -509,8 +534,9 @@ function renderCardDealerFinder() {
     result.innerHTML = `
       <span class="card-finder-number">${escapeHtml(record.cardNumber || "-")}</span>
       <span class="card-finder-dealer">${escapeHtml(record.dealerName || "未知 Dealer")}</span>
-      <span class="card-finder-status">${escapeHtml(record.status || "-")}</span>
-      <span class="card-finder-open">查看资料</span>
+      <span class="card-finder-tracking">${escapeHtml(parcelReference(record))}</span>
+      <span class="card-finder-status">${escapeHtml(record.packageStatus || record.status || "-")}</span>
+      <span class="card-finder-open">进入档案</span>
     `;
     results.append(result);
   }
@@ -531,11 +557,11 @@ function renderHomeTransitBoard() {
     .sort((a, b) => String(a.cardNumber || "").localeCompare(String(b.cardNumber || "")));
 
   list.textContent = "";
-  count.textContent = `${transitRecords.length} \u5f20`;
+  count.textContent = `${transitRecords.length} 件`;
   if (!transitRecords.length) {
     const empty = document.createElement("div");
     empty.className = "home-transit-empty";
-    empty.textContent = "\u6ca1\u6709\u8fd0\u8f93\u4e2d\u7684\u5361";
+    empty.textContent = "目前没有待送达的包裹";
     list.append(empty);
     return;
   }
@@ -546,7 +572,7 @@ function renderHomeTransitBoard() {
     item.href = dealerUrl(record.dealerName || "");
     item.innerHTML = `
       <strong>${escapeHtml(record.cardNumber || "-")}</strong>
-      <span>${escapeHtml(record.dealerName || "\u672a\u77e5 Dealer")}</span>
+      <span>${escapeHtml(record.dealerName || "\u672a\u77e5 Dealer")} · ${escapeHtml(parcelReference(record))}</span>
       <em>${escapeHtml(record.packageStatus || "\u672a\u68c0\u67e5")}</em>
     `;
     list.append(item);
@@ -558,6 +584,7 @@ function renderIndexPage() {
   const emptyState = document.querySelector("#emptyState");
   const totalCount = document.querySelector("#totalCount");
   const heroDealerCount = document.querySelector("#heroDealerCount");
+  const heroRecordCount = document.querySelector("#heroRecordCount");
   const noticeMessage = document.querySelector("#noticeMessage");
   const searchInput = document.querySelector("#searchInput");
   const query = searchInput.value.trim().toLowerCase();
@@ -566,7 +593,8 @@ function renderIndexPage() {
   dealerList.textContent = "";
   totalCount.textContent = String(names.length);
   if (heroDealerCount) heroDealerCount.textContent = String(uniqueDealers().length);
-  if (noticeMessage) noticeMessage.textContent = noticeText || "暂无通知";
+  if (heroRecordCount) heroRecordCount.textContent = String(records.length);
+  if (noticeMessage) noticeMessage.textContent = noticeText || "暂无运营通知";
   emptyState.style.display = names.length ? "none" : "block";
 
   for (const name of names) {
