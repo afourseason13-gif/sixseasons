@@ -66,7 +66,7 @@ function pickLineValue(text, labels) {
 function telegramSenderName(message) {
   const from = message?.from || {};
   const fullName = [from.first_name, from.last_name].map(clean).filter(Boolean).join(" ");
-  return clean(fullName || from.username || "");
+  return clean(fullName || from.username || message?.sender_chat?.title || message?.chat?.title || "");
 }
 
 function parseDealer(text, fallbackName = "") {
@@ -1721,7 +1721,10 @@ app.get("/check-trackingmy", async (_req, res) => {
 });
 
 app.post("/telegram", async (req, res) => {
-  const message = req.body.message || req.body.edited_message;
+  const message = req.body.message
+    || req.body.edited_message
+    || req.body.channel_post
+    || req.body.edited_channel_post;
   const messageText = message?.text || message?.caption || "";
   const chatId = message?.chat?.id;
   const senderName = telegramSenderName(message);
