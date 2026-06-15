@@ -5732,3 +5732,156 @@ h3,
     padding: 0 14px 28px;
   }
 }
+
+/* Dealer layout repair V7 */
+.dealer-page {
+  overflow-x: hidden;
+  background:
+    linear-gradient(180deg, var(--sig-dark) 0, var(--sig-deep) 440px, var(--sig-paper) 440px, var(--sig-paper) 100%);
+}
+
+.dealer-page .app-shell {
+  width: min(1360px, calc(100% - 42px));
+  max-width: 1360px;
+}
+
+.dealer-page .dealer-overview {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 28px;
+}
+
+.dealer-page .dealer-overview > * {
+  min-width: 0;
+}
+
+.dealer-page .salary-breakdown {
+  grid-column: span 4;
+  min-height: 118px;
+}
+
+.dealer-page .salary-breakdown + .metric-card {
+  grid-column: span 2;
+}
+
+.dealer-page .salary-breakdown strong {
+  max-width: none;
+  color: #fff;
+  font-size: clamp(17px, 2vw, 25px);
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.dealer-workbench {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 330px);
+  grid-template-areas:
+    "status form"
+    "status options";
+  gap: 18px 22px;
+  align-items: start;
+  margin-bottom: 24px;
+  border-top: 1px solid #cfd8d6;
+  border-bottom: 1px solid #cfd8d6;
+  background: var(--sig-paper);
+  padding: 22px 0;
+}
+
+.dealer-workbench > *,
+.dealer-page .status-board,
+.dealer-page .status-board-card,
+.dealer-page .status-board-list,
+.dealer-page #recordFormPanel,
+.dealer-page .status-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dealer-page .status-board {
+  grid-area: status;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dealer-page .status-board-card {
+  min-height: 332px;
+}
+
+.dealer-page #recordFormPanel {
+  grid-area: form;
+}
+
+.dealer-page .status-panel {
+  grid-area: options;
+}
+
+.dealer-page .toolbar,
+.dealer-page .records,
+.dealer-page .table-wrap {
+  max-width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .dealer-page {
+    background:
+      linear-gradient(180deg, var(--sig-dark) 0, var(--sig-deep) 570px, var(--sig-paper) 570px, var(--sig-paper) 100%);
+  }
+
+  .dealer-page .dealer-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dealer-page .salary-breakdown {
+    grid-column: span 2;
+  }
+
+  .dealer-page .salary-breakdown + .metric-card {
+    grid-column: span 1;
+  }
+
+  .dealer-workbench {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .dealer-page .status-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .dealer-page {
+    background:
+      linear-gradient(180deg, var(--sig-dark) 0, var(--sig-deep) 620px, var(--sig-paper) 620px, var(--sig-paper) 100%);
+  }
+
+  .dealer-page .app-shell {
+    width: calc(100% - 18px);
+  }
+
+  .dealer-page .dealer-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .dealer-page .salary-breakdown,
+  .dealer-page .salary-breakdown + .metric-card {
+    grid-column: span 2;
+  }
+
+  .dealer-workbench {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "status"
+      "form"
+      "options";
+  }
+
+  .dealer-page .status-board {
+    grid-template-columns: 1fr;
+  }
+
+  .dealer-page .status-board-card,
+  .dealer-page .status-board-card + .status-board-card {
+    min-height: 0;
+    border-right: 0;
+    padding: 18px 0;
+  }
+}
