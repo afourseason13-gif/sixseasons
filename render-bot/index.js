@@ -1502,6 +1502,12 @@ function shouldIncludeTrackingSummary(record, today) {
   return true;
 }
 
+function wasTakenByDriverToday(record, today) {
+  if (clean(record.status) !== "车手已签收") return false;
+  if (!record.trackingStoppedAt) return false;
+  return formatDateInMalaysia(new Date(record.trackingStoppedAt)) === today;
+}
+
 function buildTrackingSummaryMessage(records, today, options = {}) {
   const summaryRecords = records
     .filter((record) => shouldIncludeTrackingSummary(record, today))
@@ -1519,7 +1525,8 @@ function buildTrackingSummaryMessage(records, today, options = {}) {
     const status = packageStatusText(record, today);
     return status === "\u6d3e\u9001\u4e2d" || status.startsWith("\u5df2\u9001\u8fbe");
   });
-  const footer = options.addPickupSummary && !hasReadyForPickup
+  const driverTookPackagesToday = records.some((record) => wasTakenByDriverToday(record, today));
+  const footer = options.addPickupSummary && driverTookPackagesToday && !hasReadyForPickup
     ? ["", "今天没有待拿的包裹了。"]
     : [];
   return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines, ...footer].join("\n");
@@ -1531,6 +1538,7 @@ async function sendTrackingSummary(records, today, options = {}) {
   const message = buildTrackingSummaryMessage(records, today, options);
   if (!message) {
     if (!options.notifyEmpty) return false;
+    if (options.requireDriverPickupForEmpty && !records.some((record) => wasTakenByDriverToday(record, today))) return false;
     await sendTelegramMessage(chatId, `包裹状态\n${today}\n\n今天没有待拿的包裹了。`);
     return true;
   }
@@ -1650,7 +1658,10 @@ async function runScheduledTrackingMyCheck() {
         notified: 0,
         deleted: 0,
         skippedToday: 0,
-        summarySent: await sendTrackingSummary(latestRecords, today, { notifyEmpty: true })
+        summarySent: await sendTrackingSummary(latestRecords, today, {
+          notifyEmpty: true,
+          requireDriverPickupForEmpty: true
+        })
       };
     } else {
       result = await checkTrackingMyRecords();
@@ -1658,6 +1669,7 @@ async function runScheduledTrackingMyCheck() {
       const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
       result.summarySent = await sendTrackingSummary(latestRecords, today, {
         notifyEmpty: true,
+        requireDriverPickupForEmpty: true,
         addPickupSummary: true
       });
     }
