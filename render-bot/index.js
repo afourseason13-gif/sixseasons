@@ -938,31 +938,80 @@ function normalizeTrackingMyLatestStatus(status) {
 }
 
 function trackingMyLatestCheckpoint(result) {
-  const checkpoints = Array.isArray(result?.result)
+  return trackingMyCheckpoints(result)[0] || {};
+}
+
+function trackingMyCheckpoints(result) {
+  return Array.isArray(result?.result)
     ? result.result
     : Array.isArray(result?.checkpoints)
       ? result.checkpoints
       : [];
-  return checkpoints[0] || {};
 }
 
 function trackingMyResultLocation(result) {
-  const latest = trackingMyLatestCheckpoint(result);
-  const candidates = [
-    latest.location,
-    latest.city,
-    latest.state,
-    latest.branch,
-    result?.latest_location,
-    result?.location
-  ];
-  for (const candidate of candidates) {
-    const value = typeof candidate === "object"
-      ? Object.values(candidate || {}).map(clean).filter(Boolean).join(", ")
-      : clean(candidate);
-    if (value) return value.replace(/\s+/g, " ").slice(0, 90);
+  const checkpoints = trackingMyCheckpoints(result);
+  const latest = checkpoints[0] || {};
+  const valuesWithLocations = [latest, ...checkpoints.slice(1), result];
+  for (const value of valuesWithLocations) {
+    const candidates = [
+      value?.location,
+      value?.checkpoint_location,
+      value?.event_location,
+      value?.office,
+      value?.facility,
+      value?.hub,
+      value?.area,
+      value?.city,
+      value?.state,
+      value?.branch,
+      value?.latest_location
+    ];
+    for (const candidate of candidates) {
+      const location = typeof candidate === "object"
+        ? Object.values(candidate || {}).map(clean).filter(Boolean).join(", ")
+        : clean(candidate);
+      if (location) return location.replace(/\s+/g, " ").slice(0, 90);
+    }
   }
-  const checkpointText = [latest.description, latest.details, latest.status].map(clean).join(" ").toUpperCase();
+
+  const locationKeys = /(location|place|city|state|branch|office|facility|hub|area|station|centre|center|depot)/i;
+  const findNestedLocation = (value, key = "", depth = 0) => {
+    if (depth > 5 || value == null) return "";
+    if (typeof value === "string" || typeof value === "number") {
+      return locationKeys.test(key) ? clean(value) : "";
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = findNestedLocation(item, key, depth + 1);
+        if (found) return found;
+      }
+      return "";
+    }
+    if (typeof value === "object") {
+      for (const [childKey, childValue] of Object.entries(value)) {
+        const found = findNestedLocation(childValue, childKey, depth + 1);
+        if (found) return found;
+      }
+    }
+    return "";
+  };
+  for (const value of valuesWithLocations) {
+    const nestedLocation = findNestedLocation(value);
+    if (nestedLocation) return nestedLocation.replace(/\s+/g, " ").slice(0, 90);
+  }
+
+  for (const checkpoint of checkpoints) {
+    const checkpointText = [checkpoint.description, checkpoint.details, checkpoint.status].map(clean).join(" ");
+    const explicitLocation = checkpointText.match(/(?:hub|facility|centre|center|branch|station|depot)\s*:\s*([^,;|]+)/i);
+    if (explicitLocation?.[1]) return clean(explicitLocation[1]).replace(/\s+/g, " ").slice(0, 90);
+  }
+
+  const checkpointText = checkpoints
+    .flatMap((checkpoint) => [checkpoint.description, checkpoint.details, checkpoint.status])
+    .map(clean)
+    .join(" ")
+    .toUpperCase();
   const malaysiaPlaces = [
     "JOHOR BAHRU", "KUALA LUMPUR", "KOTA KINABALU", "GEORGE TOWN",
     "JOHOR", "PERAK", "SELANGOR", "PENANG", "KEDAH", "MELAKA", "MALACCA",
