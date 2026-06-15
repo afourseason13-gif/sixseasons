@@ -300,6 +300,7 @@ function hasRejectedMark(text) {
 }
 
 function problemStatusFromText(text) {
+  if (text.includes("人头偷钱")) return "人头偷钱";
   if (text.includes("人头关") || text.includes("公户")) return "人头关";
   if (text.includes("弹卡") || text.includes("有问题") || text.includes("问题")) return "弹卡";
   if (hasRejectedMark(text)) return "炸";
@@ -389,7 +390,7 @@ function undoWordsFromText(text) {
 }
 
 function parseRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
-  const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "炸"];
+  const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "人头偷钱", "炸"];
   const latestUndoWords = ["撤销导入", "撤銷導入", "取消导入", "取消導入"];
   const deleteWords = ["删除", "刪除", "撤回", "撤销", "撤銷", ...latestUndoWords];
   const status = statuses.find((item) => text.includes(item)) || statusFromCommandLine(text) || problemStatusFromText(text);
@@ -602,12 +603,13 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
     const opened = results.filter((item) => item.ok && item.status === "开保").length;
     const bounced = results.filter((item) => item.ok && item.status === "弹卡").length;
     const closed = results.filter((item) => item.ok && item.status === "人头关").length;
+    const stolen = results.filter((item) => item.ok && item.status === "人头偷钱").length;
     const rejected = results.filter((item) => item.ok && item.status === "炸").length;
     const missing = results.filter((item) => !item.ok).map((item) => item.cardToken);
     const missingText = missing.length ? `\n找不到：${missing.join(", ")}` : "";
     return {
       handled: true,
-      message: `批量更新完成：开保${opened}，弹卡${bounced}，人头关${closed}，炸${rejected}${missingText}`
+      message: `批量更新完成：开保${opened}，弹卡${bounced}，人头关${closed}，人头偷钱${stolen}，炸${rejected}${missingText}`
     };
   }
 
@@ -1731,7 +1733,7 @@ app.post("/telegram", async (req, res) => {
     }
     if (["设置开保群", "设置状态群", "\/setwarrantygroup", "\/setwarrantygroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
       await setTelegramRoleChat("warranty", chatId);
-      await reply(chatId, `已设置这里为开保状态群\n只有这个群会处理开保、过保、弹卡、人头关和炸\n群 ID: ${chatId}`);
+      await reply(chatId, `已设置这里为开保状态群\n只有这个群会处理开保、过保、弹卡、人头关、人头偷钱和炸\n群 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
