@@ -1508,19 +1508,62 @@ function wasTakenByDriverToday(record, today) {
   return formatDateInMalaysia(new Date(record.trackingStoppedAt)) === today;
 }
 
+function trackingSummaryLocation(record) {
+  const saved = clean(record.trackingLocation);
+  if (saved) return saved;
+  const detail = clean(record.trackingMyDetail);
+  if (!detail) return "";
+  const withoutPrefix = detail.replace(/^[^:]+:\s*/i, "");
+  const parts = withoutPrefix.split(/\s+-\s+/).map(clean).filter(Boolean);
+  if (parts.length >= 2) {
+    const candidates = parts.slice(1).filter((part) => {
+      return !/^\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?$/.test(part)
+        && !/^(delivered|in_transit|out_for_delivery|exception)$/i.test(part);
+    });
+    if (candidates.length) return candidates[0];
+  }
+  return "";
+}
+
+function trackingLocationGroup(location) {
+  const source = clean(location).toUpperCase();
+  if (!source) return "位置待确认";
+  if (source.includes("IPOH") || source.includes("KINTA")) return "IPOH / KINTA";
+  if (source.includes("JOHOR BAHRU") || source.includes("JHR")) return "JOHOR BAHRU";
+  if (source.includes("KAMPAR")) return "KAMPAR";
+  if (source.includes("PERAK") || source.includes("PRK")) return "PERAK";
+  if (source.includes("SELANGOR") || source.includes("SGR")) return "SELANGOR";
+  if (source.includes("KUALA LUMPUR") || source.includes("KUL")) return "KUALA LUMPUR";
+  if (source.includes("PENANG") || source.includes("PULAU PINANG") || source.includes("PEN")) return "PENANG";
+  if (source.includes("JOHOR")) return "JOHOR";
+  return source.replace(/\s+/g, " ").slice(0, 42);
+}
+
 function buildTrackingSummaryMessage(records, today, options = {}) {
   const summaryRecords = records
     .filter((record) => shouldIncludeTrackingSummary(record, today))
     .sort((a, b) => {
-      return `${trackingCarrierCode(a)}${trackingTail(a)}${clean(a.cardNumber)}`.localeCompare(`${trackingCarrierCode(b)}${trackingTail(b)}${clean(b.cardNumber)}`);
+      const aGroup = trackingLocationGroup(trackingSummaryLocation(a));
+      const bGroup = trackingLocationGroup(trackingSummaryLocation(b));
+      return `${aGroup === "位置待确认" ? "ZZZ" : aGroup}${trackingCarrierCode(a)}${trackingTail(a)}${clean(a.cardNumber)}`
+        .localeCompare(`${bGroup === "位置待确认" ? "ZZZ" : bGroup}${trackingCarrierCode(b)}${trackingTail(b)}${clean(b.cardNumber)}`);
     });
 
   if (!summaryRecords.length) return "";
-  const lines = summaryRecords.map((record) => {
-    const location = clean(record.trackingLocation);
+  const groupedLines = new Map();
+  for (const record of summaryRecords) {
+    const location = trackingSummaryLocation(record);
+    const group = trackingLocationGroup(location);
     const parcelLabel = `${trackingCarrierCode(record)}${trackingTail(record)}`;
-    return `${parcelLabel} | ${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}${location ? ` · ${location}` : ""}`;
-  });
+    const line = `${parcelLabel} | ${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}`;
+    if (!groupedLines.has(group)) groupedLines.set(group, []);
+    groupedLines.get(group).push(line);
+  }
+  const lines = [];
+  for (const [group, groupLines] of groupedLines) {
+    lines.push(`【${group}】`, ...groupLines, "");
+  }
+  if (lines.at(-1) === "") lines.pop();
   const hasReadyForPickup = summaryRecords.some((record) => {
     const status = packageStatusText(record, today);
     return status === "\u6d3e\u9001\u4e2d" || status.startsWith("\u5df2\u9001\u8fbe");
@@ -1566,7 +1609,11 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
       !(record.trackingMyLastError || !record.trackingMyCheckedAt || formatDateInMalaysia(new Date(record.trackingMyCheckedAt)) !== today)
     ) continue;
 
-    if (!targetRecordId && (record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered")) {
+    if (
+      !targetRecordId
+      && (record.packageStatus === "\u5df2\u9001\u8fbe" || record.lastTrackingNotifyStatus === "delivered")
+      && trackingSummaryLocation(record)
+    ) {
       continue;
     }
 
@@ -1593,7 +1640,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
     const updateData = {
       packageStatus: result.label,
       trackingMyDetail: result.source ? `${result.source}: ${result.detail}` : result.detail,
-      trackingLocation: result.location || "",
+      trackingLocation: result.location || trackingSummaryLocation({ trackingMyDetail: result.detail }),
       trackingMyUrl: result.url,
       trackingMyLastError: null,
       trackingMyCheckedAt: new Date().toISOString(),
