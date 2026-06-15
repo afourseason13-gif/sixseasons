@@ -1505,11 +1505,6 @@ function shouldIncludeTrackingSummary(record, today) {
 function buildTrackingSummaryMessage(records, today, options = {}) {
   const summaryRecords = records
     .filter((record) => shouldIncludeTrackingSummary(record, today))
-    .filter((record) => {
-      if (!options.onlyReadyForPickup) return true;
-      const status = packageStatusText(record, today);
-      return status === "\u6d3e\u9001\u4e2d" || status.startsWith("\u5df2\u9001\u8fbe");
-    })
     .sort((a, b) => {
       return `${trackingCarrierCode(a)}${trackingTail(a)}${clean(a.cardNumber)}`.localeCompare(`${trackingCarrierCode(b)}${trackingTail(b)}${clean(b.cardNumber)}`);
     });
@@ -1520,7 +1515,14 @@ function buildTrackingSummaryMessage(records, today, options = {}) {
     const parcelLabel = `${trackingCarrierCode(record)}${trackingTail(record)}`;
     return `${parcelLabel} | ${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}${location ? ` · ${location}` : ""}`;
   });
-  return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines].join("\n");
+  const hasReadyForPickup = summaryRecords.some((record) => {
+    const status = packageStatusText(record, today);
+    return status === "\u6d3e\u9001\u4e2d" || status.startsWith("\u5df2\u9001\u8fbe");
+  });
+  const footer = options.addPickupSummary && !hasReadyForPickup
+    ? ["", "今天没有待拿的包裹了。"]
+    : [];
+  return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines, ...footer].join("\n");
 }
 
 async function sendTrackingSummary(records, today, options = {}) {
@@ -1656,7 +1658,7 @@ async function runScheduledTrackingMyCheck() {
       const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
       result.summarySent = await sendTrackingSummary(latestRecords, today, {
         notifyEmpty: true,
-        onlyReadyForPickup: true
+        addPickupSummary: true
       });
     }
 
