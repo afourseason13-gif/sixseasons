@@ -369,7 +369,11 @@ function parseGeneralBulkRecordCommands(text, defaultWarrantyDate = "") {
 
 function parseDriverSignedCommands(text) {
   const source = String(text || "");
-  if (!source.includes("车手已签收") && !source.includes("车手已拿")) return [];
+  const hasSignedLabel = source.includes("车手已签收") || source.includes("车手已拿");
+  const courierCodes = new Set([
+    "JNT", "JT", "POS", "POSLAJU", "SPX", "SHOPEE", "GDEX", "NINJA",
+    "NINJAVAN", "DHL", "SKY", "SKYNET", "CITY", "FLASH", "LEX", "LAZ"
+  ]);
 
   const commands = [];
   const seen = new Set();
@@ -377,6 +381,17 @@ function parseDriverSignedCommands(text) {
     const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
     if (!cardTokens.length) continue;
+    if (!hasSignedLabel) {
+      const hasParcelReference = cardTokens.some((token) => {
+        const code = token.replace(/\d{4}$/, "");
+        return courierCodes.has(code);
+      });
+      const hasSeparateCard = cardTokens.some((token) => {
+        const code = token.replace(/\d{4}$/, "");
+        return !courierCodes.has(code);
+      });
+      if (!hasParcelReference || !hasSeparateCard) continue;
+    }
     const cardToken = cardTokens[cardTokens.length - 1];
     if (seen.has(cardToken)) continue;
     seen.add(cardToken);
