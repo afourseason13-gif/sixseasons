@@ -106,7 +106,7 @@ function isPotentialImportMessage(text) {
   ];
   const matchedFields = structuredLabels.filter((label) => pickLineValue(text, [label])).length;
   const hasCardOrShipment = Boolean(parseCardNumber(text) || parseShipmentCode(text).trackingNumber);
-  return matchedFields >= 2 && hasCardOrShipment;
+  return matchedFields >= 1 && hasCardOrShipment;
 }
 
 function parseShipmentCode(text) {
@@ -419,6 +419,82 @@ function parseDriverSignedCommands(text) {
   return commands;
 }
 
+function parseParcelCardPairs(text) {
+  const courierCodes = new Set([
+    "JNT", "JT", "POS", "POSLAJU", "SPX", "SHOPEE", "GDEX", "NINJA",
+    "NINJAVAN", "DHL", "SKY", "SKYNET", "CITY", "FLASH", "LEX", "LAZ"
+  ]);
+  const pairs = [];
+  for (const line of String(text || "").split(/\r?\n/)) {
+    const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const tokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
+    const parcelToken = tokens.find((token) => courierCodes.has(token.replace(/\d{4}$/, "")));
+    const cardToken = tokens.find((token) => !courierCodes.has(token.replace(/\d{4}$/, "")));
+    if (parcelToken && cardToken) {
+      pairs.push({
+        parcelToken,
+        parcelCode: parcelToken.replace(/\d{4}$/, ""),
+        tailNumber: parcelToken.slice(-4),
+        cardToken
+      });
+    }
+  }
+  return pairs;
+}
+
+function recordCarrierMatchesCode(record, parcelCode) {
+  const source = `${clean(record.carrier)} ${clean(record.trackingMoreCourierCode)}`.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const code = normalizeCarrierCode(parcelCode);
+  if (["JNT", "JT"].includes(code)) return source.includes("JT") || source.includes("JTEXPRESS");
+  if (["POS", "POSLAJU"].includes(code)) return source.includes("POS");
+  if (["SPX", "SHOPEE"].includes(code)) return source.includes("SPX") || source.includes("SHOPEE");
+  if (["NINJA", "NINJAVAN"].includes(code)) return source.includes("NINJA");
+  if (["SKY", "SKYNET"].includes(code)) return source.includes("SKYNET");
+  return source.includes(code);
+}
+
+async function fillMissingCardsByParcelReference(text) {
+  const pairs = parseParcelCardPairs(text);
+  if (!pairs.length) return { filled: 0, ambiguous: 0 };
+  const snapshot = await db.ref("dealer-card-tracker/records").get();
+  const records = Object.entries(snapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
+  let filled = 0;
+  let ambiguous = 0;
+
+  for (const pair of pairs) {
+    const candidates = records.filter((record) => {
+      const tail = clean(record.tailNumber).replace(/\D/g, "").slice(-4);
+      const card = clean(record.cardNumber).toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const cardIsMissing = !card || card.endsWith("XXXX");
+      return cardIsMissing && tail === pair.tailNumber && recordCarrierMatchesCode(record, pair.parcelCode);
+    });
+    if (candidates.length === 1) {
+      const record = candidates[0];
+      await db.ref(`dealer-card-tracker/records/${record.key}`).update({
+        cardNumber: pair.cardToken,
+        notes: `${clean(record.notes)} \u00b7 \u8f66\u624b\u6309\u5305\u88f9\u5c3e\u53f7\u81ea\u52a8\u8865\u4e0a\u5361\u53f7`.trim(),
+        cardMatchedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      record.cardNumber = pair.cardToken;
+      filled += 1;
+    } else if (candidates.length > 1) {
+      const pendingRef = db.ref("dealer-card-tracker/pendingImports").push();
+      await pendingRef.set({
+        id: pendingRef.key,
+        type: "conflict",
+        reason: `\u5305\u88f9 ${pair.parcelToken} \u5339\u914d\u5230 ${candidates.length} \u6761\u672a\u8865\u5361\u53f7\u8d44\u6599`,
+        cardNumber: pair.cardToken,
+        tailNumber: pair.tailNumber,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      ambiguous += 1;
+    }
+  }
+  return { filled, ambiguous };
+}
+
 function undoWordsFromText(text) {
   return ["撤销导入", "撤銷導入", "取消导入", "取消導入"].some((item) => text.includes(item));
 }
@@ -591,6 +667,7 @@ async function autoExpireWarrantyRecords() {
 
 async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
   await autoExpireWarrantyRecords();
+  const cardFillResult = await fillMissingCardsByParcelReference(text);
   const signedCommands = parseDriverSignedCommands(text);
   if (signedCommands.length) {
     const results = [];
@@ -648,7 +725,18 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
   }
 
   const command = parseRecordCommand(text, defaultWarrantyDate, replyMessageId);
-  if (!command) return { handled: false };
+  if (!command) {
+    if (cardFillResult.filled || cardFillResult.ambiguous) {
+      return {
+        handled: true,
+        message: [
+          cardFillResult.filled ? `\u5df2\u6309\u5305\u88f9\u5c3e\u53f7\u81ea\u52a8\u8865\u4e0a ${cardFillResult.filled} \u4e2a\u5361\u53f7` : "",
+          cardFillResult.ambiguous ? `${cardFillResult.ambiguous} \u6761\u5339\u914d\u5230\u591a\u4efd\u8d44\u6599\uff0c\u5df2\u653e\u5165\u5f85\u5339\u914d\u4e2d\u5fc3` : ""
+        ].filter(Boolean).join("\n")
+      };
+    }
+    return { handled: false };
+  }
 
   const result = await applyRecordCommand(command);
   if (!result.ok) return { handled: true, message: result.message };
@@ -714,13 +802,11 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
     "卡号": rawCardNumber
   };
   const missingFields = Object.entries(requiredFields).filter(([, value]) => !clean(value)).map(([label]) => label);
-  // A new Telegram member with a complete structured record may create their
-  // Dealer automatically. Incomplete records still wait for manual matching.
-  const dealerName = existingDealerName || (!missingFields.length ? requestedDealerName : "");
+  // New and incomplete records are saved under the Telegram sender first.
+  // A later driver message can attach the missing card by parcel reference.
+  const dealerName = existingDealerName || requestedDealerName || fallbackDealerName || "Telegram";
 
-  if (missingFields.length) {
-    pendingReason = `缺少资料：${missingFields.join("、")}`;
-  } else if (!dealerName) {
+  if (!dealerName) {
     pendingReason = `找不到 Dealer：${requestedDealerName || "未提供"}`;
   } else if (trackingMatch && normalizeLookup(trackingMatch.cardNumber) !== normalizedCard) {
     pendingType = "conflict";
@@ -783,7 +869,10 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
     tailNumber: shipment.tailNumber,
     warrantyDate: "",
     status: "寄",
-    notes: "Telegram 自动导入",
+    notes: missingFields.length
+      ? `Telegram 自动导入 · 待补资料：${missingFields.join("、")}`
+      : "Telegram 自动导入",
+    missingFields,
     telegramMessageId: String(telegramMessageId || ""),
     updatedAt: now,
     createdAt: now
@@ -801,6 +890,7 @@ async function rememberTelegramBotReply(recordId, messageId) {
     telegramBotReplyMessageId: String(messageId)
   });
 }
+
 
 async function registerTrackingMore(record) {
   if (!trackingMoreApiKey || !record.trackingNumber || !record.trackingMoreCourierCode) return;

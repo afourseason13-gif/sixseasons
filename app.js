@@ -2,6 +2,7 @@ const localKey = "dealer-card-tracker-records";
 const dealerListKey = "dealer-card-tracker-dealers";
 const statusOptionsKey = "dealer-card-tracker-status-options";
 const noticeKey = "dealer-card-tracker-notice";
+const pendingImportsKey = "dealer-card-tracker-pending-imports";
 const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
 const trackingCheckEndpoint = "https://dealer-tracker.onrender.com/check-trackingmy";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "人头偷钱", "炸"];
@@ -57,6 +58,7 @@ let records = [];
 let dealers = [];
 let statusOptions = [...defaultStatusOptions];
 let noticeText = "";
+let pendingImports = [];
 let saveRecord;
 let deleteRecord;
 let saveDealer;
@@ -67,6 +69,8 @@ let saveDealerExtraPay;
 let saveStatusOption;
 let deleteStatusOption;
 let saveNotice;
+let resolvePendingImport;
+let deletePendingImport;
 let dealerPageFillForm = null;
 let firebaseStatusOptionsLoaded = false;
 let parsedDetailsDraft = {};
@@ -355,6 +359,38 @@ function normalizeRecord(data, id = createId()) {
   };
 }
 
+function recordFromPendingImport(pending, values) {
+  const parsed = parseSmartDetails(pending.formattedDetails || "");
+  const wantedCard = normalizeCardLookup(values.cardNumber);
+  const existing = records.find((record) => normalizeCardLookup(record.cardNumber) === wantedCard);
+  if (existing) {
+    return {
+      ...existing,
+      dealerName: values.dealerName,
+      cardNumber: values.cardNumber,
+      carrier: pending.carrier || existing.carrier || "鍏朵粬",
+      trackingNumber: values.trackingNumber || existing.trackingNumber || "",
+      tailNumber: pending.tailNumber || values.trackingNumber.slice(-4) || existing.tailNumber || "",
+      formattedDetails: pending.formattedDetails || existing.formattedDetails || "",
+      notes: "待匹配资料已确认",
+      updatedAt: new Date().toISOString()
+    };
+  }
+  return normalizeRecord({
+    ...parsed,
+    dealerName: values.dealerName,
+    cardNumber: values.cardNumber,
+    carrier: pending.carrier || "鍏朵粬",
+    trackingNumber: values.trackingNumber,
+    tailNumber: pending.tailNumber || values.trackingNumber.slice(-4),
+    formattedDetails: pending.formattedDetails || "",
+    bankName: pending.bankName || parsed.bankName || "",
+    status: defaultNewRecordStatus,
+    notes: "待匹配资料已确认",
+    createdAt: pending.createdAt
+  });
+}
+
 function parseSmartDetails(text) {
   const fields = {
     customerName: ["NAMA", "NAME"],
@@ -496,7 +532,73 @@ function initIndexPage() {
     }
   });
   cardFinderButton.addEventListener("click", renderCardDealerFinder);
+  const pendingList = document.querySelector("#pendingList");
+  pendingList?.addEventListener("click", async (event) => {
+    const card = event.target.closest(".pending-item");
+    if (!card) return;
+    const id = card.dataset.id;
+    if (event.target.closest(".pending-delete")) {
+      if (confirm("删除这条待匹配资料？")) await deletePendingImport(id);
+      return;
+    }
+    if (event.target.closest(".pending-resolve")) {
+      const dealerName = card.querySelector(".pending-dealer").value;
+      const cardNumber = card.querySelector(".pending-card-number").value.trim();
+      const trackingNumber = card.querySelector(".pending-tracking-number").value.trim();
+      if (!dealerName) {
+        alert("请先选择 Dealer");
+        return;
+      }
+      if (!cardNumber) {
+        alert("请填写卡号");
+        return;
+      }
+      await resolvePendingImport(id, { dealerName, cardNumber, trackingNumber });
+    }
+  });
   renderIndexPage();
+}
+
+function renderPendingCenter() {
+  const center = document.querySelector("#pendingCenter");
+  const list = document.querySelector("#pendingList");
+  const count = document.querySelector("#pendingCount");
+  if (!center || !list || !count) return;
+
+  center.hidden = pendingImports.length === 0;
+  count.textContent = `${pendingImports.length} 条待处理`;
+  list.textContent = "";
+
+  for (const pending of pendingImports.slice().sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))) {
+    const item = document.createElement("article");
+    item.className = `pending-item pending-${pending.type === "conflict" ? "conflict" : "missing"}`;
+    item.dataset.id = pending.id;
+    const dealerOptions = uniqueDealers().map((name) => `
+      <option value="${escapeHtml(name)}" ${name === pending.suggestedDealerName ? "selected" : ""}>${escapeHtml(name)}</option>
+    `).join("");
+    item.innerHTML = `
+      <div class="pending-item-head">
+        <div>
+          <span class="pending-type">${pending.type === "conflict" ? "资料冲突" : "待匹配"}</span>
+          <strong>${escapeHtml(pending.cardNumber || "未知卡号")}</strong>
+        </div>
+        <time>${escapeHtml(formatTime(pending.createdAt))}</time>
+      </div>
+      <p class="pending-reason">${escapeHtml(pending.reason || "资料不完整")}</p>
+      <div class="pending-fields">
+        <label><span>选择 Dealer</span><select class="pending-dealer"><option value="">请选择 Dealer</option>${dealerOptions}</select></label>
+        <label><span>卡号</span><input class="pending-card-number" value="${escapeHtml(pending.cardNumber || "")}" /></label>
+        <label><span>包裹号码</span><input class="pending-tracking-number" value="${escapeHtml(pending.trackingNumber || "")}" /></label>
+      </div>
+      <div class="pending-meta">Telegram：${escapeHtml(pending.senderName || "-")} · 原 Dealer：${escapeHtml(pending.requestedDealerName || "-")}</div>
+      <details><summary>查看 Telegram 原始资料</summary><pre>${escapeHtml(pending.formattedDetails || "")}</pre></details>
+      <div class="pending-actions">
+        <button class="ghost pending-delete" type="button">删除</button>
+        <button class="primary pending-resolve" type="button">确认匹配并导入</button>
+      </div>
+    `;
+    list.append(item);
+  }
 }
 
 function renderCardDealerFinder() {
@@ -627,6 +729,7 @@ function renderIndexPage() {
   }
   renderCardDealerFinder();
   renderHomeTransitBoard();
+  renderPendingCenter();
 }
 
 function initDealerPage() {
@@ -1233,6 +1336,7 @@ async function autoExpireWarrantyRecords(updateRecord) {
 async function initLocalMode() {
   records = readJson(localKey);
   dealers = readJson(dealerListKey);
+  pendingImports = readJson(pendingImportsKey);
   statusOptions = normalizeStatusOptions(readJson(statusOptionsKey, defaultStatusOptions));
   noticeText = localStorage.getItem(noticeKey) || "";
 
@@ -1305,6 +1409,20 @@ async function initLocalMode() {
     writeJson(localKey, records);
     renderCurrentPage();
   };
+  resolvePendingImport = async (id, values) => {
+    const pending = pendingImports.find((item) => item.id === id);
+    if (!pending) return;
+    const record = recordFromPendingImport(pending, values);
+    await saveRecord(record);
+    pendingImports = pendingImports.filter((item) => item.id !== id);
+    writeJson(pendingImportsKey, pendingImports);
+    renderCurrentPage();
+  };
+  deletePendingImport = async (id) => {
+    pendingImports = pendingImports.filter((item) => item.id !== id);
+    writeJson(pendingImportsKey, pendingImports);
+    renderCurrentPage();
+  };
 
   setSyncStatus("offline", "本机保存，未开启同步");
   await autoExpireWarrantyRecords(saveRecord);
@@ -1324,6 +1442,7 @@ async function initFirebaseMode() {
     const statusOptionsRef = ref(db, "dealer-card-tracker/statusOptions");
     const humanStealingStatusMigrationRef = ref(db, "dealer-card-tracker/settings/migrations/humanStealingStatus");
     const noticeRef = ref(db, "dealer-card-tracker/notice");
+    const pendingImportsRef = ref(db, "dealer-card-tracker/pendingImports");
     let isAutoExpiring = false;
 
     saveDealer = async (name) => {
@@ -1374,6 +1493,14 @@ async function initFirebaseMode() {
       await set(ref(db, `dealer-card-tracker/records/${record.id}`), record);
     };
     deleteRecord = async (id) => remove(ref(db, `dealer-card-tracker/records/${id}`));
+    resolvePendingImport = async (id, values) => {
+      const pending = pendingImports.find((item) => item.id === id);
+      if (!pending) return;
+      const record = recordFromPendingImport(pending, values);
+      await saveRecord(record);
+      await remove(ref(db, `dealer-card-tracker/pendingImports/${id}`));
+    };
+    deletePendingImport = async (id) => remove(ref(db, `dealer-card-tracker/pendingImports/${id}`));
 
     if (!(await get(humanStealingStatusMigrationRef)).val()) {
       await set(ref(db, `dealer-card-tracker/statusOptions/${encodeURIComponent("人头偷钱")}`), {
@@ -1414,6 +1541,11 @@ async function initFirebaseMode() {
           isAutoExpiring = false;
         });
       }
+    });
+    onValue(pendingImportsRef, (snapshot) => {
+      pendingImports = Object.entries(snapshot.val() || {}).map(([id, item]) => ({ id, ...item }));
+      setSyncStatus("online", "多人实时同步已开启");
+      renderCurrentPage();
     });
   } catch {
     await initLocalMode();

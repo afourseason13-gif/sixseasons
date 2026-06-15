@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260615-dealer-console-v8" />
+    <link rel="stylesheet" href="./styles.css?v=20260615-matching-center-v9" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -69,6 +69,18 @@
         </div>
         <div class="home-transit-list" id="homeTransitList"></div>
       </section>
+      </section>
+
+      <section class="pending-center" id="pendingCenter" hidden aria-label="待匹配资料中心">
+        <div class="pending-center-head">
+          <div>
+            <p class="eyebrow">MATCHING CENTER</p>
+            <h2>待匹配资料中心</h2>
+            <p class="section-copy">处理找不到 Dealer、卡号与包裹号码冲突或资料不完整的 Telegram 导入。</p>
+          </div>
+          <span class="pending-count" id="pendingCount">0 条待处理</span>
+        </div>
+        <div class="pending-list" id="pendingList"></div>
       </section>
 
       <section class="home-communications-grid" aria-label="通知与公告">
@@ -167,6 +179,6 @@
     </main>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260615-dealer-console-v8"></script>
+    <script src="./app.js?v=20260615-matching-center-v9"></script>
   </body>
 </html>
