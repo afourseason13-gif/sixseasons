@@ -423,6 +423,35 @@ function recordMatchesCard(record, cardToken) {
   return card === wanted;
 }
 
+function recordDetailValue(record, field, labels) {
+  const saved = clean(record?.[field]);
+  if (saved) return saved;
+  return pickLineValue(clean(record?.formattedDetails), labels);
+}
+
+function formatSignedRecordDetails(record) {
+  const name = recordDetailValue(record, "customerName", ["NAMA", "NAME"]);
+  const ic = recordDetailValue(record, "icNumber", ["IC NO", "IC"]);
+  const bank = recordDetailValue(record, "bankName", ["BANK", "NAMA BANK"]);
+  const account = recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]);
+  const card = clean(record?.cardNumber) || recordDetailValue(record, "cardNumber", ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
+  const pin = recordDetailValue(record, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]);
+  return [
+    `*NAMA* : ${name}`,
+    "",
+    `*IC NO*：${ic}`,
+    "",
+    `*BANK* : ${bank}`,
+    "",
+    `*NO AKAUN* : ${account}`,
+    "----------------------",
+    `*NO KAD* : ${card}`,
+    "",
+    `*PIN KAD ATM* : ${pin}`,
+    "----------------------"
+  ].join("\n");
+}
+
 async function findLatestRecordByCard(cardToken) {
   const snapshot = await db.ref("dealer-card-tracker/records").get();
   const records = Object.entries(snapshot.val() || {})
@@ -464,7 +493,12 @@ async function applyRecordCommand(command) {
       trackingStoppedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
-    return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: "车手已签收" };
+    return {
+      ok: true,
+      cardNumber: record.cardNumber || command.cardToken,
+      status: "车手已签收",
+      record
+    };
   }
 
   const updateData = {
@@ -530,11 +564,13 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
     }
     const stopped = results.filter((result) => result.ok);
     const missing = results.filter((result) => !result.ok).map((result) => result.cardToken);
-    const stoppedText = stopped.length ? `\n${stopped.map((result) => result.cardNumber).join("\n")}` : "";
+    const detailsText = stopped.length
+      ? `\n\n${stopped.map((result) => formatSignedRecordDetails(result.record)).join("\n\n======================\n\n")}`
+      : "";
     const missingText = missing.length ? `\n找不到：${missing.join(", ")}` : "";
     return {
       handled: true,
-      message: `车手已签收，已停止查询 ${stopped.length} 条${stoppedText}${missingText}`
+      message: `车手已签收，已停止查询 ${stopped.length} 条${detailsText}${missingText}`
     };
   }
 
@@ -698,13 +734,27 @@ async function registerTrackingMore(record) {
 }
 
 async function reply(chatId, text) {
-  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text })
-  });
-  const body = await response.json().catch(() => ({}));
-  return body.result || {};
+  const chunks = [];
+  let remaining = String(text || "");
+  while (remaining.length > 3900) {
+    let splitAt = remaining.lastIndexOf("\n\n", 3900);
+    if (splitAt < 1000) splitAt = 3900;
+    chunks.push(remaining.slice(0, splitAt));
+    remaining = remaining.slice(splitAt).trimStart();
+  }
+  if (remaining) chunks.push(remaining);
+
+  let lastResult = {};
+  for (const chunk of chunks) {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: chunk })
+    });
+    const body = await response.json().catch(() => ({}));
+    lastResult = body.result || lastResult;
+  }
+  return lastResult;
 }
 
 async function rememberTelegramChat(chatId) {
@@ -713,6 +763,40 @@ async function rememberTelegramChat(chatId) {
 
 async function setTrackingNotificationChat(chatId) {
   await db.ref("dealer-card-tracker/settings/trackingNotificationChatId").set(String(chatId));
+}
+
+async function setTelegramRoleChat(role, chatId) {
+  const roleKeys = {
+    import: "importChatId",
+    warranty: "warrantyChatId",
+    tracking: "trackingNotificationChatId"
+  };
+  const key = roleKeys[role];
+  if (!key) return;
+  await db.ref(`dealer-card-tracker/settings/${key}`).set(String(chatId));
+}
+
+async function getTelegramRoleChats() {
+  const snapshot = await db.ref("dealer-card-tracker/settings").get();
+  const settings = snapshot.val() || {};
+  return {
+    import: clean(settings.importChatId),
+    warranty: clean(settings.warrantyChatId),
+    tracking: clean(settings.trackingNotificationChatId)
+  };
+}
+
+function chatMatchesRole(chatId, roleChatId) {
+  return !roleChatId || String(chatId) === String(roleChatId);
+}
+
+function telegramRoleSummary(chatId, roles) {
+  const current = String(chatId);
+  const assigned = [];
+  if (roles.import === current) assigned.push("资料导入群");
+  if (roles.warranty === current) assigned.push("开保状态群");
+  if (roles.tracking === current) assigned.push("包裹通知群");
+  return assigned.length ? assigned.join("、") : "未分配任务";
 }
 
 async function sendTelegramMessage(chatId, text) {
@@ -1639,9 +1723,27 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ignored");
       return;
     }
+    if (["设置导入群", "\/setimportgroup", "\/setimportgroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
+      await setTelegramRoleChat("import", chatId);
+      await reply(chatId, `已设置这里为资料导入群\n只有这个群会自动导入新卡资料\n群 ID: ${chatId}`);
+      res.status(200).send("ok");
+      return;
+    }
+    if (["设置开保群", "设置状态群", "\/setwarrantygroup", "\/setwarrantygroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
+      await setTelegramRoleChat("warranty", chatId);
+      await reply(chatId, `已设置这里为开保状态群\n只有这个群会处理开保、过保、弹卡、人头关和炸\n群 ID: ${chatId}`);
+      res.status(200).send("ok");
+      return;
+    }
     if (["设置通知群", "\/setnotifygroup", "\/setnotifygroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
-      await setTrackingNotificationChat(chatId);
-      await reply(chatId, `已设置这里为包裹通知群\n群 ID: ${chatId}`);
+      await setTelegramRoleChat("tracking", chatId);
+      await reply(chatId, `已设置这里为包裹通知群\n包裹状态会发送到这里，也可在这里发送车手已签收 / 已拿\n群 ID: ${chatId}`);
+      res.status(200).send("ok");
+      return;
+    }
+    if (text === "查看群设置" || text.toLowerCase().startsWith("/grouprole")) {
+      const roles = await getTelegramRoleChats();
+      await reply(chatId, `这个群：${telegramRoleSummary(chatId, roles)}\n群 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
@@ -1650,17 +1752,32 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ok");
       return;
     }
+    const roles = await getTelegramRoleChats();
     if (text === "立即发送包裹通知") {
+      if (!chatMatchesRole(chatId, roles.tracking)) {
+        res.status(200).send("ignored");
+        return;
+      }
       await setTrackingNotificationChat(chatId);
       const result = await checkTrackingMyRecords("", { sendSummary: true });
       await reply(chatId, result.summarySent ? "已发送今天的包裹通知" : "目前没有可以发送的包裹记录");
       res.status(200).send("ok");
       return;
     }
-    const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
-    if (commandResult.handled) {
-      await reply(chatId, commandResult.message);
-      res.status(200).send("ok");
+    const isDriverSignedCommand = parseDriverSignedCommands(text).length > 0;
+    const commandRoleAllowed = isDriverSignedCommand
+      ? chatMatchesRole(chatId, roles.tracking)
+      : chatMatchesRole(chatId, roles.warranty);
+    if (commandRoleAllowed) {
+      const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
+      if (commandResult.handled) {
+        await reply(chatId, commandResult.message);
+        res.status(200).send("ok");
+        return;
+      }
+    }
+    if (!chatMatchesRole(chatId, roles.import)) {
+      res.status(200).send("ignored");
       return;
     }
     if (!isImportMessage(text, senderName)) {
