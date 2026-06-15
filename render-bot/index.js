@@ -1502,9 +1502,14 @@ function shouldIncludeTrackingSummary(record, today) {
   return true;
 }
 
-function buildTrackingSummaryMessage(records, today) {
+function buildTrackingSummaryMessage(records, today, options = {}) {
   const summaryRecords = records
     .filter((record) => shouldIncludeTrackingSummary(record, today))
+    .filter((record) => {
+      if (!options.onlyReadyForPickup) return true;
+      const status = packageStatusText(record, today);
+      return status === "\u6d3e\u9001\u4e2d" || status.startsWith("\u5df2\u9001\u8fbe");
+    })
     .sort((a, b) => {
       return `${trackingCarrierCode(a)}${trackingTail(a)}${clean(a.cardNumber)}`.localeCompare(`${trackingCarrierCode(b)}${trackingTail(b)}${clean(b.cardNumber)}`);
     });
@@ -1518,11 +1523,15 @@ function buildTrackingSummaryMessage(records, today) {
   return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines].join("\n");
 }
 
-async function sendTrackingSummary(records, today) {
+async function sendTrackingSummary(records, today, options = {}) {
   const chatId = await getTrackingChatId();
   if (!chatId) return false;
-  const message = buildTrackingSummaryMessage(records, today);
-  if (!message) return false;
+  const message = buildTrackingSummaryMessage(records, today, options);
+  if (!message) {
+    if (!options.notifyEmpty) return false;
+    await sendTelegramMessage(chatId, `包裹状态\n${today}\n\n今天没有待拿的包裹了。`);
+    return true;
+  }
   await sendTelegramMessage(chatId, message);
   return true;
 }
@@ -1619,7 +1628,7 @@ async function runScheduledTrackingMyCheck() {
   const slots = [
     { time: "12:30", action: "check" },
     { time: "13:00", action: "summary" },
-    { time: "20:00", action: "evening" }
+    { time: "16:00", action: "checkAndSummary" }
   ];
 
   for (const slot of slots) {
@@ -1639,12 +1648,15 @@ async function runScheduledTrackingMyCheck() {
         notified: 0,
         deleted: 0,
         skippedToday: 0,
-        summarySent: await sendTrackingSummary(latestRecords, today)
+        summarySent: await sendTrackingSummary(latestRecords, today, { notifyEmpty: true })
       };
     } else {
-      result = await checkTrackingMyRecords("", {
-        onlyNeedsEveningCheck: true,
-        sendDeliveredNotifications: true
+      result = await checkTrackingMyRecords();
+      const latestSnapshot = await db.ref("dealer-card-tracker/records").get();
+      const latestRecords = Object.entries(latestSnapshot.val() || {}).map(([key, record]) => ({ key, ...record }));
+      result.summarySent = await sendTrackingSummary(latestRecords, today, {
+        notifyEmpty: true,
+        onlyReadyForPickup: true
       });
     }
 
