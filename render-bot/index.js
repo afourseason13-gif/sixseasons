@@ -937,13 +937,45 @@ function normalizeTrackingMyLatestStatus(status) {
   return "";
 }
 
-function trackingMyResultDetail(result, status) {
+function trackingMyLatestCheckpoint(result) {
   const checkpoints = Array.isArray(result?.result)
     ? result.result
     : Array.isArray(result?.checkpoints)
       ? result.checkpoints
       : [];
-  const latest = checkpoints[0] || {};
+  return checkpoints[0] || {};
+}
+
+function trackingMyResultLocation(result) {
+  const latest = trackingMyLatestCheckpoint(result);
+  const candidates = [
+    latest.location,
+    latest.city,
+    latest.state,
+    latest.branch,
+    result?.latest_location,
+    result?.location
+  ];
+  for (const candidate of candidates) {
+    const value = typeof candidate === "object"
+      ? Object.values(candidate || {}).map(clean).filter(Boolean).join(", ")
+      : clean(candidate);
+    if (value) return value.replace(/\s+/g, " ").slice(0, 90);
+  }
+  const checkpointText = [latest.description, latest.details, latest.status].map(clean).join(" ").toUpperCase();
+  const malaysiaPlaces = [
+    "JOHOR BAHRU", "KUALA LUMPUR", "KOTA KINABALU", "GEORGE TOWN",
+    "JOHOR", "PERAK", "SELANGOR", "PENANG", "KEDAH", "MELAKA", "MALACCA",
+    "PAHANG", "KELANTAN", "TERENGGANU", "NEGERI SEMBILAN", "PERLIS",
+    "SABAH", "SARAWAK", "PUTRAJAYA", "LABUAN"
+  ];
+  const place = malaysiaPlaces.find((item) => checkpointText.includes(item));
+  if (place) return place;
+  return "";
+}
+
+function trackingMyResultDetail(result, status) {
+  const latest = trackingMyLatestCheckpoint(result);
   const parts = [
     latest.status,
     latest.description,
@@ -1079,6 +1111,7 @@ async function fetchTrackingMySocketStatus(slug, trackingNumber) {
       status,
       label: trackingStatusLabel(status),
       detail: trackingMyResultDetail(result, status),
+      location: trackingMyResultLocation(result),
       url,
       source: "Tracking.my"
     };
@@ -1241,6 +1274,7 @@ async function fetchPosMalaysiaApiStatus(trackingNumber) {
       status,
       label: trackingStatusLabel(status),
       detail: trackingStatusSnippet(text, status),
+      location: trackingMyResultLocation(result),
       url: officialUrl,
       source: "Pos Malaysia"
     };
@@ -1327,7 +1361,8 @@ function buildTrackingSummaryMessage(records, today) {
 
   if (!summaryRecords.length) return "";
   const lines = summaryRecords.map((record) => {
-    return `${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}`;
+    const location = clean(record.trackingLocation);
+    return `${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}${location ? ` · ${location}` : ""}`;
   });
   return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines].join("\n");
 }
@@ -1388,6 +1423,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
     const updateData = {
       packageStatus: result.label,
       trackingMyDetail: result.source ? `${result.source}: ${result.detail}` : result.detail,
+      trackingLocation: result.location || "",
       trackingMyUrl: result.url,
       trackingMyLastError: null,
       trackingMyCheckedAt: new Date().toISOString(),
