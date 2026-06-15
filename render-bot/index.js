@@ -99,6 +99,16 @@ function isImportMessage(text, fallbackName = "") {
     && filledCount >= 5;
 }
 
+function isPotentialImportMessage(text) {
+  const structuredLabels = [
+    "NAMA", "NAME", "IC NO", "BANK", "NAMA BANK", "NO AKAUN",
+    "ACC. NUMBER", "NO KAD", "BANK CARD 16 DIGIT", "PIN KAD ATM", "ATM PIN"
+  ];
+  const matchedFields = structuredLabels.filter((label) => pickLineValue(text, [label])).length;
+  const hasCardOrShipment = Boolean(parseCardNumber(text) || parseShipmentCode(text).trackingNumber);
+  return matchedFields >= 2 && hasCardOrShipment;
+}
+
 function parseShipmentCode(text) {
   const lines = text.split(/\r?\n/).map(clean).filter(Boolean);
   for (const line of lines) {
@@ -192,6 +202,15 @@ async function resolveDealerName(name) {
     return clean(dealer.name).toLowerCase() === wanted.toLowerCase();
   });
   return existing?.name || wanted;
+}
+
+async function findExistingDealerName(name) {
+  const wanted = clean(name);
+  if (!wanted) return "";
+  const snapshot = await db.ref("dealer-card-tracker/dealers").get();
+  const dealers = Object.values(snapshot.val() || {});
+  const existing = dealers.find((dealer) => clean(dealer.name).toLowerCase() === wanted.toLowerCase());
+  return existing?.name || "";
 }
 
 function parseCardNumber(text) {
@@ -666,12 +685,81 @@ function detectCarrier(text, carrierCode = "") {
 }
 
 async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessageId = "") {
-  const dealerName = await resolveDealerName(parseDealer(text, fallbackDealerName));
+  const requestedDealerName = parseDealer(text, fallbackDealerName);
+  const existingDealerName = await findExistingDealerName(requestedDealerName);
   const rawCardNumber = parseCardNumber(text);
   const bankName = detectBank(text);
   const shipment = parseShipmentCode(text);
   const cardNumber = displayCardNumber(text, bankName);
   const now = new Date().toISOString();
+  const recordsSnapshot = await db.ref("dealer-card-tracker/records").get();
+  const existingRecords = Object.entries(recordsSnapshot.val() || {}).map(([id, record]) => ({ id, ...record }));
+  const normalizeLookup = (value) => clean(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const normalizedCard = normalizeLookup(cardNumber);
+  const normalizedTracking = normalizeLookup(shipment.trackingNumber);
+  const cardMatch = normalizedCard && !normalizedCard.endsWith("XXXX")
+    ? existingRecords.find((record) => normalizeLookup(record.cardNumber) === normalizedCard)
+    : null;
+  const trackingMatch = normalizedTracking
+    ? existingRecords.find((record) => normalizeLookup(record.trackingNumber) === normalizedTracking)
+    : null;
+
+  let pendingReason = "";
+  let pendingType = "missing";
+  const requiredFields = {
+    "姓名": pickLineValue(text, ["NAMA", "NAME"]),
+    "IC": pickLineValue(text, ["IC NO", "IC"]),
+    "银行": bankName,
+    "银行账号": pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
+    "卡号": rawCardNumber
+  };
+  const missingFields = Object.entries(requiredFields).filter(([, value]) => !clean(value)).map(([label]) => label);
+  // A new Telegram member with a complete structured record may create their
+  // Dealer automatically. Incomplete records still wait for manual matching.
+  const dealerName = existingDealerName || (!missingFields.length ? requestedDealerName : "");
+
+  if (missingFields.length) {
+    pendingReason = `缺少资料：${missingFields.join("、")}`;
+  } else if (!dealerName) {
+    pendingReason = `找不到 Dealer：${requestedDealerName || "未提供"}`;
+  } else if (trackingMatch && normalizeLookup(trackingMatch.cardNumber) !== normalizedCard) {
+    pendingType = "conflict";
+    pendingReason = `包裹号码已绑定 ${trackingMatch.cardNumber || "其他卡号"}`;
+  } else if (cardMatch && normalizedTracking && normalizeLookup(cardMatch.trackingNumber) && normalizeLookup(cardMatch.trackingNumber) !== normalizedTracking) {
+    pendingType = "conflict";
+    pendingReason = "卡号已绑定其他包裹号码";
+  }
+
+  if (pendingReason) {
+    const pendingSnapshot = await db.ref("dealer-card-tracker/pendingImports").get();
+    const duplicatePending = Object.values(pendingSnapshot.val() || {}).find((item) => (
+      telegramMessageId && String(item.telegramMessageId || "") === String(telegramMessageId)
+    ));
+    if (duplicatePending) {
+      return { pending: true, reason: duplicatePending.reason || pendingReason, cardNumber: duplicatePending.cardNumber || cardNumber };
+    }
+    const pendingRef = db.ref("dealer-card-tracker/pendingImports").push();
+    await pendingRef.set({
+      id: pendingRef.key,
+      type: pendingType,
+      reason: pendingReason,
+      suggestedDealerName: dealerName || "",
+      requestedDealerName,
+      senderName: fallbackDealerName,
+      cardNumber,
+      rawCardNumber,
+      bankName,
+      carrier: shipment.carrier || detectCarrier(text, shipment.carrierCode),
+      trackingNumber: isFullTrackingNumber(shipment.trackingNumber) ? shipment.trackingNumber : "",
+      tailNumber: shipment.tailNumber,
+      formattedDetails: text,
+      telegramMessageId: String(telegramMessageId || ""),
+      createdAt: now,
+      updatedAt: now
+    });
+    return { pending: true, reason: pendingReason, cardNumber };
+  }
+
   const recordRef = db.ref("dealer-card-tracker/records").push();
 
   await db.ref(`dealer-card-tracker/dealers/${firebaseKey(dealerName)}`).update({
@@ -1873,11 +1961,16 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ignored");
       return;
     }
-    if (!isImportMessage(text, senderName)) {
+    if (!isImportMessage(text, senderName) && !isPotentialImportMessage(text)) {
       res.status(200).send("ignored");
       return;
     }
     const result = await saveTelegramRecord(text, senderName, message?.message_id);
+    if (result.pending) {
+      await reply(chatId, `已保存到待匹配资料\n卡号：${result.cardNumber || "-"}\n原因：${result.reason}`);
+      res.status(200).send("ok");
+      return;
+    }
     const botReply = await reply(chatId, `已导入 ${result.dealerName}`);
     await rememberTelegramBotReply(result.recordId, botReply.message_id);
     res.status(200).send("ok");
