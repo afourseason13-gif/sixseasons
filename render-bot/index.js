@@ -1362,7 +1362,8 @@ function buildTrackingSummaryMessage(records, today) {
   if (!summaryRecords.length) return "";
   const lines = summaryRecords.map((record) => {
     const location = clean(record.trackingLocation);
-    return `${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}${location ? ` · ${location}` : ""}`;
+    const parcelLabel = `${trackingCarrierCode(record)}${trackingTail(record)}`;
+    return `${parcelLabel} | ${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}${location ? ` · ${location}` : ""}`;
   });
   return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines].join("\n");
 }
