@@ -212,18 +212,20 @@ async function readPhotoWithTesseract(imageUrl) {
 }
 
 async function readTelegramPhotoText(message) {
-  const photos = Array.isArray(message?.photo) ? message.photo : [];
-  if (!photos.length) return "";
-  const largest = photos[photos.length - 1];
-  const imageUrl = await telegramFileUrl(largest.file_id);
+  const fileId = telegramLargestPhotoFileId(message);
+  if (!fileId) return "";
+  const imageUrl = await telegramFileUrl(fileId);
   if (!imageUrl) return "";
   return await readPhotoWithOcrSpace(imageUrl) || await readPhotoWithTesseract(imageUrl);
 }
 
 function telegramLargestPhotoFileId(message) {
   const photos = Array.isArray(message?.photo) ? message.photo : [];
-  if (!photos.length) return "";
-  return clean(photos[photos.length - 1]?.file_id);
+  if (photos.length) return clean(photos[photos.length - 1]?.file_id);
+  const document = message?.document || {};
+  const mimeType = clean(document.mime_type).toLowerCase();
+  if (mimeType.startsWith("image/")) return clean(document.file_id);
+  return "";
 }
 
 async function updateTrackingNumberFromOcr(text, ocrText, photoFileId = "") {
