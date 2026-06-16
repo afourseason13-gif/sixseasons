@@ -21,6 +21,7 @@ const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 const announceSecret = process.env.ANNOUNCE_SECRET || "";
 const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
 const trackingMoreApiKey = process.env.TRACKINGMORE_API_KEY || "";
+const ocrSpaceApiKey = process.env.OCR_SPACE_API_KEY || "";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -118,7 +119,8 @@ function parseShipmentCode(text) {
     const match = compact.match(/^([A-Z&]+)(\d{3,})$/);
     if (match) {
       const carrierCode = normalizeCarrierCode(match[1]);
-      const trackingNumber = compact;
+      const digits = match[2];
+      const trackingNumber = digits.length >= 9 ? digits : compact;
       return {
         carrier: carrierNameFromCode(carrierCode),
         carrierCode,
@@ -128,6 +130,97 @@ function parseShipmentCode(text) {
     }
   }
   return { carrier: "", carrierCode: "", trackingNumber: "", tailNumber: "" };
+}
+
+function extractTrackingCandidates(text) {
+  const candidates = [];
+  const source = String(text || "").toUpperCase();
+  const patterns = [
+    /[A-Z]{2,4}\d{9,20}[A-Z]{0,3}/g,
+    /\b\d{9,20}\b/g
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      const compact = match[0].replace(/[^A-Z0-9]/g, "");
+      const digits = compact.replace(/\D/g, "");
+      if (digits.length >= 9) candidates.push(compact);
+    }
+  }
+  return [...new Set(candidates)];
+}
+
+function mergeOcrTrackingText(text, ocrText) {
+  const shipment = parseShipmentCode(text);
+  if (!shipment.carrierCode || !shipment.tailNumber || isFullTrackingNumber(shipment.trackingNumber)) return text;
+  const candidates = extractTrackingCandidates(ocrText);
+  const found = candidates.find((candidate) => candidate.replace(/\D/g, "").endsWith(shipment.tailNumber));
+  if (!found) return text;
+  const fullNumber = found.replace(/\D/g, "");
+  if (!fullNumber || fullNumber.length < 9) return text;
+  return `${shipment.carrierCode}${fullNumber}\n${text}\n\nOCR Tracking: ${fullNumber}`;
+}
+
+async function telegramFileUrl(fileId) {
+  if (!fileId) return "";
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${encodeURIComponent(fileId)}`);
+  const body = await response.json().catch(() => ({}));
+  const filePath = body?.result?.file_path;
+  return filePath ? `https://api.telegram.org/file/bot${botToken}/${filePath}` : "";
+}
+
+async function readTelegramPhotoText(message) {
+  if (!ocrSpaceApiKey) return "";
+  const photos = Array.isArray(message?.photo) ? message.photo : [];
+  if (!photos.length) return "";
+  const largest = photos[photos.length - 1];
+  const imageUrl = await telegramFileUrl(largest.file_id);
+  if (!imageUrl) return "";
+
+  const formData = new FormData();
+  formData.append("apikey", ocrSpaceApiKey);
+  formData.append("url", imageUrl);
+  formData.append("language", "eng");
+  formData.append("scale", "true");
+  formData.append("isOverlayRequired", "false");
+
+  const response = await fetch("https://api.ocr.space/parse/image", {
+    method: "POST",
+    body: formData
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || body?.IsErroredOnProcessing) {
+    console.error("OCR failed", body?.ErrorMessage || response.status);
+    return "";
+  }
+  return (body?.ParsedResults || []).map((item) => clean(item?.ParsedText)).filter(Boolean).join("\n");
+}
+
+async function updateTrackingNumberFromOcr(text, ocrText) {
+  const originalShipment = parseShipmentCode(text);
+  if (!originalShipment.carrierCode || !originalShipment.tailNumber || isFullTrackingNumber(originalShipment.trackingNumber)) {
+    return { updated: false };
+  }
+  const mergedText = mergeOcrTrackingText(text, ocrText);
+  const fullShipment = parseShipmentCode(mergedText);
+  if (!isFullTrackingNumber(fullShipment.trackingNumber)) return { updated: false };
+  const record = await findLatestRecordByParcelToken(originalShipment.trackingNumber);
+  if (!record) return { updated: false, missing: true, tailNumber: originalShipment.tailNumber };
+  const now = new Date().toISOString();
+  await db.ref(`dealer-card-tracker/records/${record.key}`).update({
+    carrier: fullShipment.carrier || record.carrier || "",
+    trackingNumber: fullShipment.trackingNumber,
+    trackingMoreCourierCode: trackingMoreCourierCode(fullShipment.carrierCode) || record.trackingMoreCourierCode || "",
+    tailNumber: fullShipment.tailNumber || originalShipment.tailNumber,
+    notes: `${clean(record.notes)} \u00b7 OCR\u81ea\u52a8\u8865\u5b8c\u5305\u88f9\u5355\u53f7`.trim(),
+    updatedAt: now
+  });
+  return {
+    updated: true,
+    dealerName: record.dealerName || "",
+    cardNumber: record.cardNumber || "",
+    parcelLabel: `${originalShipment.carrierCode}${originalShipment.tailNumber}`,
+    trackingNumber: fullShipment.trackingNumber
+  };
 }
 
 function normalizeCarrierCode(value) {
@@ -2078,7 +2171,8 @@ app.post("/telegram", async (req, res) => {
 
   try {
     await rememberTelegramChat(chatId);
-    const text = messageText;
+    const photoText = await readTelegramPhotoText(message);
+    const text = mergeOcrTrackingText(messageText, photoText);
     if (!text) {
       res.status(200).send("ignored");
       return;
@@ -2119,6 +2213,19 @@ app.post("/telegram", async (req, res) => {
       return;
     }
     const roles = await getTelegramRoleChats();
+    if (
+      photoText &&
+      chatMatchesRole(chatId, roles.import) &&
+      !isImportMessage(text, senderName) &&
+      !isPotentialImportMessage(text)
+    ) {
+      const trackingUpdate = await updateTrackingNumberFromOcr(messageText, photoText);
+      if (trackingUpdate.updated) {
+        await reply(chatId, `已补完整单号 ${trackingUpdate.parcelLabel}\n${trackingUpdate.cardNumber || trackingUpdate.dealerName || "-"}\n${trackingUpdate.trackingNumber}`);
+        res.status(200).send("ok");
+        return;
+      }
+    }
     if (clean(text) === "\u8d44\u6599" && replyText && chatMatchesRole(chatId, roles.tracking)) {
       const detailResult = await getDriverSignedDetailsFromText(replyText);
       if (!detailResult.details.length) {
