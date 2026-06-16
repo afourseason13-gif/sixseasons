@@ -412,9 +412,13 @@ function parseDriverSignedCommands(text) {
       if (!hasParcelReference || !hasSeparateCard) continue;
     }
     const cardToken = cardTokens[cardTokens.length - 1];
+    const parcelToken = cardTokens.find((token) => {
+      const code = token.replace(/\d{4}$/, "");
+      return courierCodes.has(code);
+    }) || "";
     if (seen.has(cardToken)) continue;
     seen.add(cardToken);
-    commands.push({ action: "deleteDriverSigned", cardToken });
+    commands.push({ action: "deleteDriverSigned", cardToken, parcelToken });
   }
   return commands;
 }
@@ -565,6 +569,22 @@ function formatSignedRecordDetails(record) {
   ].join("\n");
 }
 
+function formatDriverPickupNotice(stopped, missing = []) {
+  const lines = stopped.map((result) => {
+    const parcel = clean(result.parcelToken || "");
+    const card = clean(result.cardNumber || result.record?.cardNumber || result.cardToken || "-");
+    const dealer = clean(result.record?.dealerName || "");
+    return `${parcel ? `${parcel} | ` : ""}${card}${dealer ? ` · ${dealer}` : ""}`;
+  });
+  const missingLines = missing.length ? ["", `找不到：${missing.join(", ")}`] : [];
+  return [
+    `车手已拿，已停止查询 ${stopped.length} 条`,
+    "",
+    ...lines,
+    ...missingLines
+  ].filter((line, index) => index < 2 || clean(line)).join("\n");
+}
+
 async function findLatestRecordByCard(cardToken) {
   const snapshot = await db.ref("dealer-card-tracker/records").get();
   const records = Object.entries(snapshot.val() || {})
@@ -609,6 +629,8 @@ async function applyRecordCommand(command) {
     return {
       ok: true,
       cardNumber: record.cardNumber || command.cardToken,
+      cardToken: command.cardToken,
+      parcelToken: command.parcelToken || "",
       status: "车手已签收",
       record
     };
@@ -682,6 +704,7 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
     return {
       handled: true,
       message: `车手已签收，已停止查询 ${stopped.length} 条${missingText}`,
+      pickupNotice: formatDriverPickupNotice(stopped, missing),
       messages: stopped.map((result) => formatSignedRecordDetails(result.record))
     };
   }
@@ -973,7 +996,8 @@ async function setTelegramRoleChat(role, chatId) {
   const roleKeys = {
     import: "importChatId",
     warranty: "warrantyChatId",
-    tracking: "trackingNotificationChatId"
+    tracking: "trackingNotificationChatId",
+    pickup: "driverPickupNotificationChatId"
   };
   const key = roleKeys[role];
   if (!key) return;
@@ -986,7 +1010,8 @@ async function getTelegramRoleChats() {
   return {
     import: clean(settings.importChatId),
     warranty: clean(settings.warrantyChatId),
-    tracking: clean(settings.trackingNotificationChatId)
+    tracking: clean(settings.trackingNotificationChatId),
+    pickup: clean(settings.driverPickupNotificationChatId)
   };
 }
 
@@ -2027,6 +2052,12 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ok");
       return;
     }
+    if (["\u8bbe\u7f6e\u8f66\u624b\u901a\u77e5\u7fa4", "/setpickupgroup", "/setpickupgroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
+      await setTelegramRoleChat("pickup", chatId);
+      await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u8f66\u624b\u901a\u77e5\u7fa4\n\u8f66\u624b\u53d1 jnt1234 mbb1234 \u540e\uff0c\u4f1a\u901a\u77e5\u5230\u8fd9\u91cc\n\u7fa4 ID: ${chatId}`);
+      res.status(200).send("ok");
+      return;
+    }
     if (text.toLowerCase().startsWith("/chatid") || text === "群ID" || text === "群 ID") {
       await reply(chatId, `这个群的 ID: ${chatId}`);
       res.status(200).send("ok");
@@ -2054,6 +2085,9 @@ app.post("/telegram", async (req, res) => {
         await reply(chatId, commandResult.message);
         for (const message of commandResult.messages || []) {
           await reply(chatId, message);
+        }
+        if (isDriverSignedCommand && commandResult.pickupNotice && roles.pickup && String(roles.pickup) !== String(chatId)) {
+          await sendTelegramMessage(roles.pickup, commandResult.pickupNotice);
         }
         res.status(200).send("ok");
         return;
