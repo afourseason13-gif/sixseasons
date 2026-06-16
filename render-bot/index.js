@@ -548,6 +548,8 @@ function formatSignedRecordDetails(record) {
   const card = clean(record?.cardNumber) || recordDetailValue(record, "cardNumber", ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
   const pin = recordDetailValue(record, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]);
   return [
+    card || "-",
+    "",
     `*NAMA* : ${name}`,
     "",
     `*IC NO*：${ic}`,
@@ -676,13 +678,11 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
     }
     const stopped = results.filter((result) => result.ok);
     const missing = results.filter((result) => !result.ok).map((result) => result.cardToken);
-    const detailsText = stopped.length
-      ? `\n\n${stopped.map((result) => formatSignedRecordDetails(result.record)).join("\n\n======================\n\n")}`
-      : "";
     const missingText = missing.length ? `\n找不到：${missing.join(", ")}` : "";
     return {
       handled: true,
-      message: `车手已签收，已停止查询 ${stopped.length} 条${detailsText}${missingText}`
+      message: `车手已签收，已停止查询 ${stopped.length} 条${missingText}`,
+      messages: stopped.map((result) => formatSignedRecordDetails(result.record))
     };
   }
 
@@ -2043,6 +2043,9 @@ app.post("/telegram", async (req, res) => {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
         await reply(chatId, commandResult.message);
+        for (const message of commandResult.messages || []) {
+          await reply(chatId, message);
+        }
         res.status(200).send("ok");
         return;
       }
