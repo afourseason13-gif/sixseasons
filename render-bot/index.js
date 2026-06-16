@@ -549,10 +549,11 @@ function formatSignedRecordDetails(record) {
   const ic = recordDetailValue(record, "icNumber", ["IC NO", "IC"]);
   const bank = recordDetailValue(record, "bankName", ["BANK", "NAMA BANK"]);
   const account = recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]);
-  const card = clean(record?.cardNumber) || recordDetailValue(record, "cardNumber", ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
+  const cardLabel = clean(record?.cardNumber) || recordDetailValue(record, "cardNumber", ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
+  const fullCard = pickLineValue(clean(record?.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]) || cardLabel;
   const pin = recordDetailValue(record, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]);
   return [
-    card || "-",
+    cardLabel || "-",
     "",
     `*NAMA* : ${name}`,
     "",
@@ -562,7 +563,7 @@ function formatSignedRecordDetails(record) {
     "",
     `*NO AKAUN* : ${account}`,
     "----------------------",
-    `*NO KAD* : ${card}`,
+    `*NO KAD* : ${fullCard}`,
     "",
     `*PIN KAD ATM* : ${pin}`,
     "----------------------"
@@ -592,6 +593,21 @@ async function findLatestRecordByCard(cardToken) {
     .filter((record) => recordMatchesCard(record, cardToken))
     .sort((a, b) => clean(b.createdAt || b.updatedAt).localeCompare(clean(a.createdAt || a.updatedAt)));
   return records[0] || null;
+}
+
+async function getDriverSignedDetailsFromText(text) {
+  const commands = parseDriverSignedCommands(text);
+  const details = [];
+  const missing = [];
+  for (const command of commands) {
+    const record = await findLatestRecordByCard(command.cardToken);
+    if (record) {
+      details.push(formatSignedRecordDetails(record));
+    } else {
+      missing.push(command.cardToken);
+    }
+  }
+  return { details, missing };
 }
 
 async function applyRecordCommand(command) {
@@ -704,8 +720,7 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
     return {
       handled: true,
       message: `车手已签收，已停止查询 ${stopped.length} 条${missingText}`,
-      pickupNotice: formatDriverPickupNotice(stopped, missing),
-      messages: stopped.map((result) => formatSignedRecordDetails(result.record))
+      pickupNotice: formatDriverPickupNotice(stopped, missing)
     };
   }
 
@@ -2015,6 +2030,7 @@ app.post("/telegram", async (req, res) => {
   const senderName = telegramSenderName(message);
   const defaultWarrantyDate = telegramMessageDate(message);
   const replyMessageId = message?.reply_to_message?.message_id ? String(message.reply_to_message.message_id) : "";
+  const replyText = message?.reply_to_message?.text || message?.reply_to_message?.caption || "";
 
   if (!chatId) {
     res.status(200).send("ignored");
@@ -2064,6 +2080,22 @@ app.post("/telegram", async (req, res) => {
       return;
     }
     const roles = await getTelegramRoleChats();
+    if (clean(text) === "\u8d44\u6599" && replyText && chatMatchesRole(chatId, roles.tracking)) {
+      const detailResult = await getDriverSignedDetailsFromText(replyText);
+      if (!detailResult.details.length) {
+        await reply(chatId, detailResult.missing.length ? `\u627e\u4e0d\u5230\uff1a${detailResult.missing.join(", ")}` : "\u627e\u4e0d\u5230\u8fd9\u6761\u8f66\u624b\u8bb0\u5f55\u7684\u8d44\u6599");
+        res.status(200).send("ok");
+        return;
+      }
+      for (const detail of detailResult.details) {
+        await reply(chatId, detail);
+      }
+      if (detailResult.missing.length) {
+        await reply(chatId, `\u627e\u4e0d\u5230\uff1a${detailResult.missing.join(", ")}`);
+      }
+      res.status(200).send("ok");
+      return;
+    }
     if (text === "立即发送包裹通知") {
       if (!chatMatchesRole(chatId, roles.tracking)) {
         res.status(200).send("ignored");
