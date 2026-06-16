@@ -550,7 +550,9 @@ function formatSignedRecordDetails(record) {
   const bank = recordDetailValue(record, "bankName", ["BANK", "NAMA BANK"]);
   const account = recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]);
   const cardLabel = clean(record?.cardNumber) || recordDetailValue(record, "cardNumber", ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
-  const fullCard = pickLineValue(clean(record?.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]) || cardLabel;
+  const fullCard = clean(record?.receivedCardNumber)
+    || pickLineValue(clean(record?.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"])
+    || cardLabel;
   const pin = recordDetailValue(record, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]);
   return [
     cardLabel || "-",
@@ -575,7 +577,10 @@ function formatDriverPickupNotice(stopped, missing = []) {
     const parcel = clean(result.parcelToken || "");
     const card = clean(result.cardNumber || result.record?.cardNumber || result.cardToken || "-");
     const dealer = clean(result.record?.dealerName || "");
-    return `${parcel ? `${parcel} | ` : ""}${card}${dealer ? ` · ${dealer}` : ""}`;
+    const changed = result.cardChanged
+      ? `\n\u5361\u53f7\u5df2\u66f4\u6539\uff1a${result.originalCardNumber || "-"} \u2192 ${result.newCardNumber || card}`
+      : "";
+    return `${parcel ? `${parcel} | ` : ""}${card}${dealer ? ` \u00b7 ${dealer}` : ""}${changed}`;
   });
   const missingLines = missing.length ? ["", `找不到：${missing.join(", ")}`] : [];
   return [
@@ -595,12 +600,30 @@ async function findLatestRecordByCard(cardToken) {
   return records[0] || null;
 }
 
+async function findLatestRecordByParcelToken(parcelToken) {
+  const token = clean(parcelToken).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const match = token.match(/^([A-Z]{2,12})(\d{4})$/);
+  if (!match) return null;
+  const parcelCode = match[1];
+  const tailNumber = match[2];
+  const snapshot = await db.ref("dealer-card-tracker/records").get();
+  const records = Object.entries(snapshot.val() || {})
+    .map(([key, record]) => ({ key, ...record }))
+    .filter((record) => {
+      const tail = clean(record.tailNumber).replace(/\D/g, "").slice(-4);
+      return tail === tailNumber && recordCarrierMatchesCode(record, parcelCode);
+    })
+    .sort((a, b) => clean(b.createdAt || b.updatedAt).localeCompare(clean(a.createdAt || a.updatedAt)));
+  return records[0] || null;
+}
+
 async function getDriverSignedDetailsFromText(text) {
   const commands = parseDriverSignedCommands(text);
   const details = [];
   const missing = [];
   for (const command of commands) {
-    const record = await findLatestRecordByCard(command.cardToken);
+    const record = await findLatestRecordByCard(command.cardToken)
+      || await findLatestRecordByParcelToken(command.parcelToken);
     if (record) {
       details.push(formatSignedRecordDetails(record));
     } else {
@@ -625,7 +648,10 @@ async function applyRecordCommand(command) {
     return { ok: true, cardNumber: record.cardNumber || record.id, status: "删除" };
   }
 
-  const record = await findLatestRecordByCard(command.cardToken);
+  let record = await findLatestRecordByCard(command.cardToken);
+  if (!record && command.action === "deleteDriverSigned" && command.parcelToken) {
+    record = await findLatestRecordByParcelToken(command.parcelToken);
+  }
   if (!record) {
     return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
   }
@@ -636,17 +662,30 @@ async function applyRecordCommand(command) {
   }
 
   if (command.action === "deleteDriverSigned") {
-    await db.ref(`dealer-card-tracker/records/${record.key}`).update({
+    const incomingCard = clean(command.cardToken).toUpperCase();
+    const savedCard = clean(record.cardNumber).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const updateData = {
       status: "车手已签收",
       packageStatus: "车手已签收",
       trackingStoppedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    });
+    };
+    if (incomingCard && incomingCard !== savedCard) {
+      updateData.cardNumber = incomingCard;
+      updateData.receivedCardNumber = incomingCard;
+      updateData.originalCardNumber = clean(record.originalCardNumber || record.cardNumber || "");
+      updateData.notes = `${clean(record.notes)} \u00b7 \u8f66\u624b\u6536\u5230\u5361\u53f7\u4e0d\u540c\uff0c\u5df2\u7531 ${record.cardNumber || "-"} \u6539\u4e3a ${incomingCard}`.trim();
+      record = { ...record, ...updateData };
+    }
+    await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
     return {
       ok: true,
       cardNumber: record.cardNumber || command.cardToken,
       cardToken: command.cardToken,
       parcelToken: command.parcelToken || "",
+      cardChanged: Boolean(updateData.receivedCardNumber),
+      originalCardNumber: updateData.originalCardNumber || "",
+      newCardNumber: updateData.receivedCardNumber || "",
       status: "车手已签收",
       record
     };
