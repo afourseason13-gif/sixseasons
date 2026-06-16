@@ -161,6 +161,37 @@ function mergeOcrTrackingText(text, ocrText) {
   return `${shipment.carrierCode}${fullNumber}\n${text}\n\nOCR Tracking: ${fullNumber}`;
 }
 
+async function findVerifiedOcrShipment(text, ocrText) {
+  const shipment = parseShipmentCode(text);
+  if (!shipment.carrierCode || !shipment.tailNumber || isFullTrackingNumber(shipment.trackingNumber)) {
+    return { shipment, trackingResult: null };
+  }
+  const candidates = extractTrackingCandidates(ocrText)
+    .map((candidate) => candidate.replace(/\D/g, ""))
+    .filter((candidate) => candidate.length >= 9 && candidate.endsWith(shipment.tailNumber));
+  for (const trackingNumber of [...new Set(candidates)]) {
+    const candidateShipment = {
+      ...shipment,
+      carrier: carrierNameFromCode(shipment.carrierCode),
+      trackingNumber,
+      tailNumber: shipment.tailNumber
+    };
+    const trackingResult = await fetchTrackingMyStatus({
+      carrier: candidateShipment.carrier,
+      carrierCode: candidateShipment.carrierCode,
+      trackingNumber: candidateShipment.trackingNumber,
+      tailNumber: candidateShipment.tailNumber
+    });
+    if (trackingResult.ok) return { shipment: candidateShipment, trackingResult };
+  }
+  return { shipment, trackingResult: null };
+}
+
+function buildMergedTrackingText(text, shipment) {
+  if (!shipment?.carrierCode || !isFullTrackingNumber(shipment.trackingNumber)) return text;
+  return `${shipment.carrierCode}${shipment.trackingNumber}\n${text}\n\nOCR Tracking: ${shipment.trackingNumber}`;
+}
+
 async function telegramFileUrl(fileId) {
   if (!fileId) return "";
   const response = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${encodeURIComponent(fileId)}`);
@@ -233,9 +264,12 @@ async function updateTrackingNumberFromOcr(text, ocrText, photoFileId = "") {
   if (!originalShipment.carrierCode || !originalShipment.tailNumber || isFullTrackingNumber(originalShipment.trackingNumber)) {
     return { updated: false };
   }
-  const mergedText = mergeOcrTrackingText(text, ocrText);
-  const fullShipment = parseShipmentCode(mergedText);
+  const verified = await findVerifiedOcrShipment(text, ocrText);
+  const fullShipment = verified.shipment;
   if (!isFullTrackingNumber(fullShipment.trackingNumber)) return { updated: false };
+  if (!verified.trackingResult?.ok) {
+    return { updated: false, invalidTracking: true, tailNumber: originalShipment.tailNumber };
+  }
   const record = await findLatestRecordByParcelToken(originalShipment.trackingNumber);
   if (!record) return { updated: false, missing: true, tailNumber: originalShipment.tailNumber };
   const now = new Date().toISOString();
@@ -244,6 +278,12 @@ async function updateTrackingNumberFromOcr(text, ocrText, photoFileId = "") {
     trackingNumber: fullShipment.trackingNumber,
     trackingMoreCourierCode: trackingMoreCourierCode(fullShipment.carrierCode) || record.trackingMoreCourierCode || "",
     tailNumber: fullShipment.tailNumber || originalShipment.tailNumber,
+    packageStatus: verified.trackingResult.label || record.packageStatus || "",
+    trackingMyDetail: verified.trackingResult.source ? `${verified.trackingResult.source}: ${verified.trackingResult.detail}` : (verified.trackingResult.detail || record.trackingMyDetail || ""),
+    trackingLocation: verified.trackingResult.location || record.trackingLocation || "",
+    trackingMyUrl: verified.trackingResult.url || record.trackingMyUrl || "",
+    trackingMyLastError: null,
+    trackingMyCheckedAt: now,
     packagePhotoFileId: photoFileId || record.packagePhotoFileId || "",
     packagePhotoUpdatedAt: photoFileId ? now : (record.packagePhotoUpdatedAt || ""),
     notes: `${clean(record.notes)} \u00b7 OCR\u81ea\u52a8\u8865\u5b8c\u5305\u88f9\u5355\u53f7`.trim(),
@@ -254,7 +294,8 @@ async function updateTrackingNumberFromOcr(text, ocrText, photoFileId = "") {
     dealerName: record.dealerName || "",
     cardNumber: record.cardNumber || "",
     parcelLabel: `${originalShipment.carrierCode}${originalShipment.tailNumber}`,
-    trackingNumber: fullShipment.trackingNumber
+    trackingNumber: fullShipment.trackingNumber,
+    packageStatus: verified.trackingResult.label || ""
   };
 }
 
@@ -2246,7 +2287,10 @@ app.post("/telegram", async (req, res) => {
     await rememberTelegramChat(chatId);
     const photoFileId = telegramLargestPhotoFileId(message);
     const photoText = await readTelegramPhotoText(message);
-    const text = mergeOcrTrackingText(messageText, photoText);
+    const verifiedOcr = photoText ? await findVerifiedOcrShipment(messageText, photoText) : null;
+    const text = verifiedOcr?.trackingResult?.ok
+      ? buildMergedTrackingText(messageText, verifiedOcr.shipment)
+      : messageText;
     if (!text) {
       res.status(200).send("ignored");
       return;
@@ -2295,7 +2339,12 @@ app.post("/telegram", async (req, res) => {
     ) {
       const trackingUpdate = await updateTrackingNumberFromOcr(messageText, photoText, photoFileId);
       if (trackingUpdate.updated) {
-        await reply(chatId, `已补完整单号 ${trackingUpdate.parcelLabel}\n${trackingUpdate.cardNumber || trackingUpdate.dealerName || "-"}\n${trackingUpdate.trackingNumber}`);
+        await reply(chatId, `已补完整单号 ${trackingUpdate.parcelLabel}\n${trackingUpdate.cardNumber || trackingUpdate.dealerName || "-"}\n${trackingUpdate.trackingNumber}\n状态：${trackingUpdate.packageStatus || "-"}`);
+        res.status(200).send("ok");
+        return;
+      }
+      if (trackingUpdate.invalidTracking) {
+        await reply(chatId, `OCR 有读到疑似单号，但 Tracking.my 查不到真实状态，已跳过保存。\n尾号：${trackingUpdate.tailNumber || "-"}`);
         res.status(200).send("ok");
         return;
       }
