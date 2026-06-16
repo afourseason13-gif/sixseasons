@@ -1469,6 +1469,19 @@ tbody tr:hover {
   width: fit-content;
 }
 
+.package-photo-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.package-photo-link.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .tracking-manual-select {
   width: fit-content;
   min-height: 30px;

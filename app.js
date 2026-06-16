@@ -5,6 +5,7 @@ const noticeKey = "dealer-card-tracker-notice";
 const pendingImportsKey = "dealer-card-tracker-pending-imports";
 const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
 const trackingCheckEndpoint = "https://dealer-tracker.onrender.com/check-trackingmy";
+const recordPhotoEndpoint = "https://dealer-tracker.onrender.com/record-photo";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "人头偷钱", "炸"];
 const defaultNewRecordStatus = "寄";
 const salaryStatuses = new Set(["过保", "开保"]);
@@ -348,6 +349,8 @@ function normalizeRecord(data, id = createId()) {
     trackingMyDetail: (data.trackingMyDetail || "").trim(),
     trackingMyUrl: (data.trackingMyUrl || "").trim(),
     trackingMyCheckedAt: data.trackingMyCheckedAt || "",
+    packagePhotoFileId: (data.packagePhotoFileId || "").trim(),
+    packagePhotoUpdatedAt: data.packagePhotoUpdatedAt || "",
     deliveredAt: data.deliveredAt || "",
     tailNumber: data.tailNumber.trim(),
     warrantyDate: data.warrantyDate || "",
@@ -1047,6 +1050,23 @@ function renderTrackingCell(record) {
   checkButton.disabled = checkingTrackingRecords.has(record.id);
   checkButton.addEventListener("click", () => checkTrackingRecord(record));
 
+  const photoLink = document.createElement("a");
+  photoLink.className = "ghost compact-button package-photo-link";
+  photoLink.textContent = "包裹照片";
+  photoLink.target = "_blank";
+  photoLink.rel = "noopener";
+  if (record.packagePhotoFileId) {
+    photoLink.href = `${recordPhotoEndpoint}?id=${encodeURIComponent(record.id)}`;
+  } else {
+    photoLink.href = "#";
+    photoLink.classList.add("is-disabled");
+    photoLink.setAttribute("aria-disabled", "true");
+    photoLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      alert("这条记录还没有包裹照片。");
+    });
+  }
+
   const manualSelect = document.createElement("select");
   manualSelect.className = "inline-edit tracking-manual-select";
   const manualOptions = [
@@ -1076,7 +1096,7 @@ function renderTrackingCell(record) {
     await saveRecord(nextRecord);
   });
 
-  wrap.append(numberInput, status, meta, detail, checkButton, manualSelect);
+  wrap.append(numberInput, status, meta, detail, checkButton, photoLink, manualSelect);
   return wrap;
 }
 

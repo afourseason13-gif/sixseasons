@@ -1,6 +1,7 @@
 const express = require("express");
 const admin = require("firebase-admin");
 const WebSocket = require("ws");
+const { createWorker } = require("tesseract.js");
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -168,14 +169,8 @@ async function telegramFileUrl(fileId) {
   return filePath ? `https://api.telegram.org/file/bot${botToken}/${filePath}` : "";
 }
 
-async function readTelegramPhotoText(message) {
-  if (!ocrSpaceApiKey) return "";
-  const photos = Array.isArray(message?.photo) ? message.photo : [];
-  if (!photos.length) return "";
-  const largest = photos[photos.length - 1];
-  const imageUrl = await telegramFileUrl(largest.file_id);
-  if (!imageUrl) return "";
-
+async function readPhotoWithOcrSpace(imageUrl) {
+  if (!ocrSpaceApiKey || !imageUrl) return "";
   const formData = new FormData();
   formData.append("apikey", ocrSpaceApiKey);
   formData.append("url", imageUrl);
@@ -189,13 +184,49 @@ async function readTelegramPhotoText(message) {
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok || body?.IsErroredOnProcessing) {
-    console.error("OCR failed", body?.ErrorMessage || response.status);
+    console.error("OCR.space failed", body?.ErrorMessage || response.status);
     return "";
   }
   return (body?.ParsedResults || []).map((item) => clean(item?.ParsedText)).filter(Boolean).join("\n");
 }
 
-async function updateTrackingNumberFromOcr(text, ocrText) {
+async function readPhotoWithTesseract(imageUrl) {
+  if (!imageUrl) return "";
+  let worker;
+  try {
+    worker = await createWorker("eng");
+    const result = await worker.recognize(imageUrl);
+    return clean(result?.data?.text);
+  } catch (error) {
+    console.error("Tesseract OCR failed", error);
+    return "";
+  } finally {
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (error) {
+        // Ignore cleanup errors.
+      }
+    }
+  }
+}
+
+async function readTelegramPhotoText(message) {
+  const photos = Array.isArray(message?.photo) ? message.photo : [];
+  if (!photos.length) return "";
+  const largest = photos[photos.length - 1];
+  const imageUrl = await telegramFileUrl(largest.file_id);
+  if (!imageUrl) return "";
+  return await readPhotoWithOcrSpace(imageUrl) || await readPhotoWithTesseract(imageUrl);
+}
+
+function telegramLargestPhotoFileId(message) {
+  const photos = Array.isArray(message?.photo) ? message.photo : [];
+  if (!photos.length) return "";
+  return clean(photos[photos.length - 1]?.file_id);
+}
+
+async function updateTrackingNumberFromOcr(text, ocrText, photoFileId = "") {
   const originalShipment = parseShipmentCode(text);
   if (!originalShipment.carrierCode || !originalShipment.tailNumber || isFullTrackingNumber(originalShipment.trackingNumber)) {
     return { updated: false };
@@ -211,6 +242,8 @@ async function updateTrackingNumberFromOcr(text, ocrText) {
     trackingNumber: fullShipment.trackingNumber,
     trackingMoreCourierCode: trackingMoreCourierCode(fullShipment.carrierCode) || record.trackingMoreCourierCode || "",
     tailNumber: fullShipment.tailNumber || originalShipment.tailNumber,
+    packagePhotoFileId: photoFileId || record.packagePhotoFileId || "",
+    packagePhotoUpdatedAt: photoFileId ? now : (record.packagePhotoUpdatedAt || ""),
     notes: `${clean(record.notes)} \u00b7 OCR\u81ea\u52a8\u8865\u5b8c\u5305\u88f9\u5355\u53f7`.trim(),
     updatedAt: now
   });
@@ -942,7 +975,7 @@ function detectCarrier(text, carrierCode = "") {
   return "其他";
 }
 
-async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessageId = "") {
+async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessageId = "", photoFileId = "") {
   const requestedDealerName = parseDealer(text, fallbackDealerName);
   const existingDealerName = await findExistingDealerName(requestedDealerName);
   const rawCardNumber = parseCardNumber(text);
@@ -1049,6 +1082,8 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
     missingFields,
     telegramMessageId: String(telegramMessageId || existingRecord?.telegramMessageId || ""),
     telegramBotReplyMessageId: existingRecord?.telegramBotReplyMessageId || "",
+    packagePhotoFileId: photoFileId || existingRecord?.packagePhotoFileId || "",
+    packagePhotoUpdatedAt: photoFileId ? now : (existingRecord?.packagePhotoUpdatedAt || ""),
     packageStatus: existingRecord?.packageStatus || "",
     trackingMyDetail: existingRecord?.trackingMyDetail || "",
     trackingLocation: existingRecord?.trackingLocation || "",
@@ -2152,6 +2187,42 @@ app.get("/check-trackingmy", async (_req, res) => {
   }
 });
 
+app.get("/record-photo", async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  try {
+    const recordId = clean(req.query?.id);
+    if (!recordId) {
+      res.status(400).send("missing record id");
+      return;
+    }
+    const snapshot = await db.ref(`dealer-card-tracker/records/${recordId}`).get();
+    const record = snapshot.val() || {};
+    const fileId = clean(record.packagePhotoFileId);
+    if (!fileId) {
+      res.status(404).send("photo not found");
+      return;
+    }
+    const imageUrl = await telegramFileUrl(fileId);
+    if (!imageUrl) {
+      res.status(404).send("photo not found");
+      return;
+    }
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      res.status(502).send("photo fetch failed");
+      return;
+    }
+    const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
+    const bytes = Buffer.from(await imageResponse.arrayBuffer());
+    res.set("Content-Type", contentType);
+    res.set("Cache-Control", "private, max-age=300");
+    res.send(bytes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("photo error");
+  }
+});
+
 app.post("/telegram", async (req, res) => {
   const message = req.body.message
     || req.body.edited_message
@@ -2171,6 +2242,7 @@ app.post("/telegram", async (req, res) => {
 
   try {
     await rememberTelegramChat(chatId);
+    const photoFileId = telegramLargestPhotoFileId(message);
     const photoText = await readTelegramPhotoText(message);
     const text = mergeOcrTrackingText(messageText, photoText);
     if (!text) {
@@ -2219,7 +2291,7 @@ app.post("/telegram", async (req, res) => {
       !isImportMessage(text, senderName) &&
       !isPotentialImportMessage(text)
     ) {
-      const trackingUpdate = await updateTrackingNumberFromOcr(messageText, photoText);
+      const trackingUpdate = await updateTrackingNumberFromOcr(messageText, photoText, photoFileId);
       if (trackingUpdate.updated) {
         await reply(chatId, `已补完整单号 ${trackingUpdate.parcelLabel}\n${trackingUpdate.cardNumber || trackingUpdate.dealerName || "-"}\n${trackingUpdate.trackingNumber}`);
         res.status(200).send("ok");
@@ -2279,7 +2351,7 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ignored");
       return;
     }
-    const result = await saveTelegramRecord(text, senderName, message?.message_id);
+    const result = await saveTelegramRecord(text, senderName, message?.message_id, photoFileId);
     if (result.pending) {
       await reply(chatId, `已保存到待匹配资料\n卡号：${result.cardNumber || "-"}\n原因：${result.reason}`);
       res.status(200).send("ok");
