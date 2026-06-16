@@ -791,6 +791,10 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
   const trackingMatch = normalizedTracking
     ? existingRecords.find((record) => normalizeLookup(record.trackingNumber) === normalizedTracking)
     : null;
+  const messageMatch = telegramMessageId
+    ? existingRecords.find((record) => String(record.telegramMessageId || "") === String(telegramMessageId))
+    : null;
+  const existingRecord = messageMatch || cardMatch || null;
 
   let pendingReason = "";
   let pendingType = "missing";
@@ -808,12 +812,9 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
 
   if (!dealerName) {
     pendingReason = `找不到 Dealer：${requestedDealerName || "未提供"}`;
-  } else if (trackingMatch && normalizeLookup(trackingMatch.cardNumber) !== normalizedCard) {
+  } else if (!existingRecord && trackingMatch && normalizeLookup(trackingMatch.cardNumber) !== normalizedCard) {
     pendingType = "conflict";
     pendingReason = `包裹号码已绑定 ${trackingMatch.cardNumber || "其他卡号"}`;
-  } else if (cardMatch && normalizedTracking && normalizeLookup(cardMatch.trackingNumber) && normalizeLookup(cardMatch.trackingNumber) !== normalizedTracking) {
-    pendingType = "conflict";
-    pendingReason = "卡号已绑定其他包裹号码";
   }
 
   if (pendingReason) {
@@ -845,16 +846,18 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
     });
     return { pending: true, reason: pendingReason, cardNumber };
   }
-
-  const recordRef = db.ref("dealer-card-tracker/records").push();
+  const recordKey = existingRecord?.id || existingRecord?.key || db.ref("dealer-card-tracker/records").push().key;
 
   await db.ref(`dealer-card-tracker/dealers/${firebaseKey(dealerName)}`).update({
     name: dealerName,
     createdAt: now
   });
 
+  const nextTrackingNumber = isFullTrackingNumber(shipment.trackingNumber) ? shipment.trackingNumber : (existingRecord?.trackingNumber || "");
+  const nextCarrier = shipment.carrier || detectCarrier(text, shipment.carrierCode) || existingRecord?.carrier || "Other";
+  const nextTailNumber = shipment.tailNumber || existingRecord?.tailNumber || "";
   const recordData = {
-    id: recordRef.key,
+    id: recordKey,
     dealerName,
     customerName: pickLineValue(text, ["NAMA", "NAME"]),
     icNumber: pickLineValue(text, ["IC NO", "IC"]),
@@ -863,25 +866,31 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
     cardNumber,
     atmPin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]),
     formattedDetails: text,
-    carrier: shipment.carrier || detectCarrier(text, shipment.carrierCode),
-    trackingNumber: isFullTrackingNumber(shipment.trackingNumber) ? shipment.trackingNumber : "",
-    trackingMoreCourierCode: trackingMoreCourierCode(shipment.carrierCode),
-    tailNumber: shipment.tailNumber,
-    warrantyDate: "",
-    status: "寄",
+    carrier: nextCarrier,
+    trackingNumber: nextTrackingNumber,
+    trackingMoreCourierCode: trackingMoreCourierCode(shipment.carrierCode) || existingRecord?.trackingMoreCourierCode || "",
+    tailNumber: nextTailNumber,
+    warrantyDate: existingRecord?.warrantyDate || "",
+    warrantyDays: existingRecord?.warrantyDays || 0,
+    status: existingRecord?.status || "\u5bc4",
     notes: missingFields.length
       ? `Telegram 自动导入 · 待补资料：${missingFields.join("、")}`
       : "Telegram 自动导入",
     missingFields,
-    telegramMessageId: String(telegramMessageId || ""),
+    telegramMessageId: String(telegramMessageId || existingRecord?.telegramMessageId || ""),
+    telegramBotReplyMessageId: existingRecord?.telegramBotReplyMessageId || "",
+    packageStatus: existingRecord?.packageStatus || "",
+    trackingMyDetail: existingRecord?.trackingMyDetail || "",
+    trackingLocation: existingRecord?.trackingLocation || "",
+    trackingStoppedAt: existingRecord?.trackingStoppedAt || "",
     updatedAt: now,
-    createdAt: now
+    createdAt: existingRecord?.createdAt || now
   };
 
-  await recordRef.set(recordData);
+  await db.ref(`dealer-card-tracker/records/${recordKey}`).set(recordData);
   await registerTrackingMore(recordData);
 
-  return { dealerName, recordId: recordRef.key };
+  return { dealerName, recordId: recordKey, updatedExisting: Boolean(existingRecord) };
 }
 
 async function rememberTelegramBotReply(recordId, messageId) {
@@ -2064,7 +2073,7 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ok");
       return;
     }
-    const botReply = await reply(chatId, `已导入 ${result.dealerName}`);
+    const botReply = await reply(chatId, `${result.updatedExisting ? "已更新" : "已导入"} ${result.dealerName}`);
     await rememberTelegramBotReply(result.recordId, botReply.message_id);
     res.status(200).send("ok");
   } catch (error) {
