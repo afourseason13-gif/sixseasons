@@ -113,10 +113,29 @@ function isPotentialImportMessage(text) {
 
 function parseShipmentCode(text) {
   const lines = text.split(/\r?\n/).map(clean).filter(Boolean);
+  const carrierPrefixes = [
+    "SHOPEEEXPRESS", "POSLAJU", "NINJAVAN", "CITYLINK",
+    "SHOPEE", "SKYNET", "LAZADA", "FLASH", "GDEX",
+    "NINJA", "JNT", "POS", "SPX", "DHL", "LEX", "LAZ", "JT"
+  ];
   for (const line of lines) {
     if (/^(DEALER|NAME|NAMA|IC|BANK|NO AKAUN|NO KAD|PIN|\*)/i.test(line)) continue;
     if (line.includes(":") || line.includes("：") || /^-+$/.test(line)) continue;
     const compact = line.replace(/[^A-Za-z0-9&]/g, "").toUpperCase();
+    const prefixedCarrier = carrierPrefixes.find((prefix) => compact.startsWith(prefix) && compact.length > prefix.length + 2);
+    if (prefixedCarrier) {
+      const carrierCode = normalizeCarrierCode(prefixedCarrier);
+      const rest = compact.slice(prefixedCarrier.length);
+      const digits = rest.replace(/\D/g, "");
+      if (digits.length >= 3) {
+        return {
+          carrier: carrierNameFromCode(carrierCode),
+          carrierCode,
+          trackingNumber: isFullTrackingNumber(rest) ? rest : compact,
+          tailNumber: digits.slice(-4)
+        };
+      }
+    }
     const match = compact.match(/^([A-Z&]+)(\d{3,})$/);
     if (match) {
       const carrierCode = normalizeCarrierCode(match[1]);
@@ -150,13 +169,49 @@ function extractTrackingCandidates(text) {
   return [...new Set(candidates)];
 }
 
+function candidateDigits(candidate) {
+  return clean(candidate).replace(/\D/g, "");
+}
+
+function candidateMatchesCarrier(candidate, carrierCode, tailNumber = "") {
+  const code = normalizeCarrierCode(carrierCode);
+  const compact = clean(candidate).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const digits = candidateDigits(compact);
+  const tail = clean(tailNumber).replace(/\D/g, "");
+  if (tail && !digits.endsWith(tail)) return false;
+
+  if (["POS", "POSLAJU"].includes(code)) {
+    return /^[A-Z]{2}\d{9}[A-Z]{2}$/.test(compact);
+  }
+  if (["JNT", "JT"].includes(code)) {
+    return /^\d{10,15}$/.test(digits) && compact === digits;
+  }
+  if (["SPX", "SHOPEE"].includes(code)) {
+    return /^(MY|SPX)[A-Z0-9]{9,20}$/.test(compact);
+  }
+  if (["NINJA", "NINJAVAN"].includes(code)) {
+    return /^[A-Z0-9]{10,25}$/.test(compact);
+  }
+  if (["DHL", "GDEX", "SKY", "SKYNET", "CITY", "FLASH", "LAZ", "LEX"].includes(code)) {
+    return /^[A-Z0-9]{9,25}$/.test(compact);
+  }
+  return digits.length >= 9;
+}
+
+function trackingNumberFromCandidate(candidate, carrierCode) {
+  const compact = clean(candidate).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const code = normalizeCarrierCode(carrierCode);
+  if (["JNT", "JT"].includes(code)) return candidateDigits(compact);
+  return compact;
+}
+
 function mergeOcrTrackingText(text, ocrText) {
   const shipment = parseShipmentCode(text);
   if (!shipment.carrierCode || !shipment.tailNumber || isFullTrackingNumber(shipment.trackingNumber)) return text;
   const candidates = extractTrackingCandidates(ocrText);
-  const found = candidates.find((candidate) => candidate.replace(/\D/g, "").endsWith(shipment.tailNumber));
+  const found = candidates.find((candidate) => candidateMatchesCarrier(candidate, shipment.carrierCode, shipment.tailNumber));
   if (!found) return text;
-  const fullNumber = found.replace(/\D/g, "");
+  const fullNumber = trackingNumberFromCandidate(found, shipment.carrierCode);
   if (!fullNumber || fullNumber.length < 9) return text;
   return `${shipment.carrierCode}${fullNumber}\n${text}\n\nOCR Tracking: ${fullNumber}`;
 }
@@ -167,8 +222,8 @@ async function findVerifiedOcrShipment(text, ocrText) {
     return { shipment, trackingResult: null };
   }
   const candidates = extractTrackingCandidates(ocrText)
-    .map((candidate) => candidate.replace(/\D/g, ""))
-    .filter((candidate) => candidate.length >= 9 && candidate.endsWith(shipment.tailNumber));
+    .filter((candidate) => candidateMatchesCarrier(candidate, shipment.carrierCode, shipment.tailNumber))
+    .map((candidate) => trackingNumberFromCandidate(candidate, shipment.carrierCode));
   for (const trackingNumber of [...new Set(candidates)]) {
     const candidateShipment = {
       ...shipment,
