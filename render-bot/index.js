@@ -538,6 +538,29 @@ function recordMatchesCard(record, cardToken) {
   return card === wanted;
 }
 
+function cardTokenParts(cardToken) {
+  const token = clean(cardToken).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const match = token.match(/^([A-Z]{2,12})(\d{4})$/);
+  if (!match) return null;
+  return { bank: match[1], tail: match[2], token };
+}
+
+function digitDifferenceCount(left, right) {
+  if (left.length !== right.length) return Number.POSITIVE_INFINITY;
+  let count = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) count += 1;
+  }
+  return count;
+}
+
+function looksLikeDriverCardTypo(savedCard, incomingCard) {
+  const saved = cardTokenParts(savedCard);
+  const incoming = cardTokenParts(incomingCard);
+  if (!saved || !incoming) return false;
+  return saved.bank === incoming.bank && digitDifferenceCount(saved.tail, incoming.tail) === 1;
+}
+
 function recordDetailValue(record, field, labels) {
   const saved = clean(record?.[field]);
   if (saved) return saved;
@@ -580,7 +603,10 @@ function formatDriverPickupNotice(stopped, missing = []) {
     const changed = result.cardChanged
       ? `\n\u5361\u53f7\u5df2\u66f4\u6539\uff1a${result.originalCardNumber || "-"} \u2192 ${result.newCardNumber || card}`
       : "";
-    return `${parcel ? `${parcel} | ` : ""}${card}${dealer ? ` \u00b7 ${dealer}` : ""}${changed}`;
+    const skipped = result.cardChangeSkipped
+      ? `\n\u7591\u4f3c\u5199\u9519\uff0c\u672a\u66f4\u6539\uff1a${card} \u2260 ${result.pendingCardNumber || "-"}`
+      : "";
+    return `${parcel ? `${parcel} | ` : ""}${card}${dealer ? ` \u00b7 ${dealer}` : ""}${changed}${skipped}`;
   });
   const missingLines = missing.length ? ["", `找不到：${missing.join(", ")}`] : [];
   return [
@@ -670,7 +696,12 @@ async function applyRecordCommand(command) {
       trackingStoppedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    if (incomingCard && incomingCard !== savedCard) {
+    const cardLooksLikeTypo = incomingCard && incomingCard !== savedCard && looksLikeDriverCardTypo(savedCard, incomingCard);
+    if (cardLooksLikeTypo) {
+      updateData.receivedCardNumberPending = incomingCard;
+      updateData.notes = `${clean(record.notes)} \u00b7 \u8f66\u624b\u5361\u53f7\u7591\u4f3c\u5199\u9519\uff0c\u5df2\u4fdd\u7559 ${record.cardNumber || "-"}\uff0c\u672a\u6539\u4e3a ${incomingCard}`.trim();
+      record = { ...record, ...updateData };
+    } else if (incomingCard && incomingCard !== savedCard) {
       updateData.cardNumber = incomingCard;
       updateData.receivedCardNumber = incomingCard;
       updateData.originalCardNumber = clean(record.originalCardNumber || record.cardNumber || "");
@@ -684,8 +715,10 @@ async function applyRecordCommand(command) {
       cardToken: command.cardToken,
       parcelToken: command.parcelToken || "",
       cardChanged: Boolean(updateData.receivedCardNumber),
+      cardChangeSkipped: Boolean(updateData.receivedCardNumberPending),
       originalCardNumber: updateData.originalCardNumber || "",
       newCardNumber: updateData.receivedCardNumber || "",
+      pendingCardNumber: updateData.receivedCardNumberPending || "",
       status: "车手已签收",
       record
     };
