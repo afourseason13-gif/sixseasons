@@ -249,8 +249,21 @@ function getDealerExtraPay(name) {
 function detectSalaryBank(record) {
   const source = `${record.cardNumber || ""} ${record.bankName || ""} ${record.formattedDetails || ""}`.toUpperCase();
   const compactSource = source.replace(/[^A-Z0-9]/g, "");
+  const cardToken = normalizeCardLookup(record.cardNumber);
   const tokens = source.split(/[^A-Z0-9]+/).filter(Boolean);
   const hasToken = (...items) => items.some((item) => tokens.includes(item));
+  if (cardToken.startsWith("ISLAM")) return "BANK ISLAM";
+  if (cardToken.startsWith("MBB")) return "MBB";
+  if (cardToken.startsWith("CIMB")) return "CIMB";
+  if (cardToken.startsWith("AFFIN")) return "AFFIN";
+  if (cardToken.startsWith("AGRO")) return "AGRO";
+  if (cardToken.startsWith("MUA")) return "MUAMALAT";
+  if (cardToken.startsWith("RAKYAT") || cardToken.startsWith("RYT") || cardToken.startsWith("RKT")) return "RAKYAT";
+  if (cardToken.startsWith("AMBANK") || cardToken.startsWith("AM")) return "AMBANK";
+  if (cardToken.startsWith("ALLIANCE") || cardToken.startsWith("ALL")) return "ALLIANCE";
+  if (cardToken.startsWith("RHB")) return "RHB";
+  if (cardToken.startsWith("HLB")) return "HLB";
+  if (cardToken.startsWith("BSN")) return "BSN";
   if (source.includes("BANK ISLAM") || compactSource.includes("BANKISLAM") || source.includes("ISLAM")) return "BANK ISLAM";
   if (source.includes("MAYBANK") || source.includes("MAY BANK") || source.includes("MALAYAN BANKING") || hasToken("MBB")) return "MBB";
   if (source.includes("CIMB") || compactSource.includes("CIMBBANK")) return "CIMB";
