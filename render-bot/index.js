@@ -22,7 +22,7 @@ const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 const announceSecret = process.env.ANNOUNCE_SECRET || "";
 const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
 const trackingMoreApiKey = process.env.TRACKINGMORE_API_KEY || "";
-const ocrSpaceApiKey = process.env.OCR_SPACE_API_KEY || "";
+const ocrSpaceApiKey = process.env.OCR_SPACE_API_KEY || process.env.OCRSPACE_API_KEY || "";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -155,15 +155,21 @@ function parseShipmentCode(text) {
 function extractTrackingCandidates(text) {
   const candidates = [];
   const source = String(text || "").toUpperCase();
+  const sources = [
+    source,
+    ...source.split(/\r?\n/).map((line) => line.replace(/[^A-Z0-9]/g, ""))
+  ].filter(Boolean);
   const patterns = [
-    /[A-Z]{2,4}\d{9,20}[A-Z]{0,3}/g,
+    /[A-Z]{2,5}\d{8,20}[A-Z]{0,3}/g,
     /\b\d{9,20}\b/g
   ];
-  for (const pattern of patterns) {
-    for (const match of source.matchAll(pattern)) {
-      const compact = match[0].replace(/[^A-Z0-9]/g, "");
-      const digits = compact.replace(/\D/g, "");
-      if (digits.length >= 9) candidates.push(compact);
+  for (const item of sources) {
+    for (const pattern of patterns) {
+      for (const match of item.matchAll(pattern)) {
+        const compact = match[0].replace(/[^A-Z0-9]/g, "");
+        const digits = compact.replace(/\D/g, "");
+        if (digits.length >= 8) candidates.push(compact);
+      }
     }
   }
   return [...new Set(candidates)];
@@ -175,13 +181,13 @@ function candidateDigits(candidate) {
 
 function candidateMatchesCarrier(candidate, carrierCode, tailNumber = "") {
   const code = normalizeCarrierCode(carrierCode);
-  const compact = clean(candidate).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const compact = trackingNumberFromCandidate(candidate, code);
   const digits = candidateDigits(compact);
   const tail = clean(tailNumber).replace(/\D/g, "");
   if (tail && !digits.endsWith(tail)) return false;
 
   if (["POS", "POSLAJU"].includes(code)) {
-    return /^[A-Z]{2}\d{9}[A-Z]{2}$/.test(compact);
+    return /^[A-Z]{2,3}\d{8,14}[A-Z]{2,3}$/.test(compact);
   }
   if (["JNT", "JT"].includes(code)) {
     return /^\d{10,15}$/.test(digits) && compact === digits;
@@ -201,6 +207,10 @@ function candidateMatchesCarrier(candidate, carrierCode, tailNumber = "") {
 function trackingNumberFromCandidate(candidate, carrierCode) {
   const compact = clean(candidate).toUpperCase().replace(/[^A-Z0-9]/g, "");
   const code = normalizeCarrierCode(carrierCode);
+  if (["POS", "POSLAJU"].includes(code)) {
+    const posMatch = compact.match(/([A-Z]{2,3}\d{8,14}[A-Z]{2,3})$/);
+    return posMatch ? posMatch[1] : compact;
+  }
   if (["JNT", "JT"].includes(code)) return candidateDigits(compact);
   return compact;
 }
@@ -262,18 +272,25 @@ async function readPhotoWithOcrSpace(imageUrl) {
   formData.append("url", imageUrl);
   formData.append("language", "eng");
   formData.append("scale", "true");
+  formData.append("detectOrientation", "true");
+  formData.append("OCREngine", "2");
   formData.append("isOverlayRequired", "false");
 
-  const response = await fetch("https://api.ocr.space/parse/image", {
-    method: "POST",
-    body: formData
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok || body?.IsErroredOnProcessing) {
-    console.error("OCR.space failed", body?.ErrorMessage || response.status);
+  try {
+    const response = await fetchWithTimeout("https://api.ocr.space/parse/image", {
+      method: "POST",
+      body: formData
+    }, 25000);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body?.IsErroredOnProcessing) {
+      console.error("OCR.space failed", body?.ErrorMessage || response.status);
+      return "";
+    }
+    return (body?.ParsedResults || []).map((item) => clean(item?.ParsedText)).filter(Boolean).join("\n");
+  } catch (error) {
+    console.error("OCR.space failed", error);
     return "";
   }
-  return (body?.ParsedResults || []).map((item) => clean(item?.ParsedText)).filter(Boolean).join("\n");
 }
 
 async function readPhotoWithTesseract(imageUrl) {
