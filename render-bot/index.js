@@ -187,7 +187,7 @@ function candidateMatchesCarrier(candidate, carrierCode, tailNumber = "") {
   if (tail && !digits.endsWith(tail)) return false;
 
   if (["POS", "POSLAJU"].includes(code)) {
-    return /^[A-Z]{2,3}\d{8,14}[A-Z]{2,3}$/.test(compact);
+    return /^[A-Z]{2,3}\d{8,14}[A-Z]{2,3}$/.test(compact) || /^\d{8,14}$/.test(compact);
   }
   if (["JNT", "JT"].includes(code)) {
     return /^\d{10,15}$/.test(digits) && compact === digits;
@@ -250,6 +250,25 @@ async function findVerifiedOcrShipment(text, ocrText) {
     if (trackingResult.ok) return { shipment: candidateShipment, trackingResult };
   }
   return { shipment, trackingResult: null };
+}
+
+function findOcrShipmentCandidate(text, ocrText) {
+  const shipment = parseShipmentCode(text);
+  if (!shipment.carrierCode || !shipment.tailNumber || isFullTrackingNumber(shipment.trackingNumber)) {
+    return shipment;
+  }
+  const candidates = extractTrackingCandidates(ocrText)
+    .filter((candidate) => candidateMatchesCarrier(candidate, shipment.carrierCode, shipment.tailNumber))
+    .map((candidate) => trackingNumberFromCandidate(candidate, shipment.carrierCode))
+    .filter((trackingNumber) => isFullTrackingNumber(trackingNumber));
+  const trackingNumber = [...new Set(candidates)][0] || "";
+  if (!trackingNumber) return shipment;
+  return {
+    ...shipment,
+    carrier: carrierNameFromCode(shipment.carrierCode),
+    trackingNumber,
+    tailNumber: shipment.tailNumber
+  };
 }
 
 function buildMergedTrackingText(text, shipment) {
@@ -337,37 +356,38 @@ async function updateTrackingNumberFromOcr(text, ocrText, photoFileId = "") {
     return { updated: false };
   }
   const verified = await findVerifiedOcrShipment(text, ocrText);
-  const fullShipment = verified.shipment;
+  const fallbackShipment = findOcrShipmentCandidate(text, ocrText);
+  const fullShipment = isFullTrackingNumber(verified.shipment?.trackingNumber) ? verified.shipment : fallbackShipment;
   if (!isFullTrackingNumber(fullShipment.trackingNumber)) return { updated: false };
-  if (!verified.trackingResult?.ok) {
-    return { updated: false, invalidTracking: true, tailNumber: originalShipment.tailNumber };
-  }
   const record = await findLatestRecordByParcelToken(originalShipment.trackingNumber);
   if (!record) return { updated: false, missing: true, tailNumber: originalShipment.tailNumber };
   const now = new Date().toISOString();
-  await db.ref(`dealer-card-tracker/records/${record.key}`).update({
+  const updateData = {
     carrier: fullShipment.carrier || record.carrier || "",
     trackingNumber: fullShipment.trackingNumber,
     trackingMoreCourierCode: trackingMoreCourierCode(fullShipment.carrierCode) || record.trackingMoreCourierCode || "",
     tailNumber: fullShipment.tailNumber || originalShipment.tailNumber,
-    packageStatus: verified.trackingResult.label || record.packageStatus || "",
-    trackingMyDetail: verified.trackingResult.source ? `${verified.trackingResult.source}: ${verified.trackingResult.detail}` : (verified.trackingResult.detail || record.trackingMyDetail || ""),
-    trackingLocation: verified.trackingResult.location || record.trackingLocation || "",
-    trackingMyUrl: verified.trackingResult.url || record.trackingMyUrl || "",
-    trackingMyLastError: null,
-    trackingMyCheckedAt: now,
     packagePhotoFileId: photoFileId || record.packagePhotoFileId || "",
     packagePhotoUpdatedAt: photoFileId ? now : (record.packagePhotoUpdatedAt || ""),
     notes: `${clean(record.notes)} \u00b7 OCR\u81ea\u52a8\u8865\u5b8c\u5305\u88f9\u5355\u53f7`.trim(),
     updatedAt: now
-  });
+  };
+  if (verified.trackingResult?.ok) {
+    updateData.packageStatus = verified.trackingResult.label || record.packageStatus || "";
+    updateData.trackingMyDetail = verified.trackingResult.source ? `${verified.trackingResult.source}: ${verified.trackingResult.detail}` : (verified.trackingResult.detail || record.trackingMyDetail || "");
+    updateData.trackingLocation = verified.trackingResult.location || record.trackingLocation || "";
+    updateData.trackingMyUrl = verified.trackingResult.url || record.trackingMyUrl || "";
+    updateData.trackingMyLastError = null;
+    updateData.trackingMyCheckedAt = now;
+  }
+  await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
   return {
     updated: true,
     dealerName: record.dealerName || "",
     cardNumber: record.cardNumber || "",
     parcelLabel: `${originalShipment.carrierCode}${originalShipment.tailNumber}`,
     trackingNumber: fullShipment.trackingNumber,
-    packageStatus: verified.trackingResult.label || ""
+    packageStatus: verified.trackingResult?.label || "未检查"
   };
 }
 
@@ -2434,8 +2454,11 @@ app.post("/telegram", async (req, res) => {
     const photoFileId = telegramLargestPhotoFileId(message);
     const photoText = await readTelegramPhotoText(message);
     const verifiedOcr = photoText ? await findVerifiedOcrShipment(messageText, photoText) : null;
-    const text = verifiedOcr?.trackingResult?.ok
-      ? buildMergedTrackingText(messageText, verifiedOcr.shipment)
+    const ocrShipment = verifiedOcr?.trackingResult?.ok
+      ? verifiedOcr.shipment
+      : (photoText ? findOcrShipmentCandidate(messageText, photoText) : null);
+    const text = isFullTrackingNumber(ocrShipment?.trackingNumber)
+      ? buildMergedTrackingText(messageText, ocrShipment)
       : messageText;
     if (!text) {
       res.status(200).send("ignored");
