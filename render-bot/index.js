@@ -1926,9 +1926,92 @@ async function fetchPosMalaysiaApiStatus(trackingNumber) {
   }
 }
 
+function ninjaVanLocationFromOrder(order) {
+  const events = Array.isArray(order?.events) ? order.events : [];
+  const latestWithLocation = [...events].reverse().find((event) => {
+    const data = event?.data || {};
+    return clean(data.hub_name || data.dp_name || data.waypoint_name || data.station_name || data.sorting_hub_name);
+  }) || {};
+  const data = latestWithLocation.data || {};
+  const candidates = [
+    data.hub_name,
+    data.dp_name,
+    data.waypoint_name,
+    data.station_name,
+    data.sorting_hub_name,
+    order?.to_address?.city,
+    order?.to_address?.state
+  ];
+  return candidates.map(clean).find(Boolean) || "";
+}
+
+function ninjaVanDetail(order) {
+  const events = Array.isArray(order?.events) ? order.events : [];
+  const latest = events[events.length - 1] || {};
+  const parts = [
+    order?.granular_status,
+    order?.status,
+    latest.type,
+    ninjaVanLocationFromOrder(order),
+    latest.time
+  ].map(clean).filter(Boolean);
+  return parts.join(" - ").slice(0, 220);
+}
+
+function shouldUseNinjaVanOfficial(record, trackingNumber) {
+  const source = `${record.carrier || ""} ${record.carrierCode || ""}`.toUpperCase();
+  const number = clean(trackingNumber).toUpperCase();
+  return source.includes("NINJA") || /^NV[A-Z0-9]{8,}$/i.test(number);
+}
+
+async function fetchNinjaVanApiStatus(trackingNumber) {
+  const number = clean(trackingNumber).toUpperCase();
+  if (!number) return { ok: false };
+  const apiUrl = `https://walrus.ninjavan.co/my/dash/1.2/public/orders?tracking_id=${encodeURIComponent(number)}`;
+  const officialUrl = `https://www.ninjavan.co/en-my/tracking?id=${encodeURIComponent(number)}`;
+  try {
+    const response = await fetchWithTimeout(apiUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+        "Accept": "application/json,text/plain,*/*",
+        "Origin": "https://www.ninjavan.co",
+        "Referer": officialUrl
+      }
+    }, 12000);
+    if (!response.ok) return { ok: false };
+    const order = await response.json();
+    const text = [
+      order?.granular_status,
+      order?.status,
+      JSON.stringify(order?.events || [])
+    ].map(clean).join(" ");
+    if (!text || /not found|invalid|missing/i.test(text)) return { ok: false };
+    const status = normalizeTrackingMyStatus(text);
+    if (!status) return { ok: false };
+    return {
+      ok: true,
+      status,
+      label: trackingStatusLabel(status),
+      detail: ninjaVanDetail(order) || trackingStatusSnippet(text, status),
+      location: ninjaVanLocationFromOrder(order),
+      url: officialUrl,
+      source: "Ninja Van"
+    };
+  } catch (error) {
+    console.error(error);
+    return { ok: false };
+  }
+}
+
 async function fetchTrackingMyStatus(record) {
   const number = clean(record.trackingNumber);
   if (!number) return { ok: false, reason: "missing_tracking_or_courier" };
+
+  if (shouldUseNinjaVanOfficial(record, number)) {
+    const ninjaResult = await fetchNinjaVanApiStatus(number);
+    if (ninjaResult.ok) return ninjaResult;
+  }
+
   const detectedSlugs = await detectTrackingMySlugs(number);
   const slugs = [...new Set([...detectedSlugs, ...trackingMySlugs(record)])];
   if (!slugs.length) return { ok: false, reason: "missing_tracking_or_courier" };
