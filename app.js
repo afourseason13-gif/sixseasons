@@ -8,7 +8,7 @@ const trackingCheckEndpoint = "https://dealer-tracker.onrender.com/check-trackin
 const recordPhotoEndpoint = "https://dealer-tracker.onrender.com/record-photo";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "人头偷钱", "赔 150", "炸"];
 const defaultNewRecordStatus = "寄";
-const salaryStatuses = new Set(["过保", "开保"]);
+const salaryStatuses = new Set(["过保", "开保", "赔 150"]);
 const payrollClearStatuses = new Set(["过保", "开保", "弹卡", "人头关", "人头偷钱", "赔 150", "炸"]);
 const malaysiaCouriers = [
   "Pos Laju",
@@ -279,9 +279,15 @@ function calculateSalary(dealerName) {
   let fullCount = 0;
   let halfCount = 0;
   let performanceHalfCount = 0;
+  let compensationCount = 0;
   let cardPay = 0;
 
   for (const record of expiredRecords) {
+    if (String(record.status || "").replace(/\s+/g, "") === "赔150") {
+      compensationCount += 1;
+      cardPay += 150;
+      continue;
+    }
     const bank = detectSalaryBank(record);
     if (fullBanks.has(bank)) {
       fullCount += 1;
@@ -293,13 +299,14 @@ function calculateSalary(dealerName) {
     }
   }
 
-  const performanceCount = fullCount + performanceHalfCount;
+  const compensationPay = compensationCount * 150;
+  const performanceCount = fullCount + performanceHalfCount + compensationCount;
   const paidFullCount = Math.max(0, performanceCount - expenseCards);
   const basePay = rate === 500
     ? (paidFullCount >= 10 ? 1500 : 0)
     : (paidFullCount >= 7 ? 1500 : paidFullCount >= 3 ? 700 : 0);
   const bonus = paidFullCount >= 15 ? paidFullCount * 50 : 0;
-  const paidCardPay = (paidFullCount * fullPay) + (halfCount * halfPay);
+  const paidCardPay = (paidFullCount * fullPay) + (halfCount * halfPay) + compensationPay;
 
   return {
     rate,
@@ -310,6 +317,7 @@ function calculateSalary(dealerName) {
     salary: paidCardPay + basePay + bonus + extraPay,
     basePay,
     fullCount,
+    compensationCount,
     performanceCount,
     paidFullCount,
     halfCount,
@@ -1310,7 +1318,7 @@ function renderDealerMetrics(dealerRecords) {
   metricSalary.textContent = `RM${salaryInfo.salary}`;
   if (metricSalaryNote) {
     metricSalaryNote.textContent =
-      `原价${salaryInfo.fullCount} · 半价${salaryInfo.halfCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay}`;
+      `原价${salaryInfo.fullCount} · 半价${salaryInfo.halfCount} · 赔150 ${salaryInfo.compensationCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay}`;
   }
   metricUpdated.textContent = lastUpdated ? formatTime(lastUpdated) : "-";
   if (dealerRate) dealerRate.value = String(salaryInfo.rate);
