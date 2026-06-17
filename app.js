@@ -258,9 +258,9 @@ function detectSalaryBank(record) {
   if (cardToken.startsWith("AFFIN")) return "AFFIN";
   if (cardToken.startsWith("AGRO")) return "AGRO";
   if (cardToken.startsWith("MUA")) return "MUAMALAT";
-  if (cardToken.startsWith("RAKYAT") || cardToken.startsWith("RYT") || cardToken.startsWith("RKT")) return "RAKYAT";
-  if (cardToken.startsWith("AMBANK") || cardToken.startsWith("AM")) return "AMBANK";
-  if (cardToken.startsWith("ALLIANCE") || cardToken.startsWith("ALL")) return "ALLIANCE";
+  if (/^(RAKYAT|RKT|RYT)\d{4}/.test(cardToken)) return "RAKYAT";
+  if (/^(AMBANK|AM)\d{4}/.test(cardToken)) return "AMBANK";
+  if (/^(ALLIANCE|ALL)\d{4}/.test(cardToken)) return "ALLIANCE";
   if (cardToken.startsWith("RHB")) return "RHB";
   if (cardToken.startsWith("HLB")) return "HLB";
   if (cardToken.startsWith("BSN")) return "BSN";
