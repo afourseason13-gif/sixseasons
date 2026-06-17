@@ -2240,18 +2240,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
     };
     if (result.status === "delivered" && !record.deliveredAt) updateData.deliveredAt = today;
 
-    if (options.sendDeliveredNotifications && result.status === "delivered" && record.lastTrackingNotifyStatus !== "delivered" && chatId) {
-      const message = [
-        `\u5305\u88f9${result.label}`,
-        "",
-        `Dealer: ${record.dealerName || "-"}`,
-        `\u5361\u53f7: ${record.cardNumber || "-"}`,
-        `\u5feb\u9012: ${record.carrier || "-"}`,
-        `\u5355\u53f7: ${record.trackingNumber}`,
-        result.source ? `来源: ${result.source}` : "",
-        result.detail ? `\u72b6\u6001: ${result.detail}` : ""
-      ].filter(Boolean).join("\n");
-      await sendTelegramMessage(chatId, `${clean(record.cardNumber || "-")} \u5df2\u9001\u8fbe`);
+    if (result.status === "delivered" && record.lastTrackingNotifyStatus !== "delivered") {
       updateData.lastTrackingNotifyStatus = result.status;
       notified += 1;
     }
