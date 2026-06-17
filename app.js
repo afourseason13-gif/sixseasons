@@ -6,10 +6,10 @@ const pendingImportsKey = "dealer-card-tracker-pending-imports";
 const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
 const trackingCheckEndpoint = "https://dealer-tracker.onrender.com/check-trackingmy";
 const recordPhotoEndpoint = "https://dealer-tracker.onrender.com/record-photo";
-const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "人头偷钱", "炸"];
+const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "人头偷钱", "赔 150", "炸"];
 const defaultNewRecordStatus = "寄";
 const salaryStatuses = new Set(["过保", "开保"]);
-const payrollClearStatuses = new Set(["过保", "开保", "弹卡", "人头关", "人头偷钱", "炸"]);
+const payrollClearStatuses = new Set(["过保", "开保", "弹卡", "人头关", "人头偷钱", "赔 150", "炸"]);
 const malaysiaCouriers = [
   "Pos Laju",
   "Pos Malaysia",
@@ -905,7 +905,7 @@ function initDealerPage() {
     const keepCount = records.filter((record) => {
       return record.dealerName === dealerName && ["寄", "车手已签收"].includes(record.status);
     }).length;
-    const ok = confirm(`确认已出工资？\n\n将删除 ${clearRecords.length} 条：过保、开保、弹卡、人头关、人头偷钱、炸。\n会保留 ${keepCount} 条：寄、车手已签收，带去下个月。`);
+    const ok = confirm(`确认已出工资？\n\n将删除 ${clearRecords.length} 条：过保、开保、弹卡、人头关、人头偷钱、赔 150、炸。\n会保留 ${keepCount} 条：寄、车手已签收，带去下个月。`);
     if (!ok) return;
     await Promise.all(clearRecords.map((record) => deleteRecord(record.id)));
   });
@@ -973,7 +973,7 @@ function statusClassName(status) {
   const source = String(status || "");
   if (source.includes("过保") || source.includes("杩囦繚")) return "status-expired";
   if (source.includes("开保") || source.includes("寮€淇")) return "status-opened";
-  if (source.includes("人头关") || source.includes("人头偷钱") || source.includes("浜哄ご鍏")) return "status-closed";
+  if (source.includes("人头关") || source.includes("人头偷钱") || source.includes("赔 150") || source.includes("赔150") || source.includes("浜哄ご鍏")) return "status-closed";
   if (source.includes("弹卡") || source.includes("寮瑰崱")) return "status-bounced";
   if (source.includes("炸") || source.includes("鐐")) return "status-rejected";
   if (source.includes("车手") || source.includes("签收") || source.includes("杞︽墜") || source.includes("绛炬敹")) return "status-signed";
@@ -1102,7 +1102,7 @@ function renderTrackingCell(record) {
 
 function isRecordStale(record) {
   const status = String(record.status || "");
-  const completedStatuses = ["过保", "弹卡", "人头关", "人头偷钱"];
+  const completedStatuses = ["过保", "弹卡", "人头关", "人头偷钱", "赔 150", "赔150"];
   if (completedStatuses.some((item) => status.includes(item))) return false;
   const updatedAt = record.updatedAt || record.createdAt;
   if (!updatedAt) return false;
@@ -1113,7 +1113,7 @@ function isRecordStale(record) {
 function recordStatusGroup(record) {
   const status = String(record.status || "");
   if (status.includes("过保") || status.includes("开保") || status.includes("杩囦繚") || status.includes("寮€淇")) return "active";
-  if (status.includes("弹卡") || status.includes("人头关") || status.includes("人头偷钱") || status.includes("寮瑰崱") || status.includes("浜哄ご鍏")) return "problem";
+  if (status.includes("弹卡") || status.includes("人头关") || status.includes("人头偷钱") || status.includes("赔 150") || status.includes("赔150") || status.includes("寮瑰崱") || status.includes("浜哄ご鍏")) return "problem";
   return "";
 }
 
@@ -1461,6 +1461,7 @@ async function initFirebaseMode() {
     const dealersRef = ref(db, "dealer-card-tracker/dealers");
     const statusOptionsRef = ref(db, "dealer-card-tracker/statusOptions");
     const humanStealingStatusMigrationRef = ref(db, "dealer-card-tracker/settings/migrations/humanStealingStatus");
+    const compensationStatusMigrationRef = ref(db, "dealer-card-tracker/settings/migrations/compensation150Status");
     const noticeRef = ref(db, "dealer-card-tracker/notice");
     const pendingImportsRef = ref(db, "dealer-card-tracker/pendingImports");
     let isAutoExpiring = false;
@@ -1528,6 +1529,13 @@ async function initFirebaseMode() {
         createdAt: new Date().toISOString()
       });
       await set(humanStealingStatusMigrationRef, true);
+    }
+    if (!(await get(compensationStatusMigrationRef)).val()) {
+      await set(ref(db, `dealer-card-tracker/statusOptions/${encodeURIComponent("赔 150")}`), {
+        name: "赔 150",
+        createdAt: new Date().toISOString()
+      });
+      await set(compensationStatusMigrationRef, true);
     }
 
     onValue(dealersRef, (snapshot) => {

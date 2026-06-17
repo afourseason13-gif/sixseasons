@@ -561,6 +561,7 @@ function hasRejectedMark(text) {
 
 function problemStatusFromText(text) {
   if (text.includes("人头偷钱")) return "人头偷钱";
+  if (text.includes("赔 150") || text.includes("赔150") || text.includes("赔钱150")) return "赔 150";
   if (text.includes("人头关") || text.includes("公户")) return "人头关";
   if (text.includes("弹卡") || text.includes("有问题") || text.includes("问题")) return "弹卡";
   if (hasRejectedMark(text)) return "炸";
@@ -594,6 +595,7 @@ function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
 
 function statusFromCommandLine(line) {
   const source = String(line || "");
+  if (source.includes("赔 150") || source.includes("赔150") || source.includes("赔钱150")) return "赔 150";
   if (source.includes("\u4eba\u5934\u5173") || source.includes("\u516c\u6237") || source.includes("浜哄ご鍏") || source.includes("鍏埛")) return "\u4eba\u5934\u5173";
   if (source.includes("\u5f39\u5361") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898") || source.includes("寮瑰崱")) return "\u5f39\u5361";
   if (source.includes("\u70b8") || hasRejectedMark(source)) return "\u70b8";
@@ -745,7 +747,7 @@ function undoWordsFromText(text) {
 }
 
 function parseRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
-  const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "人头偷钱", "炸"];
+  const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "人头偷钱", "赔 150", "炸"];
   const latestUndoWords = ["撤销导入", "撤銷導入", "取消导入", "取消導入"];
   const deleteWords = ["删除", "刪除", "撤回", "撤销", "撤銷", ...latestUndoWords];
   const status = statuses.find((item) => text.includes(item)) || statusFromCommandLine(text) || problemStatusFromText(text);
