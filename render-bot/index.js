@@ -191,7 +191,7 @@ function isCompleteOcrTrackingNumber(value, carrierCode) {
     return /^[A-Z]{2,3}\d{8,14}[A-Z]{2,3}$/.test(compact);
   }
   if (["JNT", "JT"].includes(code)) {
-    return /^\d{10,15}$/.test(compact);
+    return /^\d{12}$/.test(compact);
   }
   if (["SPX", "SHOPEE"].includes(code)) {
     return /^(MY|SPX)[A-Z0-9]{10,22}$/.test(compact);
@@ -1484,7 +1484,7 @@ function trackingMySlugs(record) {
   if (/^[A-Z]{2}\d{9}MY$/.test(number) || /^[A-Z]{3}\d{9,12}MY$/.test(number) || number.endsWith("MY")) {
     guessed.push("poslaju", "pos-malaysia", "pos");
   }
-  if (/^\d{10,15}$/.test(number) || /^6\d{9,14}$/.test(number)) {
+  if (/^\d{12}$/.test(number)) {
     guessed.push("jt");
   }
   if (/^N[VJ][A-Z0-9]{8,}$/i.test(number) || number.includes("NINJA")) {
