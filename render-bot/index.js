@@ -116,7 +116,8 @@ function parseShipmentCode(text) {
   const carrierPrefixes = [
     "SHOPEEEXPRESS", "POSLAJU", "NINJAVAN", "CITYLINK",
     "SHOPEE", "SKYNET", "LAZADA", "FLASH", "GDEX",
-    "NINJA", "JNT", "POS", "SPX", "DHL", "LEX", "LAZ", "JT"
+    "NINJA", "FEDEX", "ARAMEX", "BEST", "JNT", "POS", "SPX",
+    "DHL", "ABX", "KEX", "UPS", "LEX", "LAZ", "JT"
   ];
   for (const line of lines) {
     if (/^(DEALER|NAME|NAMA|IC|BANK|NO AKAUN|NO KAD|PIN|\*)/i.test(line)) continue;
@@ -180,29 +181,40 @@ function candidateDigits(candidate) {
   return clean(candidate).replace(/\D/g, "");
 }
 
+function isCompleteOcrTrackingNumber(value, carrierCode) {
+  const code = normalizeCarrierCode(carrierCode);
+  const compact = clean(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const digits = candidateDigits(compact);
+  if (!compact) return false;
+
+  if (["POS", "POSLAJU"].includes(code)) {
+    return /^[A-Z]{2,3}\d{8,14}[A-Z]{2,3}$/.test(compact);
+  }
+  if (["JNT", "JT"].includes(code)) {
+    return /^\d{10,15}$/.test(compact);
+  }
+  if (["SPX", "SHOPEE"].includes(code)) {
+    return /^(MY|SPX)[A-Z0-9]{10,22}$/.test(compact);
+  }
+  if (["NINJA", "NINJAVAN"].includes(code)) {
+    return /^(NV|NVMY)[A-Z0-9]{10,24}$/.test(compact);
+  }
+  if (["DHL"].includes(code)) {
+    return /^[A-Z0-9]{10,24}$/.test(compact) && digits.length >= 10;
+  }
+  if (["GDEX", "SKY", "SKYNET", "CITY", "FLASH", "LAZ", "LEX", "ABX", "KEX", "BEST", "FEDEX", "UPS", "ARAMEX"].includes(code)) {
+    return /^[A-Z0-9]{10,25}$/.test(compact) && digits.length >= 8;
+  }
+  return compact.length >= 10 && digits.length >= 8;
+}
+
 function candidateMatchesCarrier(candidate, carrierCode, tailNumber = "") {
   const code = normalizeCarrierCode(carrierCode);
   const compact = trackingNumberFromCandidate(candidate, code);
   const digits = candidateDigits(compact);
   const tail = clean(tailNumber).replace(/\D/g, "");
   if (tail && !digits.endsWith(tail)) return false;
-
-  if (["POS", "POSLAJU"].includes(code)) {
-    return /^[A-Z]{2,3}\d{8,14}[A-Z]{2,3}$/.test(compact);
-  }
-  if (["JNT", "JT"].includes(code)) {
-    return /^\d{10,15}$/.test(digits) && compact === digits;
-  }
-  if (["SPX", "SHOPEE"].includes(code)) {
-    return /^(MY|SPX)[A-Z0-9]{9,20}$/.test(compact);
-  }
-  if (["NINJA", "NINJAVAN"].includes(code)) {
-    return /^[A-Z0-9]{10,25}$/.test(compact);
-  }
-  if (["DHL", "GDEX", "SKY", "SKYNET", "CITY", "FLASH", "LAZ", "LEX"].includes(code)) {
-    return /^[A-Z0-9]{9,25}$/.test(compact);
-  }
-  return digits.length >= 9;
+  return isCompleteOcrTrackingNumber(compact, code);
 }
 
 function trackingNumberFromCandidate(candidate, carrierCode) {
