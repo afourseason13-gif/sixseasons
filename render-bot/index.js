@@ -217,6 +217,18 @@ function candidateMatchesCarrier(candidate, carrierCode, tailNumber = "") {
   return isCompleteOcrTrackingNumber(compact, code);
 }
 
+function sortOcrTrackingCandidates(candidates, carrierCode) {
+  const code = normalizeCarrierCode(carrierCode);
+  return [...new Set(candidates)].sort((a, b) => {
+    const left = trackingNumberFromCandidate(a, code);
+    const right = trackingNumberFromCandidate(b, code);
+    const leftComplete = isCompleteOcrTrackingNumber(left, code) ? 1 : 0;
+    const rightComplete = isCompleteOcrTrackingNumber(right, code) ? 1 : 0;
+    if (leftComplete !== rightComplete) return rightComplete - leftComplete;
+    return right.length - left.length;
+  });
+}
+
 function trackingNumberFromCandidate(candidate, carrierCode) {
   const compact = clean(candidate).toUpperCase().replace(/[^A-Z0-9]/g, "");
   const code = normalizeCarrierCode(carrierCode);
@@ -232,7 +244,8 @@ function mergeOcrTrackingText(text, ocrText) {
   const shipment = parseShipmentCode(text);
   if (!shipment.carrierCode || !shipment.tailNumber || isFullTrackingNumber(shipment.trackingNumber)) return text;
   const candidates = extractTrackingCandidates(ocrText);
-  const found = candidates.find((candidate) => candidateMatchesCarrier(candidate, shipment.carrierCode, shipment.tailNumber));
+  const found = sortOcrTrackingCandidates(candidates, shipment.carrierCode)
+    .find((candidate) => candidateMatchesCarrier(candidate, shipment.carrierCode, shipment.tailNumber));
   if (!found) return text;
   const fullNumber = trackingNumberFromCandidate(found, shipment.carrierCode);
   if (!fullNumber || fullNumber.length < 9) return text;
@@ -244,7 +257,7 @@ async function findVerifiedOcrShipment(text, ocrText) {
   if (!shipment.carrierCode || !shipment.tailNumber || isFullTrackingNumber(shipment.trackingNumber)) {
     return { shipment, trackingResult: null };
   }
-  const candidates = extractTrackingCandidates(ocrText)
+  const candidates = sortOcrTrackingCandidates(extractTrackingCandidates(ocrText), shipment.carrierCode)
     .filter((candidate) => candidateMatchesCarrier(candidate, shipment.carrierCode, shipment.tailNumber))
     .map((candidate) => trackingNumberFromCandidate(candidate, shipment.carrierCode));
   for (const trackingNumber of [...new Set(candidates)]) {
@@ -270,7 +283,7 @@ function findOcrShipmentCandidate(text, ocrText) {
   if (!shipment.carrierCode || !shipment.tailNumber || isFullTrackingNumber(shipment.trackingNumber)) {
     return shipment;
   }
-  const candidates = extractTrackingCandidates(ocrText)
+  const candidates = sortOcrTrackingCandidates(extractTrackingCandidates(ocrText), shipment.carrierCode)
     .filter((candidate) => candidateMatchesCarrier(candidate, shipment.carrierCode, shipment.tailNumber))
     .map((candidate) => trackingNumberFromCandidate(candidate, shipment.carrierCode))
     .filter((trackingNumber) => isFullTrackingNumber(trackingNumber));
@@ -297,31 +310,35 @@ async function telegramFileUrl(fileId) {
   return filePath ? `https://api.telegram.org/file/bot${botToken}/${filePath}` : "";
 }
 
-async function readPhotoWithOcrSpace(imageUrl) {
-  if (!ocrSpaceApiKey || !imageUrl) return "";
+async function ocrSpaceImagePayload(imageUrl) {
+  try {
+    const imageResponse = await fetchWithTimeout(imageUrl, {
+      headers: { "User-Agent": "Mozilla/5.0" }
+    }, 20000);
+    if (imageResponse.ok) {
+      const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
+      const bytes = Buffer.from(await imageResponse.arrayBuffer());
+      return { base64Image: `data:${contentType};base64,${bytes.toString("base64")}` };
+    }
+  } catch (error) {
+    // Fall back to OCR.space fetching the Telegram file URL directly.
+  }
+  return { url: imageUrl };
+}
+
+async function readPhotoWithOcrSpaceEngine(imagePayload, engine = "2") {
+  if (!ocrSpaceApiKey || (!imagePayload?.base64Image && !imagePayload?.url)) return "";
   const formData = new FormData();
   formData.append("apikey", ocrSpaceApiKey);
   formData.append("language", "eng");
   formData.append("scale", "true");
   formData.append("detectOrientation", "true");
-  formData.append("OCREngine", "2");
+  formData.append("OCREngine", engine);
   formData.append("isOverlayRequired", "false");
+  if (imagePayload.base64Image) formData.append("base64Image", imagePayload.base64Image);
+  else formData.append("url", imagePayload.url);
 
   try {
-    try {
-      const imageResponse = await fetchWithTimeout(imageUrl, {
-        headers: { "User-Agent": "Mozilla/5.0" }
-      }, 20000);
-      if (imageResponse.ok) {
-        const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
-        const bytes = Buffer.from(await imageResponse.arrayBuffer());
-        formData.append("base64Image", `data:${contentType};base64,${bytes.toString("base64")}`);
-      } else {
-        formData.append("url", imageUrl);
-      }
-    } catch (error) {
-      formData.append("url", imageUrl);
-    }
     const response = await fetchWithTimeout("https://api.ocr.space/parse/image", {
       method: "POST",
       body: formData
@@ -336,6 +353,17 @@ async function readPhotoWithOcrSpace(imageUrl) {
     console.error("OCR.space failed", error);
     return "";
   }
+}
+
+async function readPhotoWithOcrSpace(imageUrl) {
+  if (!ocrSpaceApiKey || !imageUrl) return "";
+  const imagePayload = await ocrSpaceImagePayload(imageUrl);
+  const results = [];
+  for (const engine of ["2", "1"]) {
+    const text = await readPhotoWithOcrSpaceEngine(imagePayload, engine);
+    if (text) results.push(text);
+  }
+  return [...new Set(results)].join("\n");
 }
 
 async function readPhotoWithTesseract(imageUrl) {
