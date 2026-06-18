@@ -2526,6 +2526,14 @@ app.post("/telegram", async (req, res) => {
       return;
     }
     const roles = await getTelegramRoleChats();
+    if (undoWordsFromText(text) && chatMatchesRole(chatId, roles.import)) {
+      const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
+      if (commandResult.handled) {
+        await reply(chatId, commandResult.message);
+        res.status(200).send("ok");
+        return;
+      }
+    }
     if (
       photoText &&
       chatMatchesRole(chatId, roles.import) &&
