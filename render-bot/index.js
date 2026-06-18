@@ -157,6 +157,7 @@ function extractTrackingCandidates(text) {
   const source = String(text || "").toUpperCase();
   const sources = [
     source,
+    source.replace(/[^A-Z0-9]/g, ""),
     ...source.split(/\r?\n/).map((line) => line.replace(/[^A-Z0-9]/g, ""))
   ].filter(Boolean);
   const patterns = [
@@ -187,7 +188,7 @@ function candidateMatchesCarrier(candidate, carrierCode, tailNumber = "") {
   if (tail && !digits.endsWith(tail)) return false;
 
   if (["POS", "POSLAJU"].includes(code)) {
-    return /^[A-Z]{2,3}\d{8,14}[A-Z]{2,3}$/.test(compact) || /^\d{8,14}$/.test(compact);
+    return /^[A-Z]{2,3}\d{8,14}[A-Z]{2,3}$/.test(compact);
   }
   if (["JNT", "JT"].includes(code)) {
     return /^\d{10,15}$/.test(digits) && compact === digits;
@@ -288,7 +289,6 @@ async function readPhotoWithOcrSpace(imageUrl) {
   if (!ocrSpaceApiKey || !imageUrl) return "";
   const formData = new FormData();
   formData.append("apikey", ocrSpaceApiKey);
-  formData.append("url", imageUrl);
   formData.append("language", "eng");
   formData.append("scale", "true");
   formData.append("detectOrientation", "true");
@@ -296,6 +296,20 @@ async function readPhotoWithOcrSpace(imageUrl) {
   formData.append("isOverlayRequired", "false");
 
   try {
+    try {
+      const imageResponse = await fetchWithTimeout(imageUrl, {
+        headers: { "User-Agent": "Mozilla/5.0" }
+      }, 20000);
+      if (imageResponse.ok) {
+        const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
+        const bytes = Buffer.from(await imageResponse.arrayBuffer());
+        formData.append("base64Image", `data:${contentType};base64,${bytes.toString("base64")}`);
+      } else {
+        formData.append("url", imageUrl);
+      }
+    } catch (error) {
+      formData.append("url", imageUrl);
+    }
     const response = await fetchWithTimeout("https://api.ocr.space/parse/image", {
       method: "POST",
       body: formData
