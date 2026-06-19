@@ -1005,6 +1005,10 @@ function statusClassName(status) {
 }
 
 async function checkTrackingRecord(record) {
+  if (record.status !== "寄") {
+    alert("只有状态为“寄”的记录需要检查快递。开保和其他状态已停止追踪。");
+    return;
+  }
   if (!record.trackingNumber) {
     alert("请先填写完整包裹单号，不能只填尾号码。");
     return;
@@ -1067,8 +1071,11 @@ function renderTrackingCell(record) {
   const checkButton = document.createElement("button");
   checkButton.type = "button";
   checkButton.className = "ghost compact-button tracking-check-button";
-  checkButton.textContent = checkingTrackingRecords.has(record.id) ? "检查中" : "检查";
-  checkButton.disabled = checkingTrackingRecords.has(record.id);
+  const trackingActive = record.status === "寄";
+  checkButton.textContent = trackingActive
+    ? (checkingTrackingRecords.has(record.id) ? "检查中" : "检查")
+    : "已停止追踪";
+  checkButton.disabled = !trackingActive || checkingTrackingRecords.has(record.id);
   checkButton.addEventListener("click", () => checkTrackingRecord(record));
 
   const photoLink = document.createElement("a");

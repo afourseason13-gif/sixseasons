@@ -1012,6 +1012,8 @@ async function applyRecordCommand(command) {
     status: command.status,
     updatedAt: new Date().toISOString()
   };
+  if (command.status !== "寄") updateData.trackingStoppedAt = new Date().toISOString();
+  if (command.status === "寄") updateData.trackingStoppedAt = null;
   if (command.status === "开保" && command.warrantyDate) updateData.warrantyDate = command.warrantyDate;
   if (command.status === "开保" && command.warrantyDays) updateData.warrantyDays = command.warrantyDays;
 
@@ -1449,6 +1451,8 @@ async function notifyTrackingUpdate(body) {
   const recordSnapshot = recordId ? await db.ref(`dealer-card-tracker/records/${recordId}`).get() : null;
   const record = recordSnapshot?.val() || trackingInfo;
   if (!record) return { notified: false };
+  // Package tracking remains active only while the record is marked as sent.
+  if (clean(record.status) !== "寄") return { notified: false };
   if (record.lastTrackingNotifyStatus === normalizedStatus) return { notified: false };
 
   const labelMap = {
