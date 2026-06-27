@@ -1418,9 +1418,6 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
 
   await db.ref(`dealer-card-tracker/records/${recordKey}`).set(recordData);
   await registerTrackingMore(recordData);
-  if (ccidResult.reportCount > 0) {
-    await sendCcidReportAlert(formattedDetailsWithCcid);
-  }
 
   return { dealerName, recordId: recordKey, updatedExisting: Boolean(existingRecord) };
 }
@@ -1548,14 +1545,6 @@ async function sendTelegramMessage(chatId, text) {
     })
   });
   if (!response.ok) throw new Error(`Telegram send failed: ${response.status}`);
-}
-
-async function sendCcidReportAlert(formattedDetails) {
-  const roles = await getTelegramRoleChats();
-  const targetChatId = roles.pickup || roles.tracking || announceChatId || roles.import;
-  if (!targetChatId) return false;
-  await sendTelegramMessage(targetChatId, formattedDetails);
-  return true;
 }
 
 function pickWebhookTracking(body) {
