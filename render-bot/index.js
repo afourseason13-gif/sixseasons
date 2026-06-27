@@ -2350,9 +2350,7 @@ async function runScheduledTrackingMyCheck() {
   const today = formatDateInMalaysia(now);
   const time = `${String(malaysia.getUTCHours()).padStart(2, "0")}:${String(malaysia.getUTCMinutes()).padStart(2, "0")}`;
   const slots = [
-    { time: "12:30", action: "check" },
-    { time: "13:00", action: "summary" },
-    { time: "16:00", action: "checkAndSummary" }
+    { time: "13:00", action: "checkAndSummary" }
   ];
 
   for (const slot of slots) {
@@ -2360,6 +2358,10 @@ async function runScheduledTrackingMyCheck() {
     const slotKey = slot.time.replace(":", "");
     const runRef = db.ref(`dealer-card-tracker/settings/trackingMySchedule/${today}/${slotKey}`);
     if ((await runRef.get()).val()) continue;
+    await runRef.set({
+      startedAt: new Date().toISOString(),
+      status: "running"
+    });
 
     let result;
     if (slot.action === "check") {
@@ -2388,7 +2390,10 @@ async function runScheduledTrackingMyCheck() {
       });
     }
 
-    await runRef.set(new Date().toISOString());
+    await runRef.update({
+      finishedAt: new Date().toISOString(),
+      status: "done"
+    });
     await db.ref("dealer-card-tracker/settings/trackingMyLastRun").set({
       ...result,
       slot: slot.time,
