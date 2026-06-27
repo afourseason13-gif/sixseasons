@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260615-matching-center-v9" />
+    <link rel="stylesheet" href="./styles.css?v=20260627-unknown-cards" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -81,6 +81,18 @@
           <span class="pending-count" id="pendingCount">0 条待处理</span>
         </div>
         <div class="pending-list" id="pendingList"></div>
+      </section>
+
+      <section class="unknown-card-center" id="unknownCardCenter" hidden aria-label="未知卡号中心">
+        <div class="unknown-card-head">
+          <div>
+            <p class="eyebrow">UNKNOWN CARDS</p>
+            <h2>未知卡号</h2>
+            <p class="section-copy">车手收到但系统找不到资料的卡号，会集中放在这里检查。</p>
+          </div>
+          <span class="unknown-card-count" id="unknownCardCount">0 条</span>
+        </div>
+        <div class="unknown-card-list" id="unknownCardList"></div>
       </section>
 
       <section class="home-communications-grid" aria-label="通知与公告">
@@ -179,6 +191,6 @@
     </main>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260615-matching-center-v9"></script>
+    <script src="./app.js?v=20260627-unknown-cards"></script>
   </body>
 </html>

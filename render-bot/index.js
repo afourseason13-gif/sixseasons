@@ -939,6 +939,25 @@ async function findLatestRecordByParcelToken(parcelToken) {
   return records[0] || null;
 }
 
+async function rememberUnknownDriverCard(command) {
+  const parcelToken = clean(command.parcelToken || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const cardToken = clean(command.cardToken || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!parcelToken && !cardToken) return;
+  const id = firebaseKey(`${parcelToken || "NOPARCEL"}-${cardToken || "NOCARD"}`);
+  const ref = db.ref(`dealer-card-tracker/unknownDriverCards/${id}`);
+  const existing = (await ref.get()).val() || {};
+  await ref.update({
+    id,
+    parcelToken,
+    cardToken,
+    reason: "车手已收到，但系统找不到对应资料",
+    count: Number(existing.count || 0) + 1,
+    createdAt: existing.createdAt || new Date().toISOString(),
+    lastSeenAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+}
+
 async function getDriverSignedDetailsFromText(text) {
   const commands = parseDriverSignedCommands(text);
   const details = [];
@@ -976,6 +995,7 @@ async function applyRecordCommand(command) {
   }
   if (!record) record = await findLatestRecordByCard(command.cardToken);
   if (!record) {
+    if (command.action === "deleteDriverSigned") await rememberUnknownDriverCard(command);
     return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
   }
 
