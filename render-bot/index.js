@@ -855,6 +855,11 @@ function recordMatchesCard(record, cardToken) {
   return card === wanted;
 }
 
+function isMissingCardNumber(value) {
+  const card = clean(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return !card || card.endsWith("XXXX");
+}
+
 function recordDetailValue(record, field, labels) {
   const saved = clean(record?.[field]);
   if (saved) return saved;
@@ -895,7 +900,7 @@ function formatDriverPickupNotice(stopped, missing = []) {
     const card = clean(result.cardNumber || result.record?.cardNumber || result.cardToken || "-");
     const dealer = clean(result.record?.dealerName || "");
     const changed = result.cardChanged
-      ? `\n\u5361\u53f7\u5df2\u66f4\u6539\uff1a${result.originalCardNumber || "-"} \u2192 ${result.newCardNumber || card}`
+      ? `\n\u5df2\u8865\u5361\u53f7\uff1a${result.originalCardNumber || "-"} \u2192 ${result.newCardNumber || card}`
       : "";
     return `${parcel ? `${parcel} | ` : ""}${card}${dealer ? ` \u00b7 ${dealer}` : ""}${changed}`;
   });
@@ -965,10 +970,11 @@ async function applyRecordCommand(command) {
     return { ok: true, cardNumber: record.cardNumber || record.id, status: "删除" };
   }
 
-  let record = await findLatestRecordByCard(command.cardToken);
-  if (!record && command.action === "deleteDriverSigned" && command.parcelToken) {
+  let record = null;
+  if (command.action === "deleteDriverSigned" && command.parcelToken) {
     record = await findLatestRecordByParcelToken(command.parcelToken);
   }
+  if (!record) record = await findLatestRecordByCard(command.cardToken);
   if (!record) {
     return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
   }
@@ -981,17 +987,17 @@ async function applyRecordCommand(command) {
   if (command.action === "deleteDriverSigned") {
     const incomingCard = clean(command.cardToken).toUpperCase();
     const savedCard = clean(record.cardNumber).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const shouldFillMissingCard = incomingCard && isMissingCardNumber(savedCard);
     const updateData = {
       status: "车手已签收",
       packageStatus: "车手已签收",
       trackingStoppedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    if (incomingCard && incomingCard !== savedCard) {
+    if (shouldFillMissingCard) {
       updateData.cardNumber = incomingCard;
-      updateData.receivedCardNumber = incomingCard;
-      updateData.originalCardNumber = clean(record.originalCardNumber || record.cardNumber || "");
-      updateData.notes = `${clean(record.notes)} \u00b7 \u8f66\u624b\u6536\u5230\u5361\u53f7\u4e0d\u540c\uff0c\u5df2\u7531 ${record.cardNumber || "-"} \u6539\u4e3a ${incomingCard}`.trim();
+      updateData.cardMatchedAt = new Date().toISOString();
+      updateData.notes = `${clean(record.notes)} \u00b7 \u8f66\u624b\u6309\u5305\u88f9\u5c3e\u53f7\u81ea\u52a8\u8865\u4e0a\u5361\u53f7`.trim();
       record = { ...record, ...updateData };
     }
     await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
@@ -1000,9 +1006,9 @@ async function applyRecordCommand(command) {
       cardNumber: record.cardNumber || command.cardToken,
       cardToken: command.cardToken,
       parcelToken: command.parcelToken || "",
-      cardChanged: Boolean(updateData.receivedCardNumber),
-      originalCardNumber: updateData.originalCardNumber || "",
-      newCardNumber: updateData.receivedCardNumber || "",
+      cardChanged: Boolean(updateData.cardNumber),
+      originalCardNumber: savedCard || "",
+      newCardNumber: updateData.cardNumber || "",
       status: "车手已签收",
       record
     };
