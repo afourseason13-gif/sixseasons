@@ -404,6 +404,83 @@ function telegramLargestPhotoFileId(message) {
   return "";
 }
 
+function ccidStatusLine(result) {
+  if (!result?.checked) return "CCID status: CHECK FAILED. Carian 0 kali ⚠️";
+  const count = Number(result.searchCount || 0);
+  if (result.reportCount > 0) return `CCID status: REPORT FOUND. Carian ${count} kali ⚠️`;
+  return `CCID status: NO report. Carian ${count} kali ✅`;
+}
+
+function buildTelegramFormattedDetails(fields, ccidResult) {
+  const lines = [
+    `*NAMA* : ${clean(fields.name)}`,
+    "",
+    `*IC NO* : ${clean(fields.ic)}`,
+    "",
+    `*BANK* : ${clean(fields.bank)}`,
+    "",
+    `*NO AKAUN* : ${clean(fields.account)}`,
+    "----------------------",
+    `*NO KAD* : ${clean(fields.card)}`,
+    "",
+    `*PIN KAD ATM* : ${clean(fields.pin)}`,
+    "",
+    "===============",
+    ccidStatusLine(ccidResult)
+  ];
+  return lines.join("\n");
+}
+
+async function checkCcidBankAccount(accountNumber) {
+  const account = clean(accountNumber).replace(/\D/g, "");
+  if (account.length < 3) {
+    return { checked: false, account, searchCount: 0, reportCount: 0, statusText: "CHECK FAILED" };
+  }
+  try {
+    const response = await fetchWithTimeout("https://semakmule.rmp.gov.my/api/mule/get_search_data.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": "j3j389#nklala2"
+      },
+      body: JSON.stringify({
+        data: {
+          category: "bank",
+          bankAccount: account,
+          telNo: "",
+          companyName: "",
+          captcha: "",
+          captchaHash: ""
+        }
+      })
+    }, 18000);
+    const data = await response.json();
+    if (Number(data?.status) !== 1) {
+      return { checked: false, account, searchCount: 0, reportCount: 0, statusText: "CHECK FAILED" };
+    }
+    const reportCount = Array.isArray(data.table_data) ? data.table_data.length : 0;
+    return {
+      checked: true,
+      account,
+      searchCount: Number(data.count || 0),
+      reportCount,
+      statusText: reportCount > 0 ? "REPORT FOUND" : "NO report",
+      checkedAt: new Date().toISOString(),
+      raw: data
+    };
+  } catch (error) {
+    return {
+      checked: false,
+      account,
+      searchCount: 0,
+      reportCount: 0,
+      statusText: "CHECK FAILED",
+      error: error.message || "ccid_check_failed",
+      checkedAt: new Date().toISOString()
+    };
+  }
+}
+
 async function updateTrackingNumberFromOcr(text, ocrText, photoFileId = "") {
   const originalShipment = parseShipmentCode(text);
   if (!originalShipment.carrierCode || !originalShipment.tailNumber || isFullTrackingNumber(originalShipment.trackingNumber)) {
@@ -876,6 +953,8 @@ function formatSignedRecordDetails(record) {
     || pickLineValue(clean(record?.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"])
     || cardLabel;
   const pin = recordDetailValue(record, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]);
+  const ccidLine = clean(record?.ccidStatusLine)
+    || (clean(record?.formattedDetails).match(/CCID status:.+/i)?.[0] || "");
   return [
     cardLabel || "-",
     "",
@@ -890,8 +969,11 @@ function formatSignedRecordDetails(record) {
     `*NO KAD* : ${fullCard}`,
     "",
     `*PIN KAD ATM* : ${pin}`,
-    "----------------------"
-  ].join("\n");
+    "----------------------",
+    ccidLine ? "" : "",
+    ccidLine ? "===============" : "",
+    ccidLine
+  ].filter((line, index, lines) => line || (index > 0 && lines[index - 1])).join("\n");
 }
 
 function formatDriverPickupNotice(stopped, missing = []) {
@@ -1198,9 +1280,20 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
   const requestedDealerName = parseDealer(text, fallbackDealerName);
   const existingDealerName = await findExistingDealerName(requestedDealerName);
   const rawCardNumber = parseCardNumber(text);
+  const rawBankName = pickLineValue(text, ["BANK", "NAMA BANK"]);
   const bankName = detectBank(text);
   const shipment = parseShipmentCode(text);
   const cardNumber = displayCardNumber(text, bankName);
+  const bankAccount = pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]);
+  const ccidResult = await checkCcidBankAccount(bankAccount);
+  const formattedDetailsWithCcid = buildTelegramFormattedDetails({
+    name: pickLineValue(text, ["NAMA", "NAME"]),
+    ic: pickLineValue(text, ["IC NO", "IC"]),
+    bank: rawBankName || bankName,
+    account: bankAccount,
+    card: rawCardNumber || cardNumber,
+    pin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
+  }, ccidResult);
   const now = new Date().toISOString();
   const recordsSnapshot = await db.ref("dealer-card-tracker/records").get();
   const existingRecords = Object.entries(recordsSnapshot.val() || {}).map(([id, record]) => ({ id, ...record }));
@@ -1223,8 +1316,8 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
   const requiredFields = {
     "姓名": pickLineValue(text, ["NAMA", "NAME"]),
     "IC": pickLineValue(text, ["IC NO", "IC"]),
-    "银行": bankName,
-    "银行账号": pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
+    "银行": rawBankName || bankName,
+    "银行账号": bankAccount,
     "卡号": rawCardNumber
   };
   const missingFields = Object.entries(requiredFields).filter(([, value]) => !clean(value)).map(([label]) => label);
@@ -1257,11 +1350,16 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
       senderName: fallbackDealerName,
       cardNumber,
       rawCardNumber,
-      bankName,
+      bankName: rawBankName || bankName,
       carrier: shipment.carrier || detectCarrier(text, shipment.carrierCode),
       trackingNumber: isFullTrackingNumber(shipment.trackingNumber) ? shipment.trackingNumber : "",
       tailNumber: shipment.tailNumber,
-      formattedDetails: text,
+      formattedDetails: formattedDetailsWithCcid,
+      ccidStatus: ccidResult.statusText,
+      ccidSearchCount: ccidResult.searchCount,
+      ccidReportCount: ccidResult.reportCount,
+      ccidCheckedAt: ccidResult.checkedAt || now,
+      ccidStatusLine: ccidStatusLine(ccidResult),
       telegramMessageId: String(telegramMessageId || ""),
       createdAt: now,
       updatedAt: now
@@ -1283,11 +1381,16 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
     dealerName,
     customerName: pickLineValue(text, ["NAMA", "NAME"]),
     icNumber: pickLineValue(text, ["IC NO", "IC"]),
-    bankName,
-    bankAccount: pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
+    bankName: rawBankName || bankName,
+    bankAccount,
     cardNumber,
     atmPin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]),
-    formattedDetails: text,
+    formattedDetails: formattedDetailsWithCcid,
+    ccidStatus: ccidResult.statusText,
+    ccidSearchCount: ccidResult.searchCount,
+    ccidReportCount: ccidResult.reportCount,
+    ccidCheckedAt: ccidResult.checkedAt || now,
+    ccidStatusLine: ccidStatusLine(ccidResult),
     carrier: nextCarrier,
     trackingNumber: nextTrackingNumber,
     trackingMoreCourierCode: trackingMoreCourierCode(shipment.carrierCode) || existingRecord?.trackingMoreCourierCode || "",
