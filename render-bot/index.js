@@ -407,7 +407,7 @@ function telegramLargestPhotoFileId(message) {
 function ccidStatusLine(result) {
   if (!result?.checked) return "CCID status: CHECK FAILED. Carian 0 kali ⚠️";
   const count = Number(result.searchCount || 0);
-  if (result.reportCount > 0) return `CCID status: REPORT FOUND. Carian ${count} kali ⚠️`;
+  if (result.reportCount > 0) return `CCID status: report ${result.reportCount}. Carian ${count} kali ❌`;
   return `CCID status: NO report. Carian ${count} kali ✅`;
 }
 
@@ -458,7 +458,9 @@ async function checkCcidBankAccount(accountNumber) {
     if (Number(data?.status) !== 1) {
       return { checked: false, account, searchCount: 0, reportCount: 0, statusText: "CHECK FAILED" };
     }
-    const reportCount = Array.isArray(data.table_data) ? data.table_data.length : 0;
+    const reportCount = Array.isArray(data.table_data)
+      ? data.table_data.reduce((sum, row) => sum + Number(Array.isArray(row) ? row[1] : row?.Repot || row?.report || 0), 0)
+      : 0;
     return {
       checked: true,
       account,
@@ -1416,6 +1418,9 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
 
   await db.ref(`dealer-card-tracker/records/${recordKey}`).set(recordData);
   await registerTrackingMore(recordData);
+  if (ccidResult.reportCount > 0) {
+    await sendCcidReportAlert(formattedDetailsWithCcid);
+  }
 
   return { dealerName, recordId: recordKey, updatedExisting: Boolean(existingRecord) };
 }
@@ -1543,6 +1548,14 @@ async function sendTelegramMessage(chatId, text) {
     })
   });
   if (!response.ok) throw new Error(`Telegram send failed: ${response.status}`);
+}
+
+async function sendCcidReportAlert(formattedDetails) {
+  const roles = await getTelegramRoleChats();
+  const targetChatId = roles.pickup || roles.tracking || announceChatId || roles.import;
+  if (!targetChatId) return false;
+  await sendTelegramMessage(targetChatId, formattedDetails);
+  return true;
 }
 
 function pickWebhookTracking(body) {
