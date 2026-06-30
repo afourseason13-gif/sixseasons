@@ -645,7 +645,8 @@ textarea:focus {
 
 .rate-card select,
 .expense-card input,
-.extra-pay-card input {
+.extra-pay-card input,
+.blast-deduct-card input {
   min-height: 36px;
   background: #fff;
   font-weight: 900;

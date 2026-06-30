@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dealer 资料</title>
-    <link rel="stylesheet" href="./styles.css?v=20260615-matching-center-v9" />
+    <link rel="stylesheet" href="./styles.css?v=20260701-blast-deduct" />
   </head>
   <body class="dealer-page">
     <main class="app-shell">
@@ -34,6 +34,10 @@
         <div class="metric-card extra-pay-card">
           <span>加工资</span>
           <input id="dealerExtraPay" type="number" step="1" placeholder="RM0" />
+        </div>
+        <div class="metric-card blast-deduct-card">
+          <span>上月炸扣</span>
+          <input id="dealerBlastDeduct" type="number" min="0" step="1" placeholder="RM0" />
         </div>
         <div class="metric-card">
           <span>总记录</span>
@@ -221,6 +225,6 @@
     </div>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260615-matching-center-v9"></script>
+    <script src="./app.js?v=20260701-blast-deduct"></script>
   </body>
 </html>

@@ -69,6 +69,7 @@ let deleteDealer;
 let saveDealerRate;
 let saveDealerExpense;
 let saveDealerExtraPay;
+let saveDealerBlastDeduct;
 let saveStatusOption;
 let deleteStatusOption;
 let saveNotice;
@@ -249,6 +250,10 @@ function getDealerExtraPay(name) {
   return Number(getDealerInfo(name).extraPay || 0);
 }
 
+function getDealerBlastDeduct(name) {
+  return Number(getDealerInfo(name).blastDeduct || getDealerInfo(name).lastMonthBlastDeduct || 0);
+}
+
 function detectSalaryBank(record) {
   const source = `${record.cardNumber || ""} ${record.bankName || ""} ${record.formattedDetails || ""}`.toUpperCase();
   const compactSource = source.replace(/[^A-Z0-9]/g, "");
@@ -286,6 +291,7 @@ function calculateSalary(dealerName) {
   const rate = getDealerRate(dealerName);
   const expenseCards = getDealerExpense(dealerName);
   const extraPay = getDealerExtraPay(dealerName);
+  const blastDeduct = getDealerBlastDeduct(dealerName);
   const expiredRecords = records.filter((record) => record.dealerName === dealerName && salaryStatuses.has(record.status));
   const fullBanks = new Set(["MBB", "CIMB", "AFFIN", "AGRO", "MUAMALAT", "RHB", "HLB", "RAKYAT", "AMBANK", "ALLIANCE"]);
   const halfBanks = new Set(["BSN", "BANK ISLAM"]);
@@ -328,9 +334,10 @@ function calculateSalary(dealerName) {
     rate,
     expenseCards,
     extraPay,
+    blastDeduct,
     expiredCount: expiredRecords.length,
     grossSalary: cardPay + basePay + bonus,
-    salary: paidCardPay + basePay + bonus + extraPay,
+    salary: paidCardPay + basePay + bonus + extraPay - blastDeduct,
     basePay,
     fullCount,
     compensationCount,
@@ -803,6 +810,7 @@ function initDealerPage() {
   const dealerRate = document.querySelector("#dealerRate");
   const dealerExpense = document.querySelector("#dealerExpense");
   const dealerExtraPay = document.querySelector("#dealerExtraPay");
+  const dealerBlastDeduct = document.querySelector("#dealerBlastDeduct");
   const recordFormPanel = document.querySelector("#recordFormPanel");
   const form = document.querySelector("#recordForm");
   const statusForm = document.querySelector("#statusOptionForm");
@@ -835,6 +843,7 @@ function initDealerPage() {
   dealerRate.value = String(getDealerRate(dealerName));
   dealerExpense.value = String(getDealerExpense(dealerName) || "");
   dealerExtraPay.value = String(getDealerExtraPay(dealerName) || "");
+  dealerBlastDeduct.value = String(getDealerBlastDeduct(dealerName) || "");
   dealerRate.addEventListener("change", async () => {
     await saveDealerRate(dealerName, Number(dealerRate.value));
   });
@@ -857,6 +866,15 @@ function initDealerPage() {
     if (event.key === "Enter") {
       event.preventDefault();
       dealerExtraPay.blur();
+    }
+  });
+  dealerBlastDeduct.addEventListener("input", async () => {
+    await saveDealerBlastDeduct(dealerName, Number(dealerBlastDeduct.value || 0));
+  });
+  dealerBlastDeduct.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      dealerBlastDeduct.blur();
     }
   });
   populateCarrierSelect(carrier);
@@ -1379,7 +1397,7 @@ function renderDealerMetrics(dealerRecords) {
   metricSalary.textContent = `RM${salaryInfo.salary}`;
   if (metricSalaryNote) {
     metricSalaryNote.textContent =
-      `原价${salaryInfo.fullCount} · 半价${salaryInfo.halfCount} · 赔150 ${salaryInfo.compensationCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay}`;
+      `原价${salaryInfo.fullCount} · 半价${salaryInfo.halfCount} · 赔150 ${salaryInfo.compensationCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay} · 上月炸扣RM${salaryInfo.blastDeduct}`;
   }
   metricUpdated.textContent = lastUpdated ? formatTime(lastUpdated) : "-";
   if (dealerRate) dealerRate.value = String(salaryInfo.rate);
@@ -1390,6 +1408,10 @@ function renderDealerMetrics(dealerRecords) {
   const dealerExtraPay = document.querySelector("#dealerExtraPay");
   if (dealerExtraPay && document.activeElement !== dealerExtraPay) {
     dealerExtraPay.value = salaryInfo.extraPay ? String(salaryInfo.extraPay) : "";
+  }
+  const dealerBlastDeduct = document.querySelector("#dealerBlastDeduct");
+  if (dealerBlastDeduct && document.activeElement !== dealerBlastDeduct) {
+    dealerBlastDeduct.value = salaryInfo.blastDeduct ? String(salaryInfo.blastDeduct) : "";
   }
 }
 
@@ -1459,6 +1481,15 @@ async function initLocalMode() {
     const existing = getDealerInfo(name);
     const index = dealers.findIndex((dealer) => dealer.name === name);
     const nextDealer = { ...existing, name, extraPay, updatedAt: new Date().toISOString() };
+    if (index >= 0) dealers[index] = nextDealer;
+    else dealers.push(nextDealer);
+    writeJson(dealerListKey, dealers);
+    renderCurrentPage();
+  };
+  saveDealerBlastDeduct = async (name, blastDeduct) => {
+    const existing = getDealerInfo(name);
+    const index = dealers.findIndex((dealer) => dealer.name === name);
+    const nextDealer = { ...existing, name, blastDeduct, updatedAt: new Date().toISOString() };
     if (index >= 0) dealers[index] = nextDealer;
     else dealers.push(nextDealer);
     writeJson(dealerListKey, dealers);
@@ -1566,6 +1597,13 @@ async function initFirebaseMode() {
       await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {
         name,
         extraPay,
+        updatedAt: new Date().toISOString()
+      });
+    };
+    saveDealerBlastDeduct = async (name, blastDeduct) => {
+      await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {
+        name,
+        blastDeduct,
         updatedAt: new Date().toISOString()
       });
     };
