@@ -962,7 +962,7 @@ function formatSignedRecordDetails(record) {
     "",
     `*NAMA* : ${name}`,
     "",
-    `*IC NO*：${ic}`,
+    `*IC NO* : ${ic}`,
     "",
     `*BANK* : ${bank}`,
     "",
@@ -976,6 +976,43 @@ function formatSignedRecordDetails(record) {
     ccidLine ? "===============" : "",
     ccidLine
   ].filter((line, index, lines) => line || (index > 0 && lines[index - 1])).join("\n");
+}
+
+async function ensureRecordCcidStatus(record) {
+  if (clean(record?.ccidStatusLine) || /CCID status:/i.test(clean(record?.formattedDetails))) return record;
+  const account = recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]);
+  const ccidResult = await checkCcidBankAccount(account);
+  const ccidLine = ccidStatusLine(ccidResult);
+  const updatedRecord = {
+    ...record,
+    ccidStatus: ccidResult.statusText,
+    ccidSearchCount: ccidResult.searchCount,
+    ccidReportCount: ccidResult.reportCount,
+    ccidCheckedAt: ccidResult.checkedAt || new Date().toISOString(),
+    ccidStatusLine: ccidLine,
+    updatedAt: new Date().toISOString()
+  };
+  const formattedDetails = buildTelegramFormattedDetails({
+    name: recordDetailValue(updatedRecord, "customerName", ["NAMA", "NAME"]),
+    ic: recordDetailValue(updatedRecord, "icNumber", ["IC NO", "IC"]),
+    bank: recordDetailValue(updatedRecord, "bankName", ["BANK", "NAMA BANK"]),
+    account,
+    card: pickLineValue(clean(updatedRecord.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]) || updatedRecord.cardNumber,
+    pin: recordDetailValue(updatedRecord, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
+  }, ccidResult);
+  updatedRecord.formattedDetails = formattedDetails;
+  if (record.key || record.id) {
+    await db.ref(`dealer-card-tracker/records/${record.key || record.id}`).update({
+      formattedDetails,
+      ccidStatus: updatedRecord.ccidStatus,
+      ccidSearchCount: updatedRecord.ccidSearchCount,
+      ccidReportCount: updatedRecord.ccidReportCount,
+      ccidCheckedAt: updatedRecord.ccidCheckedAt,
+      ccidStatusLine: ccidLine,
+      updatedAt: updatedRecord.updatedAt
+    });
+  }
+  return updatedRecord;
 }
 
 function formatDriverPickupNotice(stopped, missing = []) {
@@ -1050,7 +1087,8 @@ async function getDriverSignedDetailsFromText(text) {
     const record = await findLatestRecordByCard(command.cardToken)
       || await findLatestRecordByParcelToken(command.parcelToken);
     if (record) {
-      details.push(formatSignedRecordDetails(record));
+      const readyRecord = await ensureRecordCcidStatus(record);
+      details.push(formatSignedRecordDetails(readyRecord));
     } else {
       missing.push(command.cardToken);
     }
