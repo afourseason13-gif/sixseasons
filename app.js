@@ -325,14 +325,22 @@ function calculateSalary(dealerName) {
     }
   }
 
-  const compensationPay = compensationCount * 150;
   const performanceCount = fullCount + performanceHalfCount + compensationCount;
-  const paidFullCount = Math.max(0, performanceCount - expenseCards);
+  let remainingExpenseCards = expenseCards;
+  const paidFullCount = Math.max(0, fullCount - remainingExpenseCards);
+  remainingExpenseCards = Math.max(0, remainingExpenseCards - fullCount);
+  const paidPerformanceHalfCount = Math.max(0, performanceHalfCount - remainingExpenseCards);
+  remainingExpenseCards = Math.max(0, remainingExpenseCards - performanceHalfCount);
+  const paidCompensationCount = Math.max(0, compensationCount - remainingExpenseCards);
+  const nonPerformanceHalfCount = Math.max(0, halfCount - performanceHalfCount);
+  const paidPerformanceCount = paidFullCount + paidPerformanceHalfCount + paidCompensationCount;
   const basePay = rate === 500
-    ? (paidFullCount >= 10 ? 1500 : 0)
-    : (paidFullCount >= 7 ? 1500 : paidFullCount >= 3 ? 700 : 0);
-  const bonus = paidFullCount >= 15 ? paidFullCount * 50 : 0;
-  const paidCardPay = (paidFullCount * fullPay) + (halfCount * halfPay) + compensationPay;
+    ? (paidPerformanceCount >= 10 ? 1500 : 0)
+    : (paidPerformanceCount >= 7 ? 1500 : paidPerformanceCount >= 3 ? 700 : 0);
+  const bonus = paidPerformanceCount >= 15 ? paidPerformanceCount * 50 : 0;
+  const paidCardPay = (paidFullCount * fullPay)
+    + ((paidPerformanceHalfCount + nonPerformanceHalfCount) * halfPay)
+    + (paidCompensationCount * 150);
 
   return {
     rate,
@@ -342,11 +350,15 @@ function calculateSalary(dealerName) {
     expiredCount: expiredRecords.length,
     grossSalary: cardPay + basePay + bonus,
     salary: paidCardPay + basePay + bonus + extraPay - blastDeduct,
+    cardPay: paidCardPay,
     basePay,
     fullCount,
     compensationCount,
     performanceCount,
-    paidFullCount,
+    paidFullCount: paidPerformanceCount,
+    paidOriginalCount: paidFullCount,
+    paidPerformanceHalfCount,
+    paidCompensationCount,
     halfCount,
     bonus
   };
@@ -1417,7 +1429,7 @@ function renderDealerMetrics(dealerRecords) {
   metricSalary.textContent = `RM${salaryInfo.salary}`;
   if (metricSalaryNote) {
     metricSalaryNote.textContent =
-      `原价${salaryInfo.fullCount} · 半价${salaryInfo.halfCount} · 赔150 ${salaryInfo.compensationCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay} · 上月炸扣RM${salaryInfo.blastDeduct}`;
+      `原价${salaryInfo.fullCount} · 半价${salaryInfo.halfCount} · 赔150 ${salaryInfo.compensationCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 卡钱RM${salaryInfo.cardPay} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay} · 上月炸扣RM${salaryInfo.blastDeduct}`;
   }
   metricUpdated.textContent = lastUpdated ? formatTime(lastUpdated) : "-";
   if (dealerRate) dealerRate.value = String(salaryInfo.rate);
