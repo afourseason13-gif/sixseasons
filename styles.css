@@ -645,8 +645,7 @@ textarea:focus {
 
 .rate-card select,
 .expense-card input,
-.extra-pay-card input,
-.blast-deduct-card input {
+.extra-pay-card input {
   min-height: 36px;
   background: #fff;
   font-weight: 900;
@@ -6150,6 +6149,52 @@ h3,
   color: #a14b45;
 }
 
+.dealer-page .blast-deduct-panel {
+  margin-top: 22px;
+  border: 1px solid #ead8d5;
+  border-radius: 7px;
+  background:
+    linear-gradient(135deg, rgba(190, 75, 68, 0.08), rgba(255, 255, 255, 0.78)),
+    #fff;
+  padding: 14px;
+}
+
+.dealer-page .blast-deduct-head {
+  display: grid;
+  grid-template-columns: 1fr 118px;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+
+.dealer-page .blast-deduct-head h3 {
+  margin: 3px 0 0;
+  color: #14272a;
+  font-size: 18px;
+}
+
+.dealer-page .blast-deduct-head input,
+.dealer-page .blast-deduct-panel textarea {
+  width: 100%;
+  border: 1px solid #d9c8c5;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.84);
+  color: #172d30;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.dealer-page .blast-deduct-head input {
+  min-height: 38px;
+  text-align: right;
+}
+
+.dealer-page .blast-deduct-panel textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
 .dealer-page #recordFormPanel,
 .dealer-page .status-panel {
   border: 0;
@@ -6265,6 +6310,14 @@ h3,
   .dealer-page .status-panel > summary {
     min-height: 94px;
     padding: 20px 18px;
+  }
+
+  .dealer-page .blast-deduct-head {
+    grid-template-columns: 1fr;
+  }
+
+  .dealer-page .blast-deduct-head input {
+    text-align: left;
   }
 }
 

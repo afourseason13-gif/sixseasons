@@ -254,6 +254,10 @@ function getDealerBlastDeduct(name) {
   return Number(getDealerInfo(name).blastDeduct || getDealerInfo(name).lastMonthBlastDeduct || 0);
 }
 
+function getDealerBlastCards(name) {
+  return String(getDealerInfo(name).blastCards || getDealerInfo(name).lastMonthBlastCards || "");
+}
+
 function detectSalaryBank(record) {
   const source = `${record.cardNumber || ""} ${record.bankName || ""} ${record.formattedDetails || ""}`.toUpperCase();
   const compactSource = source.replace(/[^A-Z0-9]/g, "");
@@ -811,6 +815,7 @@ function initDealerPage() {
   const dealerExpense = document.querySelector("#dealerExpense");
   const dealerExtraPay = document.querySelector("#dealerExtraPay");
   const dealerBlastDeduct = document.querySelector("#dealerBlastDeduct");
+  const dealerBlastCards = document.querySelector("#dealerBlastCards");
   const recordFormPanel = document.querySelector("#recordFormPanel");
   const form = document.querySelector("#recordForm");
   const statusForm = document.querySelector("#statusOptionForm");
@@ -844,6 +849,7 @@ function initDealerPage() {
   dealerExpense.value = String(getDealerExpense(dealerName) || "");
   dealerExtraPay.value = String(getDealerExtraPay(dealerName) || "");
   dealerBlastDeduct.value = String(getDealerBlastDeduct(dealerName) || "");
+  dealerBlastCards.value = getDealerBlastCards(dealerName);
   dealerRate.addEventListener("change", async () => {
     await saveDealerRate(dealerName, Number(dealerRate.value));
   });
@@ -869,13 +875,16 @@ function initDealerPage() {
     }
   });
   dealerBlastDeduct.addEventListener("input", async () => {
-    await saveDealerBlastDeduct(dealerName, Number(dealerBlastDeduct.value || 0));
+    await saveDealerBlastDeduct(dealerName, Number(dealerBlastDeduct.value || 0), dealerBlastCards.value);
   });
   dealerBlastDeduct.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       dealerBlastDeduct.blur();
     }
+  });
+  dealerBlastCards.addEventListener("input", async () => {
+    await saveDealerBlastDeduct(dealerName, Number(dealerBlastDeduct.value || 0), dealerBlastCards.value);
   });
   populateCarrierSelect(carrier);
   populateStatusSelect(statusInput, defaultNewRecordStatus);
@@ -1424,6 +1433,10 @@ function renderDealerMetrics(dealerRecords) {
   if (dealerBlastDeduct && document.activeElement !== dealerBlastDeduct) {
     dealerBlastDeduct.value = salaryInfo.blastDeduct ? String(salaryInfo.blastDeduct) : "";
   }
+  const dealerBlastCards = document.querySelector("#dealerBlastCards");
+  if (dealerBlastCards && document.activeElement !== dealerBlastCards) {
+    dealerBlastCards.value = getDealerBlastCards(getDealerNameFromUrl());
+  }
 }
 
 function renderCurrentPage() {
@@ -1497,10 +1510,10 @@ async function initLocalMode() {
     writeJson(dealerListKey, dealers);
     renderCurrentPage();
   };
-  saveDealerBlastDeduct = async (name, blastDeduct) => {
+  saveDealerBlastDeduct = async (name, blastDeduct, blastCards = getDealerBlastCards(name)) => {
     const existing = getDealerInfo(name);
     const index = dealers.findIndex((dealer) => dealer.name === name);
-    const nextDealer = { ...existing, name, blastDeduct, updatedAt: new Date().toISOString() };
+    const nextDealer = { ...existing, name, blastDeduct, blastCards, updatedAt: new Date().toISOString() };
     if (index >= 0) dealers[index] = nextDealer;
     else dealers.push(nextDealer);
     writeJson(dealerListKey, dealers);
@@ -1611,10 +1624,11 @@ async function initFirebaseMode() {
         updatedAt: new Date().toISOString()
       });
     };
-    saveDealerBlastDeduct = async (name, blastDeduct) => {
+    saveDealerBlastDeduct = async (name, blastDeduct, blastCards = getDealerBlastCards(name)) => {
       await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {
         name,
         blastDeduct,
+        blastCards,
         updatedAt: new Date().toISOString()
       });
     };
