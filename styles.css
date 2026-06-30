@@ -6113,9 +6113,11 @@ h3,
 }
 
 .dealer-page .status-board-item {
-  min-height: 48px;
+  min-height: 52px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
   border: 0;
   border-bottom: 1px solid #d8e1df;
   border-radius: 0;
@@ -6124,6 +6126,28 @@ h3,
   font-size: 12px;
   font-weight: 750;
   padding: 11px 2px;
+}
+
+.dealer-page .status-board-item strong {
+  color: #14272a;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.dealer-page .status-board-item span {
+  width: 100%;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #607174;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dealer-page .danger-board .status-board-item span {
+  color: #a14b45;
 }
 
 .dealer-page #recordFormPanel,

@@ -1200,8 +1200,16 @@ function isRecordStale(record) {
 function recordStatusGroup(record) {
   const status = String(record.status || "");
   if (status.includes("过保") || status.includes("开保") || status.includes("杩囦繚") || status.includes("寮€淇")) return "active";
-  if (status.includes("弹卡") || status.includes("人头关") || status.includes("人头偷钱") || status.includes("赔 150") || status.includes("赔150") || status.includes("寮瑰崱") || status.includes("浜哄ご鍏")) return "problem";
+  if (status.includes("弹卡") || status.includes("人头关") || status.includes("人头偷钱") || status.includes("赔 150") || status.includes("赔150") || status.includes("炸") || status.includes("寮瑰崱") || status.includes("浜哄ご鍏")) return "problem";
   return "";
+}
+
+function statusBoardIssueText(record) {
+  const status = String(record.status || "").trim() || "-";
+  const notes = String(record.notes || "").trim();
+  const packageStatus = String(record.packageStatus || "").trim();
+  const detail = notes || packageStatus;
+  return detail ? `${status} · ${detail}` : status;
 }
 
 function renderStatusBoard(dealerRecords) {
@@ -1232,7 +1240,10 @@ function renderStatusBoard(dealerRecords) {
         const item = document.createElement("button");
         item.type = "button";
         item.className = "status-board-item";
-        item.textContent = record.cardNumber || "-";
+        item.innerHTML = `
+          <strong>${escapeHtml(record.cardNumber || "-")}</strong>
+          <span>${escapeHtml(statusBoardIssueText(record))}</span>
+        `;
         item.addEventListener("click", () => dealerPageFillForm?.(record));
         element.append(item);
       });
