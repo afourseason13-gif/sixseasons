@@ -6020,9 +6020,11 @@ h3,
 
 .dealer-page .salary-breakdown {
   grid-column: span 4;
-  min-height: 116px;
+  min-height: 168px;
+  align-content: start;
   background:
-    linear-gradient(110deg, rgba(85, 197, 176, 0.13), rgba(255, 255, 255, 0.035));
+    radial-gradient(circle at 100% 100%, rgba(206, 159, 58, 0.14), transparent 30%),
+    linear-gradient(135deg, rgba(79, 196, 174, 0.12), rgba(255, 255, 255, 0.028));
 }
 
 .dealer-page .salary-breakdown + .metric-card {
@@ -6035,36 +6037,107 @@ h3,
   width: 100%;
   max-width: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 9px;
   font-size: 14px;
   font-weight: 620;
 }
 
 .dealer-page .salary-chip {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  gap: 4px;
-  min-height: 54px;
+  gap: 7px;
+  min-height: 62px;
   align-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 7px;
+  border: 1px solid rgba(220, 242, 237, 0.1);
+  border-radius: 9px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018));
-  padding: 9px 10px;
+    linear-gradient(150deg, rgba(255, 255, 255, 0.092), rgba(255, 255, 255, 0.018));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 22px rgba(0, 0, 0, 0.08);
+  padding: 11px 12px;
+}
+
+.dealer-page .salary-chip::after {
+  content: "";
+  position: absolute;
+  inset: auto 10px 8px 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(117, 235, 211, 0.3), transparent);
 }
 
 .dealer-page .salary-chip small {
-  color: rgba(235, 248, 245, 0.54);
-  font-size: 10px;
-  font-weight: 750;
+  color: rgba(235, 248, 245, 0.58);
+  font-size: 9px;
+  font-weight: 850;
   line-height: 1;
+  text-transform: uppercase;
 }
 
 .dealer-page .salary-chip b {
   color: #fff;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.05;
-  font-weight: 800;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.dealer-page .salary-chip-money {
+  border-color: rgba(203, 163, 65, 0.24);
+  background:
+    linear-gradient(150deg, rgba(209, 165, 55, 0.16), rgba(255, 255, 255, 0.025));
+}
+
+.dealer-page .salary-chip-money::after {
+  background: linear-gradient(90deg, transparent, rgba(225, 176, 69, 0.42), transparent);
+}
+
+.dealer-page .salary-chip-money b {
+  color: #ffe7a3;
+}
+
+.dealer-page .salary-chip-accent {
+  border-color: rgba(105, 222, 195, 0.28);
+  background:
+    linear-gradient(150deg, rgba(93, 218, 190, 0.17), rgba(255, 255, 255, 0.022));
+}
+
+.dealer-page .salary-chip-accent b {
+  color: #8ff5df;
+}
+
+.dealer-page .salary-chip-deduct {
+  border-color: rgba(229, 119, 96, 0.26);
+  background:
+    linear-gradient(150deg, rgba(195, 82, 65, 0.13), rgba(255, 255, 255, 0.018));
+}
+
+.dealer-page .salary-chip-deduct b {
+  color: #ffd0c6;
+}
+
+.dealer-page .salary-chip-muted {
+  opacity: 0.74;
+}
+
+@media (max-width: 1180px) {
+  .dealer-page .salary-breakdown strong {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .dealer-page .salary-breakdown strong {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .dealer-page .salary-breakdown strong {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dealer-workbench {
