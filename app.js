@@ -1425,7 +1425,7 @@ function renderDealerMetrics(dealerRecords) {
   const metricSalaryNote = document.querySelector("#metricSalaryNote");
   const metricUpdated = document.querySelector("#metricUpdated");
   const dealerRate = document.querySelector("#dealerRate");
-  if (!metricTotal || !metricExpired || !metricSalary || !metricUpdated) return;
+  if (!metricTotal || !metricSalary || !metricUpdated) return;
 
   const dealerName = getDealerNameFromUrl();
   const salaryInfo = calculateSalary(dealerName);
@@ -1436,7 +1436,7 @@ function renderDealerMetrics(dealerRecords) {
     .at(-1);
 
   metricTotal.textContent = String(dealerRecords.length);
-  metricExpired.textContent = String(salaryInfo.expiredCount);
+  if (metricExpired) metricExpired.textContent = String(salaryInfo.expiredCount);
   metricSalary.textContent = `RM${salaryInfo.salary}`;
   if (metricSalaryNote) {
     const breakdownGroups = [

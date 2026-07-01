@@ -5875,6 +5875,7 @@ h3,
   }
 
   .dealer-page .salary-breakdown,
+  .dealer-page .salary-total-card,
   .dealer-page .salary-breakdown + .metric-card {
     grid-column: span 2;
   }
@@ -6016,6 +6017,23 @@ h3,
   font-size: 17px;
   font-weight: 650;
   padding: 4px 0;
+}
+
+.dealer-page .salary-total-card {
+  grid-column: span 2;
+  background:
+    radial-gradient(circle at 82% 82%, rgba(225, 176, 69, 0.16), transparent 32%),
+    linear-gradient(145deg, rgba(209, 165, 55, 0.13), rgba(255, 255, 255, 0.03));
+}
+
+.dealer-page .salary-total-card::before {
+  background: #e1b045;
+}
+
+.dealer-page .salary-total-card strong {
+  color: #ffe7a3;
+  font-size: clamp(30px, 3.1vw, 42px);
+  font-weight: 780;
 }
 
 .dealer-page .salary-breakdown {
