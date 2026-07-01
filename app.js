@@ -293,18 +293,26 @@ function detectSalaryBank(record) {
 
 function calculateSalary(dealerName) {
   const rate = getDealerRate(dealerName);
-  const expenseCards = getDealerExpense(dealerName);
+  const rawExpenseCards = getDealerExpense(dealerName);
+  const expenseCards = rate === 500 ? Math.max(1, rawExpenseCards) : rawExpenseCards;
   const extraPay = getDealerExtraPay(dealerName);
   const blastDeduct = getDealerBlastDeduct(dealerName);
   const expiredRecords = records.filter((record) => record.dealerName === dealerName && salaryStatuses.has(record.status));
-  const fullBanks = new Set(["MBB", "CIMB", "AFFIN", "AGRO", "MUAMALAT", "RHB", "HLB", "RAKYAT", "AMBANK", "ALLIANCE"]);
-  const halfBanks = new Set(["BSN", "BANK ISLAM"]);
-  const performanceHalfBanks = new Set(["BSN"]);
+  const fullBanks = rate === 500
+    ? new Set(["MBB", "CIMB", "AMBANK", "AFFIN", "AGRO", "MUAMALAT", "ALLIANCE"])
+    : new Set(["MBB", "CIMB", "AFFIN", "AGRO", "MUAMALAT", "RHB", "HLB", "RAKYAT", "AMBANK", "ALLIANCE"]);
+  const performanceHalfBanks = rate === 500
+    ? new Set(["RHB", "HLB"])
+    : new Set(["BSN"]);
+  const nonPerformanceHalfBanks = rate === 500
+    ? new Set(["BANK ISLAM", "BSN"])
+    : new Set(["BANK ISLAM"]);
   const fullPay = rate === 500 ? 500 : 300;
-  const halfPay = rate === 500 ? 200 : 150;
+  const performanceHalfPay = rate === 500 ? 250 : 150;
+  const nonPerformanceHalfPay = rate === 500 ? 150 : 150;
   let fullCount = 0;
-  let halfCount = 0;
   let performanceHalfCount = 0;
+  let nonPerformanceHalfCount = 0;
   let compensationCount = 0;
   let cardPay = 0;
 
@@ -318,10 +326,12 @@ function calculateSalary(dealerName) {
     if (fullBanks.has(bank)) {
       fullCount += 1;
       cardPay += fullPay;
-    } else if (halfBanks.has(bank)) {
-      halfCount += 1;
-      cardPay += halfPay;
-      if (performanceHalfBanks.has(bank)) performanceHalfCount += 1;
+    } else if (performanceHalfBanks.has(bank)) {
+      performanceHalfCount += 1;
+      cardPay += performanceHalfPay;
+    } else if (nonPerformanceHalfBanks.has(bank)) {
+      nonPerformanceHalfCount += 1;
+      cardPay += nonPerformanceHalfPay;
     }
   }
 
@@ -332,14 +342,14 @@ function calculateSalary(dealerName) {
   const paidPerformanceHalfCount = Math.max(0, performanceHalfCount - remainingExpenseCards);
   remainingExpenseCards = Math.max(0, remainingExpenseCards - performanceHalfCount);
   const paidCompensationCount = Math.max(0, compensationCount - remainingExpenseCards);
-  const nonPerformanceHalfCount = Math.max(0, halfCount - performanceHalfCount);
   const paidPerformanceCount = paidFullCount + paidPerformanceHalfCount + paidCompensationCount;
   const basePay = rate === 500
     ? (paidPerformanceCount >= 10 ? 1500 : 0)
     : (paidPerformanceCount >= 7 ? 1500 : paidPerformanceCount >= 3 ? 700 : 0);
   const bonus = paidPerformanceCount >= 15 ? paidPerformanceCount * 50 : 0;
   const paidCardPay = (paidFullCount * fullPay)
-    + ((paidPerformanceHalfCount + nonPerformanceHalfCount) * halfPay)
+    + (paidPerformanceHalfCount * performanceHalfPay)
+    + (nonPerformanceHalfCount * nonPerformanceHalfPay)
     + (paidCompensationCount * 150);
 
   return {
@@ -359,7 +369,9 @@ function calculateSalary(dealerName) {
     paidOriginalCount: paidFullCount,
     paidPerformanceHalfCount,
     paidCompensationCount,
-    halfCount,
+    halfCount: performanceHalfCount + nonPerformanceHalfCount,
+    performanceHalfCount,
+    nonPerformanceHalfCount,
     bonus
   };
 }
@@ -1429,7 +1441,7 @@ function renderDealerMetrics(dealerRecords) {
   metricSalary.textContent = `RM${salaryInfo.salary}`;
   if (metricSalaryNote) {
     metricSalaryNote.textContent =
-      `原价${salaryInfo.fullCount} · 半价${salaryInfo.halfCount} · 赔150 ${salaryInfo.compensationCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 卡钱RM${salaryInfo.cardPay} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay} · 上月炸扣RM${salaryInfo.blastDeduct}`;
+      `原价${salaryInfo.fullCount} · 半价算业绩${salaryInfo.performanceHalfCount} · 半价不算${salaryInfo.nonPerformanceHalfCount} · 赔150 ${salaryInfo.compensationCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 卡钱RM${salaryInfo.cardPay} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay} · 上月炸扣RM${salaryInfo.blastDeduct}`;
   }
   metricUpdated.textContent = lastUpdated ? formatTime(lastUpdated) : "-";
   if (dealerRate) dealerRate.value = String(salaryInfo.rate);
