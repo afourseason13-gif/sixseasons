@@ -2,6 +2,7 @@ const express = require("express");
 const admin = require("firebase-admin");
 const WebSocket = require("ws");
 const { createWorker } = require("tesseract.js");
+const https = require("https");
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -37,6 +38,10 @@ const db = admin.database();
 
 function clean(value) {
   return String(value || "").trim();
+}
+
+function normalizeBankAccount(value) {
+  return String(value || "").replace(/\D/g, "");
 }
 
 function firebaseKey(value) {
@@ -432,29 +437,12 @@ function buildTelegramFormattedDetails(fields, ccidResult) {
 }
 
 async function checkCcidBankAccount(accountNumber) {
-  const account = clean(accountNumber).replace(/\D/g, "");
+  const account = normalizeBankAccount(accountNumber);
   if (account.length < 3) {
     return { checked: false, account, searchCount: 0, reportCount: 0, statusText: "CHECK FAILED" };
   }
   try {
-    const response = await fetchWithTimeout("https://semakmule.rmp.gov.my/api/mule/get_search_data.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": "j3j389#nklala2"
-      },
-      body: JSON.stringify({
-        data: {
-          category: "bank",
-          bankAccount: account,
-          telNo: "",
-          companyName: "",
-          captcha: "",
-          captchaHash: ""
-        }
-      })
-    }, 18000);
-    const data = await response.json();
+    const data = await postCcidSearch(account);
     if (Number(data?.status) !== 1) {
       return { checked: false, account, searchCount: 0, reportCount: 0, statusText: "CHECK FAILED" };
     }
@@ -949,7 +937,7 @@ function formatSignedRecordDetails(record) {
   const name = recordDetailValue(record, "customerName", ["NAMA", "NAME"]);
   const ic = recordDetailValue(record, "icNumber", ["IC NO", "IC"]);
   const bank = recordDetailValue(record, "bankName", ["BANK", "NAMA BANK"]);
-  const account = recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]);
+  const account = normalizeBankAccount(recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]));
   const cardLabel = clean(record?.cardNumber) || recordDetailValue(record, "cardNumber", ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
   const fullCard = clean(record?.receivedCardNumber)
     || pickLineValue(clean(record?.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"])
@@ -979,8 +967,10 @@ function formatSignedRecordDetails(record) {
 }
 
 async function ensureRecordCcidStatus(record) {
-  if (clean(record?.ccidStatusLine) || /CCID status:/i.test(clean(record?.formattedDetails))) return record;
-  const account = recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]);
+  const savedCcidLine = clean(record?.ccidStatusLine)
+    || (clean(record?.formattedDetails).match(/CCID status:.+/i)?.[0] || "");
+  if (savedCcidLine && !/CHECK FAILED/i.test(savedCcidLine)) return record;
+  const account = normalizeBankAccount(recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]));
   const ccidResult = await checkCcidBankAccount(account);
   const ccidLine = ccidStatusLine(ccidResult);
   const updatedRecord = {
@@ -1324,7 +1314,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
   const bankName = detectBank(text);
   const shipment = parseShipmentCode(text);
   const cardNumber = displayCardNumber(text, bankName);
-  const bankAccount = pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]);
+  const bankAccount = normalizeBankAccount(pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]));
   const ccidResult = await checkCcidBankAccount(bankAccount);
   const formattedDetailsWithCcid = buildTelegramFormattedDetails({
     name: pickLineValue(text, ["NAMA", "NAME"]),
@@ -1784,6 +1774,74 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
     return await fetch(url, { ...options, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+function postJsonWithInsecureTls(url, payload, headers = {}, timeoutMs = 18000) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const request = https.request(url, {
+      method: "POST",
+      rejectUnauthorized: false,
+      timeout: timeoutMs,
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(body),
+        ...headers
+      }
+    }, (response) => {
+      let responseBody = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => {
+        responseBody += chunk;
+      });
+      response.on("end", () => {
+        try {
+          resolve(JSON.parse(responseBody));
+        } catch (error) {
+          reject(new Error(`Invalid JSON response: ${responseBody.slice(0, 120)}`));
+        }
+      });
+    });
+    request.on("timeout", () => {
+      request.destroy(new Error("request_timeout"));
+    });
+    request.on("error", reject);
+    request.write(body);
+    request.end();
+  });
+}
+
+async function postCcidSearch(account) {
+  const payload = {
+    data: {
+      category: "bank",
+      bankAccount: normalizeBankAccount(account),
+      telNo: "",
+      companyName: "",
+      captcha: "",
+      captchaHash: ""
+    }
+  };
+  const headers = {
+    apikey: "j3j389#nklala2",
+    Origin: "https://semakmule.rmp.gov.my",
+    Referer: "https://semakmule.rmp.gov.my/",
+    "User-Agent": "Mozilla/5.0"
+  };
+  try {
+    const response = await fetchWithTimeout("https://semakmule.rmp.gov.my/api/mule/get_search_data.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers
+      },
+      body: JSON.stringify(payload)
+    }, 18000);
+    return await response.json();
+  } catch (error) {
+    if (!/certificate|UNABLE_TO_VERIFY|SELF_SIGNED|TLS|fetch failed/i.test(error.message || "")) throw error;
+    return await postJsonWithInsecureTls("https://semakmule.rmp.gov.my/api/mule/get_search_data.php", payload, headers, 18000);
   }
 }
 
