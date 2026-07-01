@@ -1439,8 +1439,27 @@ function renderDealerMetrics(dealerRecords) {
   metricExpired.textContent = String(salaryInfo.expiredCount);
   metricSalary.textContent = `RM${salaryInfo.salary}`;
   if (metricSalaryNote) {
-    metricSalaryNote.textContent =
-      `原价${salaryInfo.fullCount} · 半价算业绩${salaryInfo.performanceHalfCount} · 半价不算${salaryInfo.nonPerformanceHalfCount} · 赔150 ${salaryInfo.compensationCount} · 业绩${salaryInfo.performanceCount} · 开销${salaryInfo.expenseCards} · 计薪${salaryInfo.paidFullCount} · 加钱张${salaryInfo.bonusEligibleCount} · 卡钱RM${salaryInfo.cardPay} · 底薪RM${salaryInfo.basePay} · 加钱RM${salaryInfo.bonus} · 额外RM${salaryInfo.extraPay} · 上月炸扣RM${salaryInfo.blastDeduct}`;
+    const breakdownItems = [
+      ["原价", salaryInfo.fullCount],
+      ["半价业绩", salaryInfo.performanceHalfCount],
+      ["半价不算", salaryInfo.nonPerformanceHalfCount],
+      ["赔150", salaryInfo.compensationCount],
+      ["业绩", salaryInfo.performanceCount],
+      ["开销", salaryInfo.expenseCards],
+      ["计薪", salaryInfo.paidFullCount],
+      ["加钱张", salaryInfo.bonusEligibleCount],
+      ["卡钱", `RM${salaryInfo.cardPay}`],
+      ["底薪", `RM${salaryInfo.basePay}`],
+      ["加钱", `RM${salaryInfo.bonus}`],
+      ["额外", `RM${salaryInfo.extraPay}`],
+      ["上月炸扣", `RM${salaryInfo.blastDeduct}`]
+    ];
+    metricSalaryNote.innerHTML = breakdownItems.map(([label, value]) => `
+      <span class="salary-chip">
+        <small>${escapeHtml(label)}</small>
+        <b>${escapeHtml(value)}</b>
+      </span>
+    `).join("");
   }
   metricUpdated.textContent = lastUpdated ? formatTime(lastUpdated) : "-";
   if (dealerRate) dealerRate.value = String(salaryInfo.rate);
