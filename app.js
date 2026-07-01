@@ -299,7 +299,7 @@ function calculateSalary(dealerName) {
   const blastDeduct = getDealerBlastDeduct(dealerName);
   const expiredRecords = records.filter((record) => record.dealerName === dealerName && salaryStatuses.has(record.status));
   const fullBanks = rate === 500
-    ? new Set(["MBB", "CIMB", "AMBANK", "AFFIN", "AGRO", "MUAMALAT", "ALLIANCE"])
+    ? new Set(["MBB", "CIMB", "AMBANK", "AFFIN", "AGRO", "MUAMALAT", "ALLIANCE", "RAKYAT"])
     : new Set(["MBB", "CIMB", "AFFIN", "AGRO", "MUAMALAT", "RHB", "HLB", "RAKYAT", "AMBANK", "ALLIANCE"]);
   const performanceHalfBanks = rate === 500
     ? new Set(["RHB", "HLB"])
