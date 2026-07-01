@@ -428,11 +428,11 @@ function buildTelegramFormattedDetails(fields, ccidResult) {
     "----------------------",
     `*NO KAD* : ${clean(fields.card)}`,
     "",
-    `*PIN KAD ATM* : ${clean(fields.pin)}`,
-    "",
-    "===============",
-    ccidStatusLine(ccidResult)
+    `*PIN KAD ATM* : ${clean(fields.pin)}`
   ];
+  if (ccidResult) {
+    lines.push("", "===============", ccidStatusLine(ccidResult));
+  }
   return lines.join("\n");
 }
 
@@ -1133,16 +1133,17 @@ async function applyRecordCommand(command) {
       record = { ...record, ...updateData };
     }
     await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
+    const readyRecord = await ensureRecordCcidStatus({ ...record, ...updateData, key: record.key });
     return {
       ok: true,
-      cardNumber: record.cardNumber || command.cardToken,
+      cardNumber: readyRecord.cardNumber || command.cardToken,
       cardToken: command.cardToken,
       parcelToken: command.parcelToken || "",
       cardChanged: Boolean(updateData.cardNumber),
       originalCardNumber: savedCard || "",
       newCardNumber: updateData.cardNumber || "",
       status: "车手已签收",
-      record
+      record: readyRecord
     };
   }
 
@@ -1315,15 +1316,14 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
   const shipment = parseShipmentCode(text);
   const cardNumber = displayCardNumber(text, bankName);
   const bankAccount = normalizeBankAccount(pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]));
-  const ccidResult = await checkCcidBankAccount(bankAccount);
-  const formattedDetailsWithCcid = buildTelegramFormattedDetails({
+  const formattedDetails = buildTelegramFormattedDetails({
     name: pickLineValue(text, ["NAMA", "NAME"]),
     ic: pickLineValue(text, ["IC NO", "IC"]),
     bank: rawBankName || bankName,
     account: bankAccount,
     card: rawCardNumber || cardNumber,
     pin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
-  }, ccidResult);
+  });
   const now = new Date().toISOString();
   const recordsSnapshot = await db.ref("dealer-card-tracker/records").get();
   const existingRecords = Object.entries(recordsSnapshot.val() || {}).map(([id, record]) => ({ id, ...record }));
@@ -1384,12 +1384,12 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
       carrier: shipment.carrier || detectCarrier(text, shipment.carrierCode),
       trackingNumber: isFullTrackingNumber(shipment.trackingNumber) ? shipment.trackingNumber : "",
       tailNumber: shipment.tailNumber,
-      formattedDetails: formattedDetailsWithCcid,
-      ccidStatus: ccidResult.statusText,
-      ccidSearchCount: ccidResult.searchCount,
-      ccidReportCount: ccidResult.reportCount,
-      ccidCheckedAt: ccidResult.checkedAt || now,
-      ccidStatusLine: ccidStatusLine(ccidResult),
+      formattedDetails,
+      ccidStatus: "",
+      ccidSearchCount: 0,
+      ccidReportCount: 0,
+      ccidCheckedAt: "",
+      ccidStatusLine: "",
       telegramMessageId: String(telegramMessageId || ""),
       createdAt: now,
       updatedAt: now
@@ -1415,12 +1415,12 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
     bankAccount,
     cardNumber,
     atmPin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]),
-    formattedDetails: formattedDetailsWithCcid,
-    ccidStatus: ccidResult.statusText,
-    ccidSearchCount: ccidResult.searchCount,
-    ccidReportCount: ccidResult.reportCount,
-    ccidCheckedAt: ccidResult.checkedAt || now,
-    ccidStatusLine: ccidStatusLine(ccidResult),
+    formattedDetails,
+    ccidStatus: existingRecord?.ccidStatus || "",
+    ccidSearchCount: existingRecord?.ccidSearchCount || 0,
+    ccidReportCount: existingRecord?.ccidReportCount || 0,
+    ccidCheckedAt: existingRecord?.ccidCheckedAt || "",
+    ccidStatusLine: existingRecord?.ccidStatusLine || "",
     carrier: nextCarrier,
     trackingNumber: nextTrackingNumber,
     trackingMoreCourierCode: trackingMoreCourierCode(shipment.carrierCode) || existingRecord?.trackingMoreCourierCode || "",
