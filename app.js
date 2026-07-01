@@ -1439,25 +1439,38 @@ function renderDealerMetrics(dealerRecords) {
   metricExpired.textContent = String(salaryInfo.expiredCount);
   metricSalary.textContent = `RM${salaryInfo.salary}`;
   if (metricSalaryNote) {
-    const breakdownItems = [
-      ["原价", salaryInfo.fullCount, "count"],
-      ["半价业绩", salaryInfo.performanceHalfCount, "count"],
-      ["半价不算", salaryInfo.nonPerformanceHalfCount, "muted"],
-      ["赔150", salaryInfo.compensationCount, "count"],
-      ["业绩", salaryInfo.performanceCount, "accent"],
-      ["开销", salaryInfo.expenseCards, "deduct"],
-      ["计薪", salaryInfo.paidFullCount, "accent"],
-      ["加钱张", salaryInfo.bonusEligibleCount, "count"],
-      ["卡钱", `RM${salaryInfo.cardPay}`, "money"],
-      ["底薪", `RM${salaryInfo.basePay}`, "money"],
-      ["加钱", `RM${salaryInfo.bonus}`, "money"],
-      ["额外", `RM${salaryInfo.extraPay}`, "money"],
-      ["上月炸扣", `RM${salaryInfo.blastDeduct}`, "deduct"]
+    const breakdownGroups = [
+      ["卡量结构", "cards", [
+        ["原价", salaryInfo.fullCount, "main"],
+        ["半价算业绩", salaryInfo.performanceHalfCount, "normal"],
+        ["半价不算", salaryInfo.nonPerformanceHalfCount, "muted"],
+        ["赔150", salaryInfo.compensationCount, "normal"]
+      ]],
+      ["计薪口径", "calc", [
+        ["业绩", salaryInfo.performanceCount, "main"],
+        ["开销扣卡", salaryInfo.expenseCards, "deduct"],
+        ["计薪原价", salaryInfo.paidFullCount, "main"],
+        ["加钱张数", salaryInfo.bonusEligibleCount, "normal"]
+      ]],
+      ["金额结算", "money", [
+        ["卡钱", `RM${salaryInfo.cardPay}`, "main"],
+        ["底薪", `RM${salaryInfo.basePay}`, "main"],
+        ["加钱", `RM${salaryInfo.bonus}`, "normal"],
+        ["额外", `RM${salaryInfo.extraPay}`, "normal"],
+        ["上月炸扣", `RM${salaryInfo.blastDeduct}`, "deduct"]
+      ]]
     ];
-    metricSalaryNote.innerHTML = breakdownItems.map(([label, value, tone]) => `
-      <span class="salary-chip salary-chip-${escapeHtml(tone)}">
-        <small>${escapeHtml(label)}</small>
-        <b>${escapeHtml(value)}</b>
+    metricSalaryNote.innerHTML = breakdownGroups.map(([title, tone, items]) => `
+      <span class="salary-group salary-group-${escapeHtml(tone)}">
+        <small class="salary-group-title">${escapeHtml(title)}</small>
+        <span class="salary-group-lines">
+          ${items.map(([label, value, emphasis]) => `
+            <span class="salary-line salary-line-${escapeHtml(emphasis)}">
+              <b>${escapeHtml(label)}</b>
+              <small>${escapeHtml(value)}</small>
+            </span>
+          `).join("")}
+        </span>
       </span>
     `).join("");
   }
