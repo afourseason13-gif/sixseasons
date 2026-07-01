@@ -336,12 +336,9 @@ function calculateSalary(dealerName) {
   }
 
   const performanceCount = fullCount + performanceHalfCount + compensationCount;
-  let remainingExpenseCards = expenseCards;
-  const paidFullCount = Math.max(0, fullCount - remainingExpenseCards);
-  remainingExpenseCards = Math.max(0, remainingExpenseCards - fullCount);
-  const paidPerformanceHalfCount = Math.max(0, performanceHalfCount - remainingExpenseCards);
-  remainingExpenseCards = Math.max(0, remainingExpenseCards - performanceHalfCount);
-  const paidCompensationCount = Math.max(0, compensationCount - remainingExpenseCards);
+  const paidFullCount = Math.max(0, fullCount - expenseCards);
+  const paidPerformanceHalfCount = performanceHalfCount;
+  const paidCompensationCount = compensationCount;
   const paidPerformanceCount = paidFullCount + paidPerformanceHalfCount + paidCompensationCount;
   const basePay = rate === 500
     ? (paidPerformanceCount >= 10 ? 1500 : 0)
