@@ -5960,7 +5960,7 @@ h3,
 
 .dealer-page .metric-card {
   position: relative;
-  min-height: 104px;
+  min-height: 92px;
   display: grid;
   align-content: space-between;
   overflow: hidden;
@@ -6020,7 +6020,8 @@ h3,
 }
 
 .dealer-page .salary-total-card {
-  grid-column: span 2;
+  grid-column: span 1;
+  order: 5;
   background:
     radial-gradient(circle at 82% 82%, rgba(225, 176, 69, 0.16), transparent 32%),
     linear-gradient(145deg, rgba(209, 165, 55, 0.13), rgba(255, 255, 255, 0.03));
@@ -6032,12 +6033,35 @@ h3,
 
 .dealer-page .salary-total-card strong {
   color: #ffe7a3;
-  font-size: clamp(30px, 3.1vw, 42px);
-  font-weight: 780;
+  font-size: clamp(25px, 2vw, 33px);
+  font-weight: 850;
+  letter-spacing: 0.01em;
+}
+
+.dealer-page .metric-card:has(#metricUpdated) {
+  grid-column: span 1;
+  order: 6;
+  background:
+    radial-gradient(circle at 88% 88%, rgba(93, 200, 184, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(58, 128, 170, 0.13), rgba(255, 255, 255, 0.035));
+}
+
+.dealer-page .metric-card:has(#metricUpdated)::before {
+  background: #5fd6c5;
+}
+
+.dealer-page .metric-card:has(#metricUpdated) strong {
+  color: #ffffff;
+  font-size: clamp(24px, 2.2vw, 35px);
+  font-weight: 900;
+  letter-spacing: 0.015em;
+  line-height: 0.95;
+  text-shadow: 0 14px 34px rgba(95, 214, 197, 0.2);
 }
 
 .dealer-page .salary-breakdown {
-  grid-column: span 4;
+  grid-column: 1 / -1;
+  order: 7;
   min-height: 184px;
   align-content: start;
   background:
@@ -6046,7 +6070,7 @@ h3,
 }
 
 .dealer-page .salary-breakdown + .metric-card {
-  grid-column: span 2;
+  grid-column: span 1;
   background:
     linear-gradient(110deg, rgba(58, 128, 170, 0.13), rgba(255, 255, 255, 0.035));
 }
