@@ -6728,7 +6728,7 @@ h3,
 /* Final shipment monitor layout: premium look without horizontal scrolling. */
 .index-page .home-transit-board {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(190px, 235px) minmax(0, 1fr);
   align-items: stretch;
   border: 1px solid rgba(157, 193, 187, 0.18);
   border-radius: 10px;
@@ -6741,19 +6741,19 @@ h3,
 }
 
 .index-page .home-transit-board .card-finder-heading {
-  min-height: 168px;
+  min-height: 122px;
   display: grid;
   align-content: center;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   background:
     linear-gradient(180deg, rgba(18, 115, 101, 0.24), rgba(9, 43, 40, 0.12)),
     rgba(255, 255, 255, 0.02);
-  padding: 24px 28px;
+  padding: 18px 22px;
 }
 
 .index-page .home-transit-board .card-finder-heading h2 {
   color: #fff;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.18;
 }
 
@@ -6764,7 +6764,7 @@ h3,
 
 .index-page .home-transit-board .card-finder-count {
   width: fit-content;
-  margin-top: 12px;
+  margin-top: 8px;
   border: 1px solid rgba(99, 220, 192, 0.24);
   border-radius: 999px;
   background: rgba(99, 220, 192, 0.09);
@@ -6774,7 +6774,7 @@ h3,
 
 .index-page .home-transit-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
   gap: 0;
   width: 100%;
   min-width: 0;
@@ -6785,10 +6785,10 @@ h3,
 .index-page .home-transit-item {
   width: auto;
   min-width: 0;
-  min-height: 132px;
+  min-height: 96px;
   display: grid;
   align-content: center;
-  gap: 8px;
+  gap: 6px;
   border: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -6796,7 +6796,7 @@ h3,
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.005));
   color: #fff;
-  padding: 20px 22px;
+  padding: 14px 18px;
   box-shadow: none;
 }
 
@@ -6810,14 +6810,14 @@ h3,
 
 .index-page .home-transit-item strong {
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.1;
   overflow-wrap: anywhere;
 }
 
 .index-page .home-transit-item span {
   color: rgba(232, 242, 241, 0.55);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -6828,14 +6828,14 @@ h3,
   border-radius: 4px;
   background: rgba(104, 201, 181, 0.1);
   color: #74e6d0;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 3px 7px;
+  font-size: 10px;
   font-style: normal;
 }
 
 .index-page .home-transit-empty {
   grid-column: 1 / -1;
-  min-height: 132px;
+  min-height: 96px;
   display: grid;
   place-items: center;
   border: 0;
@@ -6865,7 +6865,7 @@ h3,
   }
 
   .index-page .home-transit-item {
-    min-height: 104px;
-    padding: 16px 18px;
+    min-height: 86px;
+    padding: 13px 16px;
   }
 }
