@@ -6202,37 +6202,42 @@ h3,
 
 .dealer-workbench {
   position: relative;
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid #d1dbd8;
-  border-radius: 8px;
-  background: #f8faf9;
-  box-shadow: 0 24px 58px rgba(18, 48, 49, 0.13);
+  gap: 14px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   padding: 0;
 }
 
 .dealer-page .status-board {
+  overflow: hidden;
   gap: 0;
-  border: 0;
-  background: #f8faf9;
+  border: 1px solid #d2ddda;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 10% 5%, rgba(8, 127, 112, 0.09), transparent 30%),
+    linear-gradient(180deg, #fbfdfc 0%, #f3f7f6 100%);
+  box-shadow: 0 18px 42px rgba(20, 43, 45, 0.1);
 }
 
 .dealer-page .status-board-card,
 .dealer-page .status-board-card + .status-board-card {
-  min-height: 370px;
+  min-height: 330px;
   border: 0;
   border-right: 1px solid #d6dfdc;
   background:
-    linear-gradient(180deg, rgba(20, 129, 113, 0.055), transparent 38%),
-    #f8faf9;
-  padding: 30px 27px;
+    linear-gradient(180deg, rgba(20, 129, 113, 0.075), transparent 44%),
+    rgba(255, 255, 255, 0.56);
+  padding: 28px 26px;
 }
 
 .dealer-page .status-board-card + .status-board-card {
   border-right: 0;
   background:
-    linear-gradient(180deg, rgba(190, 75, 68, 0.055), transparent 38%),
-    #f8faf9;
+    linear-gradient(180deg, rgba(190, 75, 68, 0.075), transparent 44%),
+    rgba(255, 255, 255, 0.54);
 }
 
 .dealer-page .status-board-card::before {
@@ -6249,15 +6254,16 @@ h3,
 
 .dealer-page .status-board-head {
   align-items: end;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   border-bottom: 1px solid #d8e1df;
-  padding-bottom: 18px;
+  padding-bottom: 16px;
 }
 
 .dealer-page .status-board-head h2 {
   color: #11272a;
-  font-size: 26px;
-  font-weight: 680;
+  font-size: 24px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
 }
 
 .dealer-page .status-board-head span {
@@ -6271,11 +6277,11 @@ h3,
 
 .dealer-page .status-board-list {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 18px;
+  gap: 6px 16px;
 }
 
 .dealer-page .status-board-item {
-  min-height: 52px;
+  min-height: 48px;
   display: flex;
   align-items: flex-start;
   flex-direction: column;
@@ -6313,18 +6319,19 @@ h3,
 }
 
 .dealer-page .blast-deduct-panel {
-  margin-top: 22px;
-  border: 1px solid #ead8d5;
-  border-radius: 7px;
+  margin-top: 18px;
+  border: 1px solid rgba(196, 91, 84, 0.2);
+  border-radius: 9px;
   background:
-    linear-gradient(135deg, rgba(190, 75, 68, 0.08), rgba(255, 255, 255, 0.78)),
-    #fff;
+    radial-gradient(circle at 95% 0%, rgba(190, 75, 68, 0.1), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 245, 0.8));
   padding: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .dealer-page .blast-deduct-head {
   display: grid;
-  grid-template-columns: 1fr 118px;
+  grid-template-columns: 1fr 106px;
   gap: 12px;
   align-items: end;
   margin-bottom: 10px;
@@ -6333,14 +6340,15 @@ h3,
 .dealer-page .blast-deduct-head h3 {
   margin: 3px 0 0;
   color: #14272a;
-  font-size: 18px;
+  font-size: 17px;
+  font-weight: 820;
 }
 
 .dealer-page .blast-deduct-head input,
 .dealer-page .blast-deduct-panel textarea {
   width: 100%;
   border: 1px solid #d9c8c5;
-  border-radius: 5px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.84);
   color: #172d30;
   font-size: 12px;
@@ -6353,33 +6361,38 @@ h3,
 }
 
 .dealer-page .blast-deduct-panel textarea {
-  min-height: 92px;
+  min-height: 72px;
   resize: vertical;
   line-height: 1.45;
 }
 
 .dealer-page #recordFormPanel,
 .dealer-page .status-panel {
-  border: 0;
-  border-left: 1px solid #d1dbd8;
-  border-radius: 0;
+  border: 1px solid #d2ddda;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: none;
+  box-shadow: 0 18px 42px rgba(20, 43, 45, 0.08);
 }
 
 .dealer-page #recordFormPanel {
   border-top: 4px solid #087f70;
+  background:
+    linear-gradient(135deg, rgba(8, 127, 112, 0.04), transparent 50%),
+    #fff;
 }
 
 .dealer-page .status-panel {
   border-top: 4px solid #c19543;
+  background:
+    linear-gradient(135deg, rgba(193, 149, 67, 0.06), transparent 52%),
+    #fff;
 }
 
 .dealer-page .panel-summary,
 .dealer-page .status-panel > summary {
-  min-height: 132px;
+  min-height: 104px;
   align-items: end;
-  padding: 25px 22px 22px;
+  padding: 22px;
 }
 
 .dealer-page .panel-summary h2,
