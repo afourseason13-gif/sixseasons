@@ -7006,3 +7006,123 @@ h3,
     grid-template-columns: 1fr;
   }
 }
+
+/* Compact notice strip and collapsible broadcast tool */
+.index-page .home-communications-grid {
+  grid-template-columns: 1fr;
+  margin: -44px auto 14px;
+}
+
+.index-page .home-communications-grid .notice-panel {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(170px, 230px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  border-radius: 10px;
+  padding: 13px 18px;
+}
+
+.index-page .home-communications-grid .notice-view {
+  align-items: center;
+  margin: 0;
+}
+
+.index-page .home-communications-grid .notice-view h2 {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.index-page .home-communications-grid .notice-message {
+  margin: 0;
+  border-left-width: 2px;
+  padding: 10px 16px;
+  font-size: clamp(14px, 1.35vw, 18px);
+  line-height: 1.28;
+}
+
+.index-page .home-communications-grid .notice-form {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.index-page .announce-collapsible {
+  width: min(1380px, calc(100% - 72px));
+  margin: 0 auto 18px;
+  border: 1px solid #d7dfdd;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(19, 124, 116, 0.06), transparent 44%),
+    #fff;
+  padding: 0;
+  box-shadow: 0 14px 34px rgba(20, 43, 45, 0.07);
+}
+
+.index-page .announce-collapsible > summary {
+  cursor: pointer;
+  list-style: none;
+  margin: 0;
+  padding: 16px 20px;
+}
+
+.index-page .announce-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+.index-page .announce-collapsible > summary::after {
+  content: "展开";
+  border: 1px solid #cbdad6;
+  border-radius: 999px;
+  background: #f2f7f5;
+  color: #285f57;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.index-page .announce-collapsible[open] > summary::after {
+  content: "收起";
+}
+
+.index-page .announce-collapsible .notice-view {
+  align-items: center;
+  border-bottom: 0;
+}
+
+.index-page .announce-collapsible .notice-view h2 {
+  font-size: 19px;
+}
+
+.index-page .announce-collapsible .announce-status {
+  margin-left: auto;
+}
+
+.index-page .announce-collapsible .announce-form {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  border-top: 1px solid #d8e1df;
+  padding: 18px 20px 20px;
+}
+
+@media (max-width: 900px) {
+  .index-page .home-communications-grid {
+    width: calc(100% - 20px);
+    margin: -42px auto 12px;
+  }
+
+  .index-page .home-communications-grid .notice-panel {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .index-page .home-communications-grid .notice-edit {
+    width: fit-content;
+  }
+
+  .index-page .announce-collapsible {
+    width: calc(100% - 20px);
+  }
+
+  .index-page .announce-collapsible .announce-form {
+    grid-template-columns: 1fr;
+  }
+}

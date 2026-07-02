@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260702-notice-strip" />
+    <link rel="stylesheet" href="./styles.css?v=20260702-compact-notice" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -63,28 +63,6 @@
         </form>
       </section>
 
-      <section class="announce-panel" aria-label="发送群公告">
-        <div class="notice-view">
-          <div>
-            <p class="eyebrow">TELEGRAM BROADCAST</p>
-            <h2>群组公告发布</h2>
-          </div>
-          <span class="announce-status" id="announceStatus">Telegram Bot</span>
-        </div>
-        <form id="announceForm" class="announce-form" autocomplete="off">
-          <label class="wide">
-            <span>公告内容</span>
-            <textarea id="announceMessage" rows="4" placeholder="输入要发到 Telegram 群的公告"></textarea>
-          </label>
-          <div class="announce-side">
-            <label>
-              <span>公告密码</span>
-              <input id="announceSecret" type="password" placeholder="Render 里设置的密码" />
-            </label>
-            <button class="primary" type="submit">发送到群</button>
-          </div>
-        </form>
-      </section>
       </section>
 
       <section class="home-command-grid" aria-label="核心工具">
@@ -140,6 +118,29 @@
         </div>
         <div class="unknown-card-list" id="unknownCardList"></div>
       </section>
+
+      <details class="announce-panel announce-collapsible" aria-label="发送群公告">
+        <summary class="notice-view">
+          <div>
+            <p class="eyebrow">TELEGRAM BROADCAST</p>
+            <h2>群组公告发布</h2>
+          </div>
+          <span class="announce-status" id="announceStatus">Telegram Bot</span>
+        </summary>
+        <form id="announceForm" class="announce-form" autocomplete="off">
+          <label class="wide">
+            <span>公告内容</span>
+            <textarea id="announceMessage" rows="4" placeholder="输入要发到 Telegram 群的公告"></textarea>
+          </label>
+          <div class="announce-side">
+            <label>
+              <span>公告密码</span>
+              <input id="announceSecret" type="password" placeholder="Render 里设置的密码" />
+            </label>
+            <button class="primary" type="submit">发送到群</button>
+          </div>
+        </form>
+      </details>
 
       <section class="quote-panel" aria-label="团队语录">
         <p>先斩后奏 · 行走西方 · 取之社会 · 回归社会</p>
