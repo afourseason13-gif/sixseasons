@@ -6882,3 +6882,127 @@ h3,
     padding: 13px 16px;
   }
 }
+
+/* High visibility notice strip */
+.index-page .home-communications-grid {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1.28fr) minmax(340px, 0.72fr);
+  gap: 14px;
+  width: min(1380px, calc(100% - 72px));
+  margin: -54px auto 18px;
+}
+
+.index-page .home-command-grid {
+  margin-top: 0;
+}
+
+.index-page .notice-panel {
+  min-height: 156px;
+  display: grid;
+  align-content: center;
+  border: 1px solid rgba(214, 169, 75, 0.28);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(214, 169, 75, 0.2), transparent 34%),
+    linear-gradient(135deg, #101b1b 0%, #0a2a28 54%, #071211 100%);
+  color: #fff;
+  padding: 22px 28px;
+  box-shadow: 0 24px 58px rgba(6, 24, 25, 0.24);
+}
+
+.index-page .notice-panel .eyebrow {
+  color: #d8b15b;
+}
+
+.index-page .notice-panel .notice-view h2 {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 860;
+}
+
+.index-page .notice-panel .notice-edit {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.index-page .notice-message {
+  min-height: 0;
+  margin-top: 16px;
+  border: 0;
+  border-left: 3px solid #d8b15b;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  padding: 18px 20px;
+  font-size: clamp(18px, 2vw, 26px);
+  font-weight: 850;
+  line-height: 1.4;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.index-page .notice-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.index-page .announce-panel {
+  min-height: 156px;
+  border: 1px solid #d7dfdd;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(19, 124, 116, 0.07), transparent 48%),
+    #fff;
+  padding: 20px 22px;
+  box-shadow: 0 18px 42px rgba(20, 43, 45, 0.09);
+}
+
+.index-page .announce-panel .notice-view {
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #d8e1df;
+  padding-bottom: 12px;
+}
+
+.index-page .announce-panel .notice-view h2 {
+  color: #14272a;
+  font-size: 20px;
+}
+
+.index-page .announce-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 12px;
+  align-items: end;
+}
+
+.index-page .announce-form textarea {
+  min-height: 76px;
+}
+
+.index-page .announce-side {
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .index-page .home-communications-grid {
+    grid-template-columns: 1fr;
+    width: calc(100% - 20px);
+    margin: -50px auto 12px;
+  }
+
+  .index-page .notice-panel,
+  .index-page .announce-panel {
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .index-page .announce-form,
+  .index-page .notice-form {
+    grid-template-columns: 1fr;
+  }
+}
