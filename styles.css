@@ -24,6 +24,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 22% 8%, rgba(14, 107, 99, 0.24), transparent 30%),
     linear-gradient(135deg, #070b10 0%, #111820 44%, #eef2f6 44%, #eef2f6 100%);
@@ -51,11 +52,46 @@ body::before {
 }
 
 body::after {
-  content: "";
+  content: "$";
   position: fixed;
-  inset: 0;
+  top: 42vh;
+  left: 5vw;
   z-index: 0;
+  width: 1px;
+  height: 1px;
+  color: rgba(195, 142, 39, 0.16);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    9vw 6vh 0 rgba(14, 107, 99, 0.1),
+    18vw 21vh 0 rgba(195, 142, 39, 0.13),
+    29vw 10vh 0 rgba(18, 62, 60, 0.08),
+    42vw 28vh 0 rgba(195, 142, 39, 0.16),
+    55vw 7vh 0 rgba(14, 107, 99, 0.11),
+    68vw 22vh 0 rgba(195, 142, 39, 0.12),
+    82vw 13vh 0 rgba(18, 62, 60, 0.08),
+    91vw 31vh 0 rgba(195, 142, 39, 0.14),
+    4vw 48vh 0 rgba(14, 107, 99, 0.08),
+    23vw 42vh 0 rgba(195, 142, 39, 0.12),
+    36vw 58vh 0 rgba(18, 62, 60, 0.08),
+    49vw 46vh 0 rgba(195, 142, 39, 0.15),
+    64vw 62vh 0 rgba(14, 107, 99, 0.09),
+    77vw 51vh 0 rgba(195, 142, 39, 0.12),
+    94vw 67vh 0 rgba(18, 62, 60, 0.08);
+  opacity: 0.78;
+  animation: money-rain 18s linear infinite;
   pointer-events: none;
+}
+
+@keyframes money-rain {
+  0% {
+    transform: translate3d(0, -18vh, 0) rotate(-8deg);
+  }
+
+  100% {
+    transform: translate3d(0, 34vh, 0) rotate(8deg);
+  }
 }
 
 .app-shell {
