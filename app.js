@@ -76,6 +76,7 @@ let saveNotice;
 let resolvePendingImport;
 let deletePendingImport;
 let deleteUnknownDriverCard;
+let assignUnknownDriverCard;
 let dealerPageFillForm = null;
 let firebaseStatusOptionsLoaded = false;
 let parsedDetailsDraft = {};
@@ -452,6 +453,57 @@ function recordFromPendingImport(pending, values) {
   });
 }
 
+function carrierFromParcelToken(parcelToken = "") {
+  const token = normalizeCardLookup(parcelToken);
+  if (token.startsWith("POS")) return "Pos Laju";
+  if (token.startsWith("JNT") || token.startsWith("JT")) return "J&T Express";
+  if (token.startsWith("SPX") || token.startsWith("SHOPEE")) return "SPX Express";
+  if (token.startsWith("NINJA") || token.startsWith("NJV")) return "Ninja Van";
+  if (token.startsWith("DHL")) return "DHL eCommerce";
+  if (token.startsWith("GDEX")) return "GDEX";
+  if (token.startsWith("SKYNET")) return "Skynet Express";
+  return "";
+}
+
+function tailFromParcelToken(parcelToken = "") {
+  const token = normalizeCardLookup(parcelToken);
+  const digitGroups = token.match(/\d+/g) || [];
+  const digits = digitGroups.join("");
+  return (digits || token).slice(-4);
+}
+
+function recordFromUnknownDriverCard(item, dealerName) {
+  const cardNumber = normalizeCardLookup(item.cardToken || "");
+  const existing = records.find((record) => normalizeCardLookup(record.cardNumber) === cardNumber);
+  const now = new Date().toISOString();
+  const sharedValues = {
+    dealerName,
+    cardNumber,
+    carrier: existing?.carrier || carrierFromParcelToken(item.parcelToken) || "其他",
+    tailNumber: existing?.tailNumber || tailFromParcelToken(item.parcelToken),
+    notes: existing?.notes || "从未知卡号分配",
+    updatedAt: now
+  };
+
+  if (existing) {
+    return {
+      ...existing,
+      ...sharedValues
+    };
+  }
+
+  return normalizeRecord({
+    dealerName,
+    cardNumber,
+    carrier: sharedValues.carrier,
+    trackingNumber: "",
+    tailNumber: sharedValues.tailNumber,
+    status: defaultNewRecordStatus,
+    notes: sharedValues.notes,
+    createdAt: item.createdAt || now
+  });
+}
+
 function parseSmartDetails(text) {
   const fields = {
     customerName: ["NAMA", "NAME"],
@@ -619,8 +671,19 @@ function initIndexPage() {
   });
   document.querySelector("#unknownCardList")?.addEventListener("click", async (event) => {
     const card = event.target.closest(".unknown-card-item");
-    if (!card || !event.target.closest(".unknown-card-delete")) return;
-    if (confirm("移除这条未知卡号？")) await deleteUnknownDriverCard(card.dataset.id);
+    if (!card) return;
+    if (event.target.closest(".unknown-card-delete")) {
+      if (confirm("移除这条未知卡号？")) await deleteUnknownDriverCard(card.dataset.id);
+      return;
+    }
+    if (event.target.closest(".unknown-card-assign")) {
+      const dealerName = card.querySelector(".unknown-card-dealer")?.value || "";
+      if (!dealerName) {
+        alert("请先选择 Dealer");
+        return;
+      }
+      await assignUnknownDriverCard(card.dataset.id, dealerName);
+    }
   });
   renderIndexPage();
 }
@@ -685,6 +748,9 @@ function renderUnknownCardCenter() {
     const card = document.createElement("article");
     card.className = "unknown-card-item";
     card.dataset.id = item.id;
+    const dealerOptions = uniqueDealers().map((name) => `
+      <option value="${escapeHtml(name)}">${escapeHtml(name)}</option>
+    `).join("");
     card.innerHTML = `
       <div>
         <span>${escapeHtml(item.parcelToken || "未知包裹")}</span>
@@ -692,7 +758,14 @@ function renderUnknownCardCenter() {
       </div>
       <p>${escapeHtml(item.reason || "车手已收到，但系统找不到对应资料")}</p>
       <time>${escapeHtml(formatTime(item.lastSeenAt || item.createdAt))}</time>
-      <button class="ghost unknown-card-delete" type="button">移除</button>
+      <div class="unknown-card-actions">
+        <select class="unknown-card-dealer">
+          <option value="">选择 Dealer</option>
+          ${dealerOptions}
+        </select>
+        <button class="primary unknown-card-assign" type="button">放入 Dealer</button>
+        <button class="ghost unknown-card-delete" type="button">移除</button>
+      </div>
     `;
     list.append(card);
   }
@@ -1628,6 +1701,15 @@ async function initLocalMode() {
     writeJson(unknownDriverCardsKey, unknownDriverCards);
     renderCurrentPage();
   };
+  assignUnknownDriverCard = async (id, dealerName) => {
+    const item = unknownDriverCards.find((entry) => entry.id === id);
+    if (!item) return;
+    const record = recordFromUnknownDriverCard(item, dealerName);
+    await saveRecord(record);
+    unknownDriverCards = unknownDriverCards.filter((entry) => entry.id !== id);
+    writeJson(unknownDriverCardsKey, unknownDriverCards);
+    renderCurrentPage();
+  };
 
   setSyncStatus("offline", "本机保存，未开启同步");
   await autoExpireWarrantyRecords(saveRecord);
@@ -1717,6 +1799,13 @@ async function initFirebaseMode() {
     };
     deletePendingImport = async (id) => remove(ref(db, `dealer-card-tracker/pendingImports/${id}`));
     deleteUnknownDriverCard = async (id) => remove(ref(db, `dealer-card-tracker/unknownDriverCards/${id}`));
+    assignUnknownDriverCard = async (id, dealerName) => {
+      const item = unknownDriverCards.find((entry) => entry.id === id);
+      if (!item) return;
+      const record = recordFromUnknownDriverCard(item, dealerName);
+      await saveRecord(record);
+      await remove(ref(db, `dealer-card-tracker/unknownDriverCards/${id}`));
+    };
 
     if (!(await get(humanStealingStatusMigrationRef)).val()) {
       await set(ref(db, `dealer-card-tracker/statusOptions/${encodeURIComponent("人头偷钱")}`), {

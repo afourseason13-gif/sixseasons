@@ -6605,9 +6605,30 @@ h3,
 }
 
 .unknown-card-delete {
-  grid-column: 2;
   border-color: rgba(255, 255, 255, 0.18);
   color: #fff;
+}
+
+.unknown-card-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.unknown-card-dealer {
+  min-height: 38px;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.92);
+  color: #10242f;
+  font-weight: 800;
+}
+
+.unknown-card-assign {
+  min-height: 38px;
+  padding-inline: 14px;
 }
 
 .pending-list {
@@ -6724,6 +6745,15 @@ h3,
   .pending-center-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .unknown-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .unknown-card-assign,
+  .unknown-card-delete {
+    width: 100%;
   }
 
   .pending-fields {
