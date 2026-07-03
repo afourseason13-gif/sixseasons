@@ -6504,9 +6504,11 @@ h3,
 }
 
 .index-page .unknown-card-center {
+  width: min(1180px, calc(100% - 72px));
   border-top-color: #0f766e;
   background: linear-gradient(135deg, #081b1b, #12312f);
   color: #f7fbfa;
+  padding: 22px 26px;
 }
 
 .index-page .unknown-card-center[hidden],
@@ -6533,6 +6535,8 @@ h3,
 
 .unknown-card-head {
   border-bottom-color: rgba(255, 255, 255, 0.16);
+  margin-bottom: 16px;
+  padding-bottom: 16px;
 }
 
 .pending-center-head h2 {
@@ -6542,7 +6546,7 @@ h3,
 
 .unknown-card-head h2 {
   color: #fff;
-  font-size: 27px;
+  font-size: 22px;
 }
 
 .unknown-card-head .section-copy {
@@ -6568,40 +6572,40 @@ h3,
 .unknown-card-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .unknown-card-item {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 10px 14px;
+  gap: 8px 12px;
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-left: 4px solid #f1c66a;
+  border-left: 3px solid #f1c66a;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.08);
-  padding: 16px;
+  padding: 12px;
 }
 
 .unknown-card-item span,
 .unknown-card-item time {
   color: rgba(255, 255, 255, 0.62);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
 }
 
 .unknown-card-item strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 3px;
   color: #fff;
-  font-size: 22px;
+  font-size: 18px;
 }
 
 .unknown-card-item p {
   grid-column: 1 / -1;
   margin: 0;
   color: rgba(255, 255, 255, 0.75);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .unknown-card-delete {
@@ -6612,23 +6616,26 @@ h3,
 .unknown-card-actions {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) auto auto;
-  gap: 8px;
+  grid-template-columns: minmax(130px, 1fr) auto auto;
+  gap: 6px;
   align-items: center;
   margin-top: 2px;
 }
 
 .unknown-card-dealer {
-  min-height: 38px;
+  min-height: 32px;
   border-color: rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.92);
   color: #10242f;
+  font-size: 12px;
   font-weight: 800;
 }
 
+.unknown-card-delete,
 .unknown-card-assign {
-  min-height: 38px;
-  padding-inline: 14px;
+  min-height: 32px;
+  padding-inline: 10px;
+  font-size: 12px;
 }
 
 .pending-list {
