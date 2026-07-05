@@ -1063,6 +1063,13 @@ function initDealerPage() {
 
   resetButton.addEventListener("click", resetForm);
   searchInput.addEventListener("input", () => renderDealerPage(dealerName, fillForm));
+  document.querySelector("#recordsBody")?.addEventListener("click", (event) => {
+    if (!window.matchMedia("(max-width: 760px)").matches) return;
+    if (event.target.closest("button, input, select, textarea, a, label")) return;
+    const row = event.target.closest(".record-row");
+    if (!row) return;
+    row.classList.toggle("is-open");
+  });
   copyDealerLink.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(location.href);
@@ -1420,6 +1427,8 @@ function renderDealerPage(dealerName, fillForm) {
     const row = rowTemplate.content.firstElementChild.cloneNode(true);
     row.classList.add("record-row", statusClassName(record.status));
     row.dataset.card = record.cardNumber || "CARD";
+    row.dataset.status = record.status || "-";
+    row.dataset.parcel = `${record.carrier || ""}${record.tailNumber ? ` ${record.tailNumber}` : ""}`.trim() || "-";
     if (isRecordStale(record)) row.classList.add("stale-row");
     const cells = row.querySelectorAll("td");
     [

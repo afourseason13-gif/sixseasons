@@ -8845,3 +8845,113 @@ h3,
     width: 100%;
   }
 }
+
+/* Dealer mobile final fix: visible salary card and expandable record cards. */
+@media (max-width: 760px) {
+  .dealer-page .salary-total-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 214, 122, 0.55);
+    background:
+      radial-gradient(circle at 85% 0%, rgba(255, 241, 174, 0.5), transparent 34%),
+      linear-gradient(135deg, #f2c45d 0%, #d99b2d 45%, #6d4a12 100%);
+    box-shadow: 0 18px 34px rgba(144, 94, 17, 0.24);
+  }
+
+  .dealer-page .salary-total-card::after {
+    content: "PAYROLL";
+    position: absolute;
+    right: 12px;
+    bottom: -4px;
+    color: rgba(255, 255, 255, 0.18);
+    font-size: 34px;
+    font-weight: 950;
+    letter-spacing: 0.04em;
+  }
+
+  .dealer-page .salary-total-card span {
+    position: relative;
+    z-index: 1;
+    color: rgba(45, 31, 6, 0.72);
+  }
+
+  .dealer-page .salary-total-card strong {
+    position: relative;
+    z-index: 1;
+    color: #1c170d;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  .dealer-page .record-row {
+    min-height: 92px;
+    cursor: pointer;
+    padding: 58px 14px 14px;
+  }
+
+  .dealer-page .record-row::before {
+    top: 18px;
+    left: 16px;
+  }
+
+  .dealer-page .record-row::after {
+    content: attr(data-status) " · " attr(data-parcel) "   点开编辑";
+    position: absolute;
+    top: 18px;
+    right: 14px;
+    max-width: 46%;
+    overflow: hidden;
+    color: #5f7275;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.25;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dealer-page .record-row td {
+    display: none;
+  }
+
+  .dealer-page .record-row.is-open {
+    cursor: default;
+    padding-top: 62px;
+  }
+
+  .dealer-page .record-row.is-open::after {
+    content: "收起";
+    max-width: none;
+    color: #0e6b63;
+  }
+
+  .dealer-page .record-row.is-open td {
+    display: grid;
+  }
+
+  .dealer-page .record-row.is-open td:first-child {
+    display: none;
+  }
+
+  .dealer-page .record-row:not(.is-open) .record-status {
+    display: block;
+    position: absolute;
+    left: 16px;
+    bottom: 14px;
+    border: 0;
+    padding: 0;
+  }
+
+  .dealer-page .record-row:not(.is-open) .record-status::before {
+    display: none;
+  }
+
+  .dealer-page .record-row:not(.is-open) .record-status select {
+    width: auto;
+    min-height: 30px;
+    border-radius: 999px;
+    background: #edf8f5;
+    color: #0e6b63;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+}
