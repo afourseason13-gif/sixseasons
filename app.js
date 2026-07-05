@@ -1419,6 +1419,7 @@ function renderDealerPage(dealerName, fillForm) {
   for (const record of visibleRecords) {
     const row = rowTemplate.content.firstElementChild.cloneNode(true);
     row.classList.add("record-row", statusClassName(record.status));
+    row.dataset.card = record.cardNumber || "CARD";
     if (isRecordStale(record)) row.classList.add("stale-row");
     const cells = row.querySelectorAll("td");
     [
