@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260705-notice-strip" />
+    <link rel="stylesheet" href="./styles.css?v=20260705-live-notice" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -50,7 +50,10 @@
           </div>
           <button class="ghost notice-edit" type="button" id="editNoticeButton">编辑通知</button>
         </div>
-        <p class="notice-message" id="noticeMessage">暂无运营通知</p>
+        <div class="notice-ticker" aria-live="polite">
+          <span class="notice-live-dot"></span>
+          <p class="notice-message" id="noticeMessage">暂无运营通知</p>
+        </div>
         <form id="noticeForm" class="notice-form" autocomplete="off" hidden>
           <label>
             <span>通知内容</span>
