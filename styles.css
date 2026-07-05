@@ -7182,3 +7182,105 @@ h3,
     grid-template-columns: 1fr;
   }
 }
+
+/* Compact unknown-card strip, aligned with the main dashboard flow. */
+.index-page .unknown-card-center {
+  width: min(1380px, calc(100% - 72px));
+  margin: 6px auto 18px;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(3, 18, 20, 0.16);
+}
+
+.index-page .unknown-card-center:not([open]) {
+  min-height: 0;
+}
+
+.index-page .unknown-card-center .unknown-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 74px;
+  padding: 14px 20px;
+}
+
+.index-page .unknown-card-center .unknown-card-head > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 14px;
+  align-items: baseline;
+}
+
+.index-page .unknown-card-center .unknown-card-head .eyebrow {
+  grid-column: 1;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.index-page .unknown-card-center .unknown-card-head h2 {
+  grid-column: 1;
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.index-page .unknown-card-center .unknown-card-head .section-copy {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  margin: 0;
+  max-width: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+.index-page .unknown-card-center .unknown-card-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  min-height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffe7a2;
+  font-size: 12px;
+}
+
+.index-page .unknown-card-center .unknown-card-head::after {
+  min-width: 54px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.index-page .unknown-card-center .unknown-card-list {
+  padding: 14px 20px 20px;
+}
+
+@media (max-width: 900px) {
+  .index-page .unknown-card-center {
+    width: calc(100% - 20px);
+    margin: 6px auto 14px;
+  }
+
+  .index-page .unknown-card-center .unknown-card-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .index-page .unknown-card-center .unknown-card-head > div {
+    grid-template-columns: 1fr;
+  }
+
+  .index-page .unknown-card-center .unknown-card-head .section-copy {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .index-page .unknown-card-center .unknown-card-head::after {
+    grid-column: 2;
+  }
+
+  .index-page .unknown-card-center .unknown-card-count {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
