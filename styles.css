@@ -8243,3 +8243,289 @@ h3,
     display: block;
   }
 }
+
+/* Mobile app redesign v2: cleaner screens and softer navigation. */
+@media (max-width: 760px) {
+  body {
+    background:
+      radial-gradient(circle at 16% -8%, rgba(26, 156, 137, 0.2), transparent 34%),
+      linear-gradient(180deg, #eef4f2 0%, #f7faf9 100%);
+  }
+
+  body::before {
+    top: 118px;
+    color: rgba(5, 24, 25, 0.055);
+    font-size: 62px;
+  }
+
+  .index-page .app-shell,
+  .dealer-page .app-shell {
+    gap: 12px;
+    padding: 10px 12px 104px;
+  }
+
+  .index-page .topbar,
+  .dealer-page .topbar {
+    position: relative;
+    top: auto;
+    width: 100%;
+    margin: 0;
+    border: 1px solid rgba(7, 34, 35, 0.08);
+    border-radius: 24px;
+    background:
+      linear-gradient(135deg, rgba(7, 26, 27, 0.98), rgba(9, 43, 41, 0.94)),
+      #071819;
+    padding: 14px;
+    box-shadow: 0 14px 28px rgba(5, 24, 25, 0.18);
+  }
+
+  .index-page .topbar h1,
+  .dealer-page .topbar h1 {
+    max-width: 210px;
+    font-size: 20px;
+  }
+
+  .sync-card {
+    min-height: 34px;
+    max-width: 132px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 7px 10px;
+  }
+
+  .sync-card span:last-child {
+    max-width: 92px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .index-page .index-hero {
+    min-height: auto;
+    border-radius: 28px;
+    background:
+      radial-gradient(circle at 86% 10%, rgba(76, 222, 190, 0.18), transparent 38%),
+      linear-gradient(145deg, #061819 0%, #082b29 54%, #0a1112 100%);
+    padding: 28px 18px 18px;
+    box-shadow: 0 18px 36px rgba(5, 24, 25, 0.22);
+  }
+
+  .index-page .index-hero h2 {
+    font-size: 34px;
+    line-height: 0.96;
+  }
+
+  .index-page .index-hero .hero-copy {
+    margin-top: 12px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .hero-stats {
+    gap: 6px;
+    margin-top: 18px;
+  }
+
+  .hero-stat {
+    min-height: 62px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.075);
+  }
+
+  .hero-stat strong {
+    font-size: 21px;
+  }
+
+  .index-page .home-communications-grid .notice-panel {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    min-height: auto;
+    border-radius: 24px;
+    background:
+      linear-gradient(135deg, #0a2423, #17261c),
+      #0a2423;
+    padding: 14px;
+  }
+
+  .notice-ticker {
+    min-height: 46px;
+    border-radius: 18px;
+    padding: 0 13px;
+  }
+
+  .index-page .home-communications-grid .notice-view h2 {
+    font-size: 17px;
+  }
+
+  .index-page .home-communications-grid .notice-edit {
+    min-height: 34px;
+    padding-inline: 12px;
+    font-size: 12px;
+  }
+
+  .index-page[data-mobile-view="packages"] .home-command-grid::before,
+  .index-page[data-mobile-view="dealers"] .dealer-section::before,
+  .index-page[data-mobile-view="add"] .index-add-panel::before {
+    display: block;
+    margin: 2px 2px 10px;
+    color: #071c1d;
+    font-size: 24px;
+    font-weight: 950;
+    line-height: 1.1;
+  }
+
+  .index-page[data-mobile-view="packages"] .home-command-grid::before {
+    content: "包裹追踪";
+  }
+
+  .index-page[data-mobile-view="dealers"] .dealer-section::before {
+    content: "Dealer 名单";
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel::before {
+    content: "新增 Dealer";
+  }
+
+  .index-page .home-transit-board,
+  .index-page .unknown-card-center,
+  .index-page .pending-center,
+  .index-page .toolbar,
+  .index-page .dealer-section,
+  .index-page[data-mobile-view="add"] .index-add-panel,
+  .card-dealer-finder {
+    border: 1px solid rgba(14, 107, 99, 0.12);
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(11, 35, 38, 0.1);
+  }
+
+  .index-page .home-transit-board {
+    background:
+      linear-gradient(135deg, #061b1b 0%, #071111 100%);
+    color: #fff;
+  }
+
+  .index-page .home-transit-board .card-finder-heading {
+    min-height: 82px;
+    padding: 16px;
+  }
+
+  .index-page .home-transit-list {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .index-page .home-transit-item {
+    min-height: 72px;
+    border-left: 0;
+  }
+
+  .index-page .unknown-card-center {
+    color: #fff;
+    background: linear-gradient(135deg, #071c1d, #0c302d);
+  }
+
+  .index-page .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .index-page .toolbar .summary {
+    justify-content: center;
+  }
+
+  .dealer-section .panel-title {
+    padding: 16px 16px 4px;
+  }
+
+  .index-page .dealer-list {
+    padding: 0 12px 12px;
+  }
+
+  .dealer-card {
+    border: 1px solid #dce6e3;
+    background: #fbfdfc;
+    box-shadow: none;
+  }
+
+  .dealer-card .dealer-open {
+    padding: 15px 54px 15px 15px;
+  }
+
+  .dealer-name {
+    font-size: 18px;
+  }
+
+  .dealer-meta {
+    margin-top: 7px;
+    color: #637577;
+    font-size: 12px;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel {
+    padding: 16px;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel > summary {
+    border: 1px solid #dce6e3;
+    border-radius: 18px;
+    background: #f6fbfa;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel form {
+    margin-top: 12px;
+  }
+
+  .index-page .index-add-toggle {
+    background: #0e6b63;
+  }
+
+  .mobile-tabbar {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    border: 1px solid rgba(7, 31, 33, 0.08);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 8px;
+    box-shadow: 0 18px 40px rgba(7, 29, 31, 0.22);
+  }
+
+  .mobile-tabbar a {
+    min-height: 52px;
+    border-radius: 21px;
+    color: #627477;
+  }
+
+  .mobile-tabbar a span {
+    font-size: 19px;
+  }
+
+  .mobile-tabbar a.active,
+  .mobile-tabbar a:focus-visible,
+  .mobile-tabbar a:hover {
+    background: linear-gradient(135deg, #0e6b63, #23b69c);
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(14, 107, 99, 0.23);
+  }
+
+  .dealer-page .dealer-overview {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 155px;
+    gap: 9px;
+    margin-top: 0 !important;
+  }
+
+  .dealer-page .metric-card {
+    min-height: 84px;
+    border-radius: 20px;
+  }
+
+  .dealer-page .dealer-workbench,
+  .dealer-page .records,
+  .dealer-page .toolbar {
+    border-radius: 24px;
+  }
+}
