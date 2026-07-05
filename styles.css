@@ -8111,3 +8111,135 @@ h3,
     outline: 2px solid rgba(78, 226, 196, 0.55);
   }
 }
+
+/* True mobile app screens: bottom tabs show one main area at a time. */
+@media (max-width: 760px) {
+  .index-page .app-shell {
+    min-height: calc(100vh - 92px);
+  }
+
+  .index-page .topbar {
+    width: 100%;
+    margin: 0;
+    border-radius: 0 0 20px 20px;
+  }
+
+  .index-page .topbar .sync-card {
+    max-width: 154px;
+  }
+
+  .index-page .topbar .sync-card span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .index-page[data-mobile-view] .home-command-grid,
+  .index-page[data-mobile-view] .pending-center,
+  .index-page[data-mobile-view] .unknown-card-center,
+  .index-page[data-mobile-view] .announce-panel,
+  .index-page[data-mobile-view] .quote-panel,
+  .index-page[data-mobile-view] .toolbar,
+  .index-page[data-mobile-view] .dealer-section,
+  .index-page[data-mobile-view] .index-add-panel {
+    display: none;
+  }
+
+  .index-page[data-mobile-view="home"] .index-hero,
+  .index-page[data-mobile-view="home"] .home-communications-grid {
+    display: grid;
+  }
+
+  .index-page[data-mobile-view="home"] .home-communications-grid {
+    margin-top: 0 !important;
+  }
+
+  .index-page[data-mobile-view="packages"] .index-hero,
+  .index-page[data-mobile-view="packages"] .home-communications-grid {
+    display: none;
+  }
+
+  .index-page[data-mobile-view="packages"] .home-command-grid {
+    display: grid;
+  }
+
+  .index-page[data-mobile-view="packages"] .home-command-grid .card-dealer-finder {
+    display: none;
+  }
+
+  .index-page[data-mobile-view="packages"] .home-transit-board,
+  .index-page[data-mobile-view="packages"] .pending-center:not([hidden]),
+  .index-page[data-mobile-view="packages"] .unknown-card-center:not([hidden]) {
+    display: grid;
+  }
+
+  .index-page[data-mobile-view="dealers"] .index-hero,
+  .index-page[data-mobile-view="dealers"] .home-communications-grid {
+    display: none;
+  }
+
+  .index-page[data-mobile-view="dealers"] .toolbar,
+  .index-page[data-mobile-view="dealers"] .dealer-section {
+    display: grid;
+  }
+
+  .index-page[data-mobile-view="dealers"] .toolbar {
+    margin-top: 0 !important;
+  }
+
+  .index-page[data-mobile-view="add"] .index-hero,
+  .index-page[data-mobile-view="add"] .home-communications-grid {
+    display: none;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel {
+    position: static;
+    display: block;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    border-radius: 22px;
+    box-shadow: 0 16px 36px rgba(22, 43, 46, 0.14);
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel:not([open]) {
+    width: 100%;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel:not([open]) .panel-title {
+    padding: 16px;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel:not([open]) .panel-title > div {
+    display: block;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-toggle {
+    min-height: 38px;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel[open],
+  .index-page[data-mobile-view="add"] .index-add-panel {
+    margin-top: 0 !important;
+  }
+
+  .index-page[data-mobile-view="add"] .index-add-panel form {
+    display: grid;
+  }
+
+  .index-page .home-transit-list {
+    max-height: none;
+  }
+
+  .dealer-page[data-mobile-view="records"] .dealer-workbench {
+    display: none;
+  }
+
+  .dealer-page[data-mobile-view="add"] .records {
+    display: none;
+  }
+
+  .dealer-page[data-mobile-view="add"] #recordFormPanel {
+    display: block;
+  }
+}

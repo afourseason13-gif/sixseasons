@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260705-mobile-tabs" />
+    <link rel="stylesheet" href="./styles.css?v=20260705-mobile-screens" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -195,13 +195,13 @@
     </main>
 
     <nav class="mobile-tabbar" aria-label="手机导航">
-      <a href="#mobileHome" class="active"><span>⌂</span><strong>首页</strong></a>
-      <a href="#mobilePackages"><span>▣</span><strong>包裹</strong></a>
-      <a href="#mobileDealers"><span>◫</span><strong>Dealer</strong></a>
-      <a href="#mobileAddDealer"><span>＋</span><strong>新增</strong></a>
+      <a href="#mobileHome" data-mobile-view="home" class="active"><span>⌂</span><strong>首页</strong></a>
+      <a href="#mobilePackages" data-mobile-view="packages"><span>▣</span><strong>包裹</strong></a>
+      <a href="#mobileDealers" data-mobile-view="dealers"><span>◫</span><strong>Dealer</strong></a>
+      <a href="#mobileAddDealer" data-mobile-view="add"><span>＋</span><strong>新增</strong></a>
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260705-mobile-tabs"></script>
+    <script src="./app.js?v=20260705-mobile-screens"></script>
   </body>
 </html>

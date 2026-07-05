@@ -1886,13 +1886,26 @@ async function initApp() {
     initIndexPage();
   }
 
-  openMobileHashTarget();
-  window.addEventListener("hashchange", openMobileHashTarget);
+  setMobileViewFromHash();
+  window.addEventListener("hashchange", setMobileViewFromHash);
 }
 
-function openMobileHashTarget() {
+function setMobileViewFromHash() {
   const id = decodeURIComponent(location.hash || "").replace(/^#/, "");
-  if (!id) return;
+  const viewById = {
+    mobileHome: "home",
+    mobilePackages: "packages",
+    mobileDealers: "dealers",
+    mobileAddDealer: "add",
+    dealerRecords: "records",
+    recordFormPanel: "add"
+  };
+  const nextView = viewById[id] || (isDealerPage ? "records" : "home");
+  document.body.dataset.mobileView = nextView;
+  document.querySelectorAll(".mobile-tabbar a").forEach((link) => {
+    const linkId = decodeURIComponent(link.hash || "").replace(/^#/, "");
+    link.classList.toggle("active", (viewById[linkId] || "") === nextView);
+  });
   const target = document.getElementById(id);
   if (target?.tagName === "DETAILS") target.open = true;
 }
