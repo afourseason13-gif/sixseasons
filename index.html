@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260705-mobile-app" />
+    <link rel="stylesheet" href="./styles.css?v=20260705-mobile-tabs" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -19,7 +19,7 @@
         </div>
       </section>
 
-      <section class="index-hero" aria-label="Dealer 运营总览">
+      <section class="index-hero" id="mobileHome" aria-label="Dealer 运营总览">
         <div>
           <p class="eyebrow">CONTROL ROOM / 01</p>
           <h2>SIXSEASONS<br />运营系统</h2>
@@ -85,7 +85,7 @@
         <div class="card-finder-results" id="cardFinderResults" hidden></div>
       </section>
 
-      <section class="home-transit-board" aria-label="在途包裹监控">
+      <section class="home-transit-board" id="mobilePackages" aria-label="在途包裹监控">
         <div class="card-finder-heading">
           <div>
             <p class="eyebrow">SHIPMENT MONITOR</p>
@@ -149,7 +149,7 @@
         <p>先斩后奏 · 行走西方 · 取之社会 · 回归社会</p>
       </section>
 
-      <details class="panel form-panel index-add-panel" aria-label="添加 dealer">
+      <details class="panel form-panel index-add-panel" id="mobileAddDealer" aria-label="添加 dealer">
         <summary class="panel-title compact">
           <div>
             <p class="eyebrow">DEALER ONBOARDING</p>
@@ -179,7 +179,7 @@
         </div>
       </section>
 
-      <section class="dealer-section" aria-label="Dealer 列表">
+      <section class="dealer-section" id="mobileDealers" aria-label="Dealer 列表">
         <div class="panel-title compact">
           <div>
             <p class="eyebrow">DEALER DIRECTORY</p>
@@ -194,7 +194,14 @@
       </section>
     </main>
 
+    <nav class="mobile-tabbar" aria-label="手机导航">
+      <a href="#mobileHome" class="active"><span>⌂</span><strong>首页</strong></a>
+      <a href="#mobilePackages"><span>▣</span><strong>包裹</strong></a>
+      <a href="#mobileDealers"><span>◫</span><strong>Dealer</strong></a>
+      <a href="#mobileAddDealer"><span>＋</span><strong>新增</strong></a>
+    </nav>
+
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260705-hero-record-plus"></script>
+    <script src="./app.js?v=20260705-mobile-tabs"></script>
   </body>
 </html>

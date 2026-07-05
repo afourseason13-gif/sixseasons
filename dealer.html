@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dealer 资料</title>
-    <link rel="stylesheet" href="./styles.css?v=20260705-mobile-app" />
+    <link rel="stylesheet" href="./styles.css?v=20260705-mobile-tabs" />
   </head>
   <body class="dealer-page">
     <main class="app-shell">
@@ -19,7 +19,7 @@
         </div>
       </section>
 
-      <section class="dealer-overview" aria-label="Dealer 概览">
+      <section class="dealer-overview" id="dealerSummary" aria-label="Dealer 概览">
         <div class="metric-card rate-card">
           <span>单价</span>
           <select id="dealerRate">
@@ -163,7 +163,7 @@
         <span id="staleAlertText">有资料超过 5 天没有更新。</span>
       </section>
 
-      <section class="records" aria-label="记录列表">
+      <section class="records" id="dealerRecords" aria-label="记录列表">
         <div class="records-heading">
           <div>
             <p class="eyebrow">RECORD DIRECTORY</p>
@@ -197,6 +197,13 @@
       </section>
     </main>
 
+    <nav class="mobile-tabbar" aria-label="手机导航">
+      <a href="./index.html#mobilePackages"><span>▣</span><strong>包裹</strong></a>
+      <a href="./index.html#mobileDealers"><span>◫</span><strong>Dealer</strong></a>
+      <a href="#dealerRecords" class="active"><span>≡</span><strong>资料</strong></a>
+      <a href="#recordFormPanel"><span>＋</span><strong>新增</strong></a>
+    </nav>
+
     <template id="recordRowTemplate">
       <tr>
         <td data-label="&#21345;&#21495;"></td>
@@ -227,6 +234,6 @@
     </div>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260702-clean-metrics"></script>
+    <script src="./app.js?v=20260705-mobile-tabs"></script>
   </body>
 </html>

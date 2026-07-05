@@ -7938,3 +7938,176 @@ h3,
     border-radius: 16px;
   }
 }
+
+/* Bottom tab navigation for the mobile app experience. */
+.mobile-tabbar {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    padding-bottom: 92px;
+  }
+
+  #mobileHome,
+  #mobilePackages,
+  #mobileDealers,
+  #mobileAddDealer,
+  #dealerSummary,
+  #dealerRecords,
+  #recordFormPanel {
+    scroll-margin-top: 84px;
+  }
+
+  .mobile-tabbar {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 80;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 24px;
+    background:
+      linear-gradient(135deg, rgba(4, 19, 20, 0.94), rgba(11, 35, 34, 0.9)),
+      #061415;
+    padding: 7px;
+    box-shadow: 0 18px 42px rgba(2, 11, 13, 0.38);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-tabbar a {
+    min-width: 0;
+    min-height: 54px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    border-radius: 18px;
+    color: rgba(255, 255, 255, 0.66);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .mobile-tabbar a span {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 22px;
+    color: inherit;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .mobile-tabbar a strong {
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .mobile-tabbar a.active,
+  .mobile-tabbar a:focus-visible,
+  .mobile-tabbar a:hover {
+    background: linear-gradient(135deg, #0e6b63, #159b87);
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(18, 158, 137, 0.28);
+  }
+
+  .index-page .app-shell,
+  .dealer-page .app-shell {
+    display: grid;
+    gap: 14px;
+  }
+
+  .index-page .topbar,
+  .dealer-page .topbar {
+    margin-bottom: 0;
+  }
+
+  .index-page .index-hero {
+    margin: 0;
+  }
+
+  .index-page .home-communications-grid,
+  .index-page .home-command-grid,
+  .index-page .home-transit-board,
+  .index-page .unknown-card-center,
+  .index-page .announce-panel,
+  .index-page .quote-panel,
+  .index-page .toolbar,
+  .index-page .dealer-section,
+  .dealer-page .dealer-overview,
+  .dealer-page .dealer-workbench,
+  .dealer-page .toolbar,
+  .dealer-page .records {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .index-page .home-communications-grid {
+    order: 2;
+  }
+
+  .index-page .home-command-grid {
+    order: 3;
+  }
+
+  .index-page .pending-center,
+  .index-page .unknown-card-center {
+    order: 4;
+  }
+
+  .index-page .announce-panel,
+  .index-page .quote-panel {
+    order: 5;
+  }
+
+  .index-page .toolbar {
+    order: 6;
+    position: relative;
+    top: auto;
+  }
+
+  .index-page .dealer-section {
+    order: 7;
+  }
+
+  .dealer-page .toolbar {
+    position: relative;
+    top: auto;
+  }
+
+  .dealer-page .dealer-overview {
+    margin-top: 2px !important;
+  }
+
+  .index-page .home-communications-grid .notice-panel {
+    min-height: 88px;
+  }
+
+  .index-page .home-command-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .index-page .home-transit-board .card-finder-heading {
+    min-height: 76px;
+  }
+
+  .index-page .home-transit-list {
+    max-height: none;
+  }
+
+  .index-page .index-add-panel {
+    bottom: 92px;
+  }
+
+  .index-page .index-add-panel:target {
+    outline: 2px solid rgba(78, 226, 196, 0.55);
+  }
+}

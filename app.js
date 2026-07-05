@@ -1885,6 +1885,16 @@ async function initApp() {
   } else {
     initIndexPage();
   }
+
+  openMobileHashTarget();
+  window.addEventListener("hashchange", openMobileHashTarget);
+}
+
+function openMobileHashTarget() {
+  const id = decodeURIComponent(location.hash || "").replace(/^#/, "");
+  if (!id) return;
+  const target = document.getElementById(id);
+  if (target?.tagName === "DETAILS") target.open = true;
 }
 
 initApp();
