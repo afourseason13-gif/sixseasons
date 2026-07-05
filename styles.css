@@ -7565,3 +7565,376 @@ h3,
     animation-duration: 13s;
   }
 }
+
+/* Mobile app mode: phone-only polish while desktop keeps the full dashboard. */
+@media (max-width: 760px) {
+  body {
+    background:
+      radial-gradient(circle at 18% -5%, rgba(43, 204, 178, 0.22), transparent 38%),
+      linear-gradient(180deg, #061415 0%, #0b1c1d 34%, #edf2f4 34%, #edf2f4 100%);
+  }
+
+  body::before {
+    top: 74px;
+    font-size: 56px;
+    opacity: 0.55;
+  }
+
+  .index-page .app-shell,
+  .dealer-page .app-shell {
+    width: 100%;
+    padding: 0 12px 26px;
+  }
+
+  .index-page .topbar,
+  .dealer-page .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    width: calc(100% + 24px);
+    margin: 0 -12px 12px;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0 0 18px 18px;
+    background: rgba(4, 18, 19, 0.92);
+    backdrop-filter: blur(16px);
+    padding: 12px;
+    box-shadow: 0 14px 30px rgba(3, 15, 17, 0.28);
+  }
+
+  .index-page .topbar h1,
+  .dealer-page .topbar h1 {
+    font-size: 22px;
+    line-height: 1.05;
+  }
+
+  .index-page .topbar .eyebrow,
+  .dealer-page .topbar .eyebrow {
+    font-size: 9px;
+  }
+
+  .sync-card {
+    min-height: 32px;
+    border-radius: 999px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .index-page .index-hero {
+    min-height: 240px;
+    display: grid;
+    align-content: end;
+    margin: 10px 0 0;
+    border-radius: 0 0 28px 28px;
+    padding: 78px 18px 22px;
+    overflow: hidden;
+  }
+
+  .index-page .index-hero h2 {
+    font-size: 39px;
+    line-height: 0.92;
+  }
+
+  .index-page .index-hero .hero-copy {
+    max-width: 300px;
+    font-size: 12px;
+  }
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .hero-stat {
+    min-height: 68px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 11px;
+  }
+
+  .hero-stat span {
+    font-size: 10px;
+  }
+
+  .hero-stat strong {
+    font-size: 22px;
+  }
+
+  .index-page .home-communications-grid,
+  .index-page .home-command-grid,
+  .index-page .home-transit-board,
+  .index-page .unknown-card-center,
+  .index-page .announce-panel,
+  .index-page .quote-panel,
+  .index-page .toolbar,
+  .index-page .dealer-section,
+  .dealer-page .dealer-overview,
+  .dealer-page .dealer-workbench,
+  .dealer-page .toolbar,
+  .dealer-page .records {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .index-page .home-communications-grid {
+    margin-top: -22px;
+  }
+
+  .index-page .home-communications-grid .notice-panel,
+  .card-dealer-finder,
+  .index-page .home-transit-board,
+  .index-page .unknown-card-center,
+  .index-page .announce-panel,
+  .index-page .toolbar,
+  .dealer-card,
+  .dealer-page .toolbar,
+  .dealer-page .records {
+    border-radius: 20px;
+    box-shadow: 0 14px 34px rgba(22, 43, 46, 0.12);
+  }
+
+  .index-page .home-communications-grid .notice-panel {
+    min-height: 96px;
+    padding: 14px;
+  }
+
+  .notice-ticker {
+    border-radius: 16px;
+  }
+
+  .index-page .home-command-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .card-dealer-finder {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+  }
+
+  .card-finder-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .card-finder-heading h2 {
+    font-size: 20px;
+  }
+
+  .card-finder-search {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 76px;
+    gap: 8px;
+  }
+
+  .card-finder-search input,
+  .search-wrap input {
+    min-height: 46px;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+
+  .card-finder-search button {
+    min-height: 46px;
+    border-radius: 14px;
+  }
+
+  .index-page .home-transit-board {
+    grid-template-columns: 1fr;
+    overflow: hidden;
+  }
+
+  .index-page .home-transit-board .card-finder-heading {
+    min-height: 86px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 16px;
+  }
+
+  .index-page .home-transit-list {
+    grid-template-columns: 1fr;
+    max-height: 310px;
+    overflow: auto;
+  }
+
+  .index-page .home-transit-item {
+    min-height: 80px;
+    padding: 14px 16px;
+  }
+
+  .index-page .unknown-card-center .unknown-card-head {
+    min-height: 68px;
+    padding: 13px 15px;
+  }
+
+  .index-page .unknown-card-center .unknown-card-head h2 {
+    font-size: 18px;
+  }
+
+  .index-page .unknown-card-center .unknown-card-head .section-copy {
+    display: none;
+  }
+
+  .index-page .unknown-card-list {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .index-page .announce-collapsible > summary {
+    padding: 14px 16px;
+  }
+
+  .index-page .announce-collapsible .announce-form {
+    padding: 14px 16px 16px;
+  }
+
+  .index-page .quote-panel {
+    min-height: 76px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .index-page .quote-panel p {
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .index-page .index-add-panel {
+    position: fixed;
+    right: 14px;
+    bottom: 16px;
+    z-index: 45;
+    width: min(330px, calc(100% - 28px));
+    max-height: 72vh;
+    overflow: auto;
+    border-radius: 20px;
+    box-shadow: 0 20px 44px rgba(3, 18, 20, 0.28);
+  }
+
+  .index-page .index-add-panel:not([open]) {
+    width: auto;
+    border-radius: 999px;
+  }
+
+  .index-page .index-add-panel:not([open]) .panel-title {
+    padding: 0;
+  }
+
+  .index-page .index-add-panel:not([open]) .panel-title > div {
+    display: none;
+  }
+
+  .index-page .index-add-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: #0e6b63;
+    color: #fff;
+  }
+
+  .index-page .toolbar {
+    position: sticky;
+    top: 64px;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(14px);
+  }
+
+  .index-page .toolbar .summary {
+    min-height: 46px;
+    border-radius: 14px;
+    padding: 0 12px;
+  }
+
+  .index-page .dealer-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .dealer-card {
+    min-height: 76px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .dealer-card .dealer-open {
+    padding: 16px;
+  }
+
+  .dealer-delete {
+    top: 14px;
+    right: 14px;
+    width: 30px;
+    height: 30px;
+    font-size: 0;
+  }
+
+  .dealer-delete::before {
+    content: "×";
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .dealer-page .dealer-overview {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 170px;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .dealer-page .metric-card {
+    min-height: 92px;
+    border-radius: 18px;
+    scroll-snap-align: start;
+  }
+
+  .dealer-page .status-board {
+    grid-template-columns: 1fr;
+  }
+
+  .dealer-page .dealer-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .dealer-page .toolbar {
+    position: sticky;
+    top: 64px;
+    z-index: 28;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.93);
+    backdrop-filter: blur(14px);
+  }
+
+  .dealer-page .records-heading {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .dealer-page .table-wrap {
+    border-radius: 16px;
+  }
+}
