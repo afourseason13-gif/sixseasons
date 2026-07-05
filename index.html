@@ -107,17 +107,17 @@
         <div class="pending-list" id="pendingList"></div>
       </section>
 
-      <section class="unknown-card-center" id="unknownCardCenter" hidden aria-label="未知卡号中心">
-        <div class="unknown-card-head">
+      <details class="unknown-card-center" id="unknownCardCenter" hidden aria-label="未知卡号中心">
+        <summary class="unknown-card-head">
           <div>
             <p class="eyebrow">UNKNOWN CARDS</p>
             <h2>未知卡号</h2>
             <p class="section-copy">车手收到但系统找不到资料的卡号，会集中放在这里检查。</p>
           </div>
           <span class="unknown-card-count" id="unknownCardCount">0 条</span>
-        </div>
+        </summary>
         <div class="unknown-card-list" id="unknownCardList"></div>
-      </section>
+      </details>
 
       <details class="announce-panel announce-collapsible" aria-label="发送群公告">
         <summary class="notice-view">
@@ -192,6 +192,6 @@
     </main>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260703-unknown-dealer"></script>
+    <script src="./app.js?v=20260705-collapse-unknown"></script>
   </body>
 </html>

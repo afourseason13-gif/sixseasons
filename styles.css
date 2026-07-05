@@ -6508,7 +6508,8 @@ h3,
   border-top-color: #0f766e;
   background: linear-gradient(135deg, #081b1b, #12312f);
   color: #f7fbfa;
-  padding: 22px 26px;
+  padding: 0;
+  overflow: hidden;
 }
 
 .index-page .unknown-card-center[hidden],
@@ -6535,8 +6536,32 @@ h3,
 
 .unknown-card-head {
   border-bottom-color: rgba(255, 255, 255, 0.16);
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  margin-bottom: 0;
+  padding: 18px 22px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.unknown-card-head::-webkit-details-marker {
+  display: none;
+}
+
+.unknown-card-head::after {
+  content: "展开";
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 7px 11px;
+}
+
+.unknown-card-center[open] .unknown-card-head {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.unknown-card-center[open] .unknown-card-head::after {
+  content: "收起";
 }
 
 .pending-center-head h2 {
@@ -6573,6 +6598,7 @@ h3,
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+  padding: 18px 22px 22px;
 }
 
 .unknown-card-item {

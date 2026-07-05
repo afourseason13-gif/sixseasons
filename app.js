@@ -741,7 +741,7 @@ function renderUnknownCardCenter() {
     .sort((a, b) => String(b.lastSeenAt || b.createdAt || "").localeCompare(String(a.lastSeenAt || a.createdAt || "")));
 
   center.hidden = items.length === 0;
-  count.textContent = `${items.length} 条`;
+  count.textContent = `${records.length}+${items.length}`;
   list.textContent = "";
 
   for (const item of items) {
