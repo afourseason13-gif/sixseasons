@@ -741,7 +741,7 @@ function renderUnknownCardCenter() {
     .sort((a, b) => String(b.lastSeenAt || b.createdAt || "").localeCompare(String(a.lastSeenAt || a.createdAt || "")));
 
   center.hidden = items.length === 0;
-  count.textContent = `${records.length}+${items.length}`;
+  count.textContent = `${items.length} 条`;
   list.textContent = "";
 
   for (const item of items) {
@@ -867,7 +867,10 @@ function renderIndexPage() {
   dealerList.textContent = "";
   totalCount.textContent = String(names.length);
   if (heroDealerCount) heroDealerCount.textContent = String(uniqueDealers().length);
-  if (heroRecordCount) heroRecordCount.textContent = String(records.length);
+  if (heroRecordCount) {
+    const unknownCount = unknownDriverCards.length;
+    heroRecordCount.textContent = unknownCount ? `${records.length}+${unknownCount}` : String(records.length);
+  }
   if (noticeMessage) noticeMessage.textContent = noticeText || "暂无运营通知";
   emptyState.style.display = names.length ? "none" : "block";
 
