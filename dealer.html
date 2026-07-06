@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dealer 资料</title>
-    <link rel="stylesheet" href="./styles.css?v=20260705-dealer-cards" />
+    <link rel="stylesheet" href="./styles.css?v=20260707-mobile-records-v2" />
   </head>
   <body class="dealer-page">
     <main class="app-shell">
@@ -150,6 +150,16 @@
           <span aria-hidden="true">⌕</span>
           <input id="searchInput" placeholder="搜索这个 dealer 的卡号、公司、尾号码、开保日期或备注" />
         </div>
+        <label class="mobile-sort-control">
+          <span>资料排序</span>
+          <select id="recordSort">
+            <option value="updated-desc">最近更新</option>
+            <option value="status">按状态</option>
+            <option value="card">按卡号</option>
+            <option value="carrier">按包裹公司</option>
+            <option value="warranty-desc">按开保日期</option>
+          </select>
+        </label>
         <button class="ghost" type="button" id="copyDealerLink">复制这个 Dealer 链接</button>
         <button class="danger" type="button" id="payrollClearButton">已出工资</button>
         <div class="summary">
@@ -234,6 +244,6 @@
     </div>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260705-dealer-cards"></script>
+    <script src="./app.js?v=20260707-mobile-records-v2"></script>
   </body>
 </html>

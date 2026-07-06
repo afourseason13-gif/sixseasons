@@ -1063,12 +1063,24 @@ function initDealerPage() {
 
   resetButton.addEventListener("click", resetForm);
   searchInput.addEventListener("input", () => renderDealerPage(dealerName, fillForm));
+  document.querySelector("#recordSort")?.addEventListener("change", () => renderDealerPage(dealerName, fillForm));
   document.querySelector("#recordsBody")?.addEventListener("click", (event) => {
     if (!window.matchMedia("(max-width: 760px)").matches) return;
     if (event.target.closest("button, input, select, textarea, a, label")) return;
     const row = event.target.closest(".record-row");
     if (!row) return;
     row.classList.toggle("is-open");
+    row.setAttribute("aria-expanded", String(row.classList.contains("is-open")));
+  });
+  document.querySelector("#recordsBody")?.addEventListener("keydown", (event) => {
+    if (!window.matchMedia("(max-width: 760px)").matches) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (event.target.closest("button, input, select, textarea, a, label")) return;
+    const row = event.target.closest(".record-row");
+    if (!row) return;
+    event.preventDefault();
+    row.classList.toggle("is-open");
+    row.setAttribute("aria-expanded", String(row.classList.contains("is-open")));
   });
   copyDealerLink.addEventListener("click", async () => {
     try {
@@ -1379,6 +1391,7 @@ function renderDealerPage(dealerName, fillForm) {
   const rowTemplate = document.querySelector("#recordRowTemplate");
   const staleAlert = document.querySelector("#staleAlert");
   const staleAlertText = document.querySelector("#staleAlertText");
+  const recordSort = document.querySelector("#recordSort")?.value || "updated-desc";
   const query = searchInput.value.trim().toLowerCase();
   const dealerRecords = records.filter((record) => record.dealerName === dealerName);
   const visibleRecords = records
@@ -1404,8 +1417,21 @@ function renderDealerPage(dealerName, fillForm) {
         .join(" ")
         .toLowerCase()
         .includes(query);
-    })
-    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+    });
+
+  const textCompare = (a, b) => String(a || "").localeCompare(String(b || ""), "zh-CN", {
+    numeric: true,
+    sensitivity: "base"
+  });
+  visibleRecords.sort((a, b) => {
+    if (recordSort === "status") return textCompare(a.status, b.status) || textCompare(a.cardNumber, b.cardNumber);
+    if (recordSort === "card") return textCompare(a.cardNumber, b.cardNumber);
+    if (recordSort === "carrier") return textCompare(a.carrier, b.carrier) || textCompare(a.cardNumber, b.cardNumber);
+    if (recordSort === "warranty-desc") {
+      return String(b.warrantyDate || "").localeCompare(String(a.warrantyDate || "")) || textCompare(a.cardNumber, b.cardNumber);
+    }
+    return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+  });
 
   renderDealerMetrics(dealerRecords);
   renderStatusBoard(dealerRecords);
@@ -1429,6 +1455,10 @@ function renderDealerPage(dealerName, fillForm) {
     row.dataset.card = record.cardNumber || "CARD";
     row.dataset.status = record.status || "-";
     row.dataset.parcel = `${record.carrier || ""}${record.tailNumber ? ` ${record.tailNumber}` : ""}`.trim() || "-";
+    row.tabIndex = 0;
+    row.setAttribute("role", "button");
+    row.setAttribute("aria-expanded", "false");
+    row.setAttribute("aria-label", `${record.cardNumber || "卡号"}，点按查看资料`);
     if (isRecordStale(record)) row.classList.add("stale-row");
     const cells = row.querySelectorAll("td");
     [
