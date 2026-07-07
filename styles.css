@@ -9359,4 +9359,146 @@ h3,
     outline: 3px solid rgba(14, 107, 99, 0.24);
     outline-offset: 2px;
   }
+
+  /* Premium mobile overview: salary first, supporting figures in reading order. */
+  .dealer-page .dealer-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .dealer-page .salary-total-card {
+    order: 1;
+    grid-column: 1 / -1;
+    min-height: 132px;
+    border: 1px solid rgba(222, 188, 111, 0.34);
+    border-radius: 26px;
+    background:
+      radial-gradient(circle at 86% 12%, rgba(230, 197, 122, 0.2), transparent 34%),
+      linear-gradient(135deg, #071f20 0%, #0c3935 58%, #183d35 100%);
+    padding: 20px;
+    box-shadow: 0 18px 38px rgba(5, 37, 35, 0.23);
+  }
+
+  .dealer-page .salary-total-card::after {
+    content: "PAYROLL";
+    right: 16px;
+    bottom: 5px;
+    color: rgba(235, 205, 137, 0.1);
+    font-size: 40px;
+    letter-spacing: 0.02em;
+  }
+
+  .dealer-page .salary-total-card span {
+    color: #d8bd7e;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
+
+  .dealer-page .salary-total-card strong {
+    margin-top: 16px;
+    color: #fff6dd;
+    font-size: clamp(38px, 12vw, 52px);
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    text-shadow: none;
+  }
+
+  .dealer-page .total-records-card { order: 2; }
+  .dealer-page .rate-card { order: 3; }
+  .dealer-page .expense-card { order: 4; }
+  .dealer-page .extra-pay-card { order: 5; }
+
+  .dealer-page .latest-update-card {
+    order: 6;
+    grid-column: 1 / -1;
+  }
+
+  .dealer-page .salary-breakdown {
+    order: 7;
+    grid-column: 1 / -1;
+  }
+
+  .dealer-page .metric-card:not(.salary-total-card):not(.salary-breakdown) {
+    position: relative;
+    min-height: 104px;
+    overflow: hidden;
+    border: 1px solid rgba(12, 76, 71, 0.1);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 246, 0.96));
+    padding: 16px;
+    box-shadow: 0 10px 26px rgba(12, 49, 47, 0.08);
+  }
+
+  .dealer-page .metric-card:not(.salary-total-card):not(.salary-breakdown)::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 16px;
+    left: 16px;
+    height: 3px;
+    border-radius: 0 0 999px 999px;
+    background: linear-gradient(90deg, #0e746a, #5dc8b5);
+  }
+
+  .dealer-page .metric-card:not(.salary-total-card):not(.salary-breakdown) span {
+    color: #71817f;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+
+  .dealer-page .metric-card:not(.salary-total-card):not(.salary-breakdown) strong,
+  .dealer-page .metric-card:not(.salary-total-card):not(.salary-breakdown) input,
+  .dealer-page .metric-card:not(.salary-total-card):not(.salary-breakdown) select {
+    margin-top: 11px;
+    color: #0a2929;
+    font-size: 24px;
+    font-weight: 900;
+  }
+
+  .dealer-page .latest-update-card {
+    min-height: 88px !important;
+  }
+
+  .dealer-page .latest-update-card strong {
+    font-size: 22px !important;
+    letter-spacing: 0.015em;
+  }
+
+  .dealer-page .salary-breakdown {
+    border: 1px solid rgba(12, 76, 71, 0.1);
+    border-radius: 26px;
+    background: #fff;
+    padding: 18px;
+    box-shadow: 0 14px 32px rgba(12, 49, 47, 0.09);
+  }
+
+  .dealer-page .salary-breakdown > span:first-child {
+    color: #153b3a;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+  }
+
+  .dealer-page .salary-breakdown strong {
+    margin-top: 14px;
+    gap: 10px;
+  }
+
+  .dealer-page .salary-group {
+    border: 1px solid #e0ebe8;
+    border-radius: 18px;
+    background: linear-gradient(145deg, #f8fbfa, #f1f7f5);
+    padding: 15px;
+  }
+
+  .dealer-page .salary-group::before {
+    width: 4px;
+    background: linear-gradient(180deg, #1e9b8d, #74d4c2);
+  }
+
+  .dealer-page .salary-group-money {
+    border-color: #eadbb6;
+    background: linear-gradient(145deg, #fffdf7, #faf4e7);
+  }
 }
