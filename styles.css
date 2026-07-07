@@ -9231,25 +9231,45 @@ h3,
     min-height: 66px;
     border-left-width: 4px;
     border-radius: 18px;
+    background: #fff !important;
     padding: 0;
   }
 
   .dealer-page .record-row:not(.is-open)::before {
+    content: attr(data-card);
+    inset: auto;
     top: 50%;
     right: 52px;
     left: 18px;
+    bottom: auto;
+    z-index: 2;
+    display: block;
+    width: auto;
+    height: auto;
     max-width: none;
     transform: translateY(-50%);
+    border-radius: 0;
+    background: transparent;
+    color: #092426;
     font-size: 19px;
+    font-weight: 950;
+    line-height: 1.2;
   }
 
   .dealer-page .record-row:not(.is-open)::after {
     content: "›";
+    inset: auto;
     top: 50%;
     right: 18px;
+    bottom: auto;
+    left: auto;
+    z-index: 2;
+    display: block;
     width: auto;
+    height: auto;
     max-width: none;
     transform: translateY(-54%);
+    background: transparent;
     color: #0e6b63;
     font-size: 31px;
     font-weight: 500;
@@ -9262,7 +9282,77 @@ h3,
   }
 
   .dealer-page .record-row.is-open::before {
+    inset: auto;
+    top: 18px;
+    right: 70px;
+    bottom: auto;
+    left: 16px;
+    z-index: 2;
+    display: block;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: transparent;
+    color: #092426;
     transform: none;
+  }
+
+  .dealer-page .record-row.is-open::after {
+    inset: auto;
+    top: 18px;
+    right: 16px;
+    bottom: auto;
+    left: auto;
+    z-index: 2;
+    display: block;
+    width: auto;
+    height: auto;
+    background: transparent;
+  }
+
+  .dealer-page .record-row.is-open {
+    display: block;
+    overflow: hidden;
+    background: #fff !important;
+    padding: 62px 14px 14px;
+  }
+
+  .dealer-page .record-row.is-open td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    border-top: 1px solid #e7efed;
+    padding: 12px 0 0;
+  }
+
+  .dealer-page .record-row.is-open td::before {
+    position: static;
+    display: block;
+    width: auto;
+    margin: 0 0 7px;
+    color: #607477;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .dealer-page .record-row.is-open td > *,
+  .dealer-page .record-row.is-open td input,
+  .dealer-page .record-row.is-open td select,
+  .dealer-page .record-row.is-open td button {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .dealer-page .record-row.is-open .tracking-cell,
+  .dealer-page .record-row.is-open .record-actions,
+  .dealer-page .record-row.is-open .row-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .dealer-page .record-row:focus-visible {
