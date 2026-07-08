@@ -1950,4 +1950,13 @@ function setMobileViewFromHash() {
   if (target?.tagName === "DETAILS") target.open = true;
 }
 
+document.querySelector('.dealer-page .mobile-tabbar a[href="#recordFormPanel"]')?.addEventListener("click", () => {
+  document.body.dataset.mobileView = "add";
+  const panel = document.querySelector("#recordFormPanel");
+  if (panel) panel.open = true;
+  document.querySelectorAll(".mobile-tabbar a").forEach((link) => {
+    link.classList.toggle("active", link.hash === "#recordFormPanel");
+  });
+});
+
 initApp();

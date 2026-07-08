@@ -9501,4 +9501,41 @@ h3,
     border-color: #eadbb6;
     background: linear-gradient(145deg, #fffdf7, #faf4e7);
   }
+
+  /* The mobile add screen must remain visible even when the same tab is tapped twice. */
+  .dealer-page[data-mobile-view="add"] .dealer-overview,
+  .dealer-page[data-mobile-view="add"] .toolbar,
+  .dealer-page[data-mobile-view="add"] .stale-alert,
+  .dealer-page[data-mobile-view="add"] .records,
+  .dealer-page[data-mobile-view="add"] .status-board,
+  .dealer-page[data-mobile-view="add"] .status-panel {
+    display: none !important;
+  }
+
+  .dealer-page[data-mobile-view="add"] .dealer-workbench {
+    display: block !important;
+    width: 100%;
+  }
+
+  .dealer-page[data-mobile-view="add"] #recordFormPanel {
+    position: static !important;
+    display: block !important;
+    visibility: visible !important;
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+    overflow: visible;
+    opacity: 1 !important;
+  }
+
+  .dealer-page[data-mobile-view="add"] #recordFormPanel form {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .dealer-page[data-mobile-view="add"] #recordFormPanel form > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
 }
