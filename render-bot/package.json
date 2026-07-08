@@ -9,7 +9,6 @@
   "dependencies": {
     "express": "^4.19.2",
     "firebase-admin": "^12.7.0",
-    "tesseract.js": "^6.0.1",
     "ws": "^8.18.0"
   },
   "engines": {
