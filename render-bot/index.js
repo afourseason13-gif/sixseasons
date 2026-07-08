@@ -473,11 +473,26 @@ function statusFromCommandLine(line) {
 function parseGeneralBulkRecordCommands(text, defaultWarrantyDate = "") {
   const commands = [];
   const seen = new Set();
+  const warrantyDate = parseCommandDate(text) || defaultWarrantyDate;
+  const warrantyDays = parseWarrantyDays(text);
+  let sectionStatus = "";
+
   for (const line of String(text || "").split(/\r?\n/)) {
-    const status = statusFromCommandLine(line);
-    if (!status) continue;
     const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
+    const inlineStatus = statusFromCommandLine(line);
+
+    // A status-only line starts a section. A date/warranty heading starts an
+    // open-warranty section. A status written beside a card applies only to
+    // that line and must not leak into the following cards.
+    if (!cardTokens.length) {
+      if (inlineStatus) sectionStatus = inlineStatus;
+      else if (line.includes("开保") || parseWarrantyDays(line)) sectionStatus = "开保";
+      continue;
+    }
+
+    const status = inlineStatus || sectionStatus;
+    if (!status) continue;
     for (const cardToken of cardTokens) {
       if (seen.has(cardToken)) continue;
       seen.add(cardToken);
@@ -485,12 +500,12 @@ function parseGeneralBulkRecordCommands(text, defaultWarrantyDate = "") {
         action: "status",
         status,
         cardToken,
-        warrantyDate: parseCommandDate(text) || (status === "\u5f00\u4fdd" ? defaultWarrantyDate : ""),
-        warrantyDays: parseWarrantyDays(text)
+        warrantyDate: status === "开保" ? warrantyDate : "",
+        warrantyDays: status === "开保" ? warrantyDays : 0
       });
     }
   }
-  return commands.length > 1 ? commands : [];
+  return commands;
 }
 
 function parseDriverSignedCommands(text) {
