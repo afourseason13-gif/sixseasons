@@ -741,10 +741,11 @@ function formatDriverPickupNotice(stopped, missing = []) {
   const missingLines = missing.length ? ["", `找不到：${missing.join(", ")}`] : [];
   return [
     `车手已拿，已停止查询 ${stopped.length} 条`,
+    "请通知人头删除 App",
     "",
     ...lines,
     ...missingLines
-  ].filter((line, index) => index < 2 || clean(line)).join("\n");
+  ].filter((line, index) => index < 3 || clean(line)).join("\n");
 }
 
 async function findLatestRecordByCard(cardToken) {
