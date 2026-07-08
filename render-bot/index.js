@@ -397,7 +397,17 @@ async function readTelegramPhotoText(message) {
   if (!fileId) return "";
   const imageUrl = await telegramFileUrl(fileId);
   if (!imageUrl) return "";
-  return await readPhotoWithOcrSpace(imageUrl) || await readPhotoWithTesseract(imageUrl);
+  const remoteText = await readPhotoWithOcrSpace(imageUrl);
+  if (remoteText) return remoteText;
+
+  // Tesseract workers can use hundreds of MB. Render's 512 MB instance is
+  // killed when several Telegram photos arrive together, so local OCR is only
+  // kept as a development fallback. Captions still import normally on Render.
+  if (process.env.RENDER || process.env.DISABLE_LOCAL_OCR === "true") {
+    console.warn("Skipping local Tesseract OCR on memory-limited runtime");
+    return "";
+  }
+  return await readPhotoWithTesseract(imageUrl);
 }
 
 function telegramLargestPhotoFileId(message) {
@@ -1516,6 +1526,30 @@ async function reply(chatId, text) {
     lastResult = body.result || lastResult;
   }
   return lastResult;
+}
+
+async function ensureTelegramWebhook() {
+  const externalUrl = clean(process.env.RENDER_EXTERNAL_URL).replace(/\/$/, "");
+  const webhookUrl = externalUrl ? `${externalUrl}/telegram` : "";
+  if (!webhookUrl) {
+    console.warn("RENDER_EXTERNAL_URL is unavailable; Telegram webhook was not refreshed");
+    return;
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: webhookUrl,
+      drop_pending_updates: false,
+      allowed_updates: ["message", "edited_message", "channel_post", "edited_channel_post"]
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    throw new Error(`Telegram webhook refresh failed: ${result.description || response.status}`);
+  }
+  console.log(`Telegram webhook refreshed: ${webhookUrl}`);
 }
 
 async function rememberTelegramChat(chatId) {
@@ -2887,6 +2921,7 @@ app.post("/telegram", async (req, res) => {
 const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`Telegram bot listening on ${port}`);
+  ensureTelegramWebhook().catch((error) => console.error(error));
   autoExpireWarrantyRecords().catch((error) => console.error(error));
   runScheduledTrackingMyCheck().catch((error) => console.error(error));
 });
