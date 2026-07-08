@@ -2625,8 +2625,10 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ok");
       return;
     }
-    const botReply = await reply(chatId, `${result.updatedExisting ? "已更新" : "已导入"} ${result.dealerName}`);
-    await rememberTelegramBotReply(result.recordId, botReply.message_id);
+    const reacted = await reactToTelegramMessage(chatId, message?.message_id, "✅");
+    if (!reacted) {
+      await reply(chatId, `${result.updatedExisting ? "已更新" : "已导入"} ${result.dealerName}`);
+    }
     res.status(200).send("ok");
   } catch (error) {
     console.error(error);
