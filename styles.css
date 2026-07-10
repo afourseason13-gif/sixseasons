@@ -9985,4 +9985,8 @@ h3,
   .index-page .unknown-card-center {
     margin-bottom: 92px !important;
   }
+
+  .index-page[data-mobile-view="dealers"] .toolbar {
+    display: none !important;
+  }
 }
