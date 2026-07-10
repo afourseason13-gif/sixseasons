@@ -637,6 +637,7 @@ function initIndexPage() {
   });
 
   searchInput.addEventListener("input", renderIndexPage);
+  document.querySelector("#dealerSort")?.addEventListener("change", renderIndexPage);
   cardFinderInput.addEventListener("input", renderCardDealerFinder);
   cardFinderInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -859,8 +860,23 @@ function renderIndexPage() {
   const heroRecordCount = document.querySelector("#heroRecordCount");
   const noticeMessage = document.querySelector("#noticeMessage");
   const searchInput = document.querySelector("#searchInput");
+  const dealerSort = document.querySelector("#dealerSort")?.value || "salary-desc";
   const query = searchInput.value.trim().toLowerCase();
   const names = uniqueDealers().filter((name) => !query || name.toLowerCase().includes(query));
+  const dealerLastUpdated = (name) => records
+    .filter((record) => record.dealerName === name)
+    .map((record) => record.updatedAt || record.createdAt || "")
+    .filter(Boolean)
+    .sort()
+    .at(-1) || "";
+  names.sort((a, b) => {
+    const statsA = dealerStats(a);
+    const statsB = dealerStats(b);
+    if (dealerSort === "records-desc") return statsB.count - statsA.count || a.localeCompare(b, "zh-CN");
+    if (dealerSort === "latest-desc") return String(dealerLastUpdated(b)).localeCompare(String(dealerLastUpdated(a))) || a.localeCompare(b, "zh-CN");
+    if (dealerSort === "name") return a.localeCompare(b, "zh-CN");
+    return statsB.salary - statsA.salary || statsB.count - statsA.count || a.localeCompare(b, "zh-CN");
+  });
 
   renderUnknownCardCenter();
 
@@ -1382,6 +1398,17 @@ function renderStatusBoard(dealerRecords) {
   renderList(problemList, groups.problem);
 }
 
+function recordStatusPriority(record) {
+  const status = String(record.status || "").replace(/\s+/g, "");
+  const packageStatus = String(record.packageStatus || "");
+  if (status.includes("弹卡") || status.includes("人头关") || status.includes("人头偷钱") || status.includes("炸") || status.includes("赔")) return 1;
+  if (status.includes("开保")) return 2;
+  if (status.includes("车手已签收") || packageStatus.includes("已送达")) return 3;
+  if (status.includes("寄")) return 4;
+  if (status.includes("过保")) return 5;
+  return 6;
+}
+
 function renderDealerPage(dealerName, fillForm) {
   const searchInput = document.querySelector("#searchInput");
   const recordsBody = document.querySelector("#recordsBody");
@@ -1391,7 +1418,7 @@ function renderDealerPage(dealerName, fillForm) {
   const rowTemplate = document.querySelector("#recordRowTemplate");
   const staleAlert = document.querySelector("#staleAlert");
   const staleAlertText = document.querySelector("#staleAlertText");
-  const recordSort = document.querySelector("#recordSort")?.value || "updated-desc";
+  const recordSort = document.querySelector("#recordSort")?.value || "status-priority";
   const query = searchInput.value.trim().toLowerCase();
   const dealerRecords = records.filter((record) => record.dealerName === dealerName);
   const visibleRecords = records
@@ -1424,6 +1451,11 @@ function renderDealerPage(dealerName, fillForm) {
     sensitivity: "base"
   });
   visibleRecords.sort((a, b) => {
+    if (recordSort === "status-priority") {
+      return recordStatusPriority(a) - recordStatusPriority(b)
+        || String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))
+        || textCompare(a.cardNumber, b.cardNumber);
+    }
     if (recordSort === "status") return textCompare(a.status, b.status) || textCompare(a.cardNumber, b.cardNumber);
     if (recordSort === "card") return textCompare(a.cardNumber, b.cardNumber);
     if (recordSort === "carrier") return textCompare(a.carrier, b.carrier) || textCompare(a.cardNumber, b.cardNumber);

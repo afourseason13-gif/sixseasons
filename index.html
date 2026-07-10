@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260705-dealer-cards" />
+    <link rel="stylesheet" href="./styles.css?v=20260710-mobile-premium" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -173,6 +173,15 @@
           <span aria-hidden="true">⌕</span>
           <input id="searchInput" placeholder="搜索 Dealer 名称" />
         </div>
+        <label class="mobile-sort-control dealer-sort-control">
+          <span>Dealer 排序</span>
+          <select id="dealerSort">
+            <option value="salary-desc">工资最高</option>
+            <option value="records-desc">资料最多</option>
+            <option value="latest-desc">最近更新</option>
+            <option value="name">名字 A-Z</option>
+          </select>
+        </label>
         <div class="summary">
           <strong id="totalCount">0</strong>
           <span>个 Dealer</span>
@@ -202,6 +211,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260705-dealer-cards"></script>
+    <script src="./app.js?v=20260710-mobile-premium"></script>
   </body>
 </html>

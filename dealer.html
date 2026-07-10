@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dealer 资料</title>
-    <link rel="stylesheet" href="./styles.css?v=20260708-mobile-add-v5" />
+    <link rel="stylesheet" href="./styles.css?v=20260710-mobile-premium" />
   </head>
   <body class="dealer-page">
     <main class="app-shell">
@@ -153,9 +153,10 @@
         <label class="mobile-sort-control">
           <span>资料排序</span>
           <select id="recordSort">
+            <option value="status-priority">状态优先</option>
             <option value="updated-desc">最近更新</option>
-            <option value="status">按状态</option>
             <option value="card">按卡号</option>
+            <option value="status">按状态 A-Z</option>
             <option value="carrier">按包裹公司</option>
             <option value="warranty-desc">按开保日期</option>
           </select>
@@ -244,6 +245,6 @@
     </div>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260708-mobile-add-v5"></script>
+    <script src="./app.js?v=20260710-mobile-premium"></script>
   </body>
 </html>
