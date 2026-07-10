@@ -1260,6 +1260,28 @@ async function reply(chatId, text) {
   return lastResult;
 }
 
+async function replyToTelegramMessage(chatId, messageId, text) {
+  if (!chatId || !messageId) return false;
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_parameters: {
+        message_id: messageId,
+        allow_sending_without_reply: true
+      }
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    console.error(`Telegram proof reply failed: chat=${chatId} message=${messageId} ${result.description || response.status}`);
+    return false;
+  }
+  return true;
+}
+
 async function reactToTelegramMessage(chatId, messageId, emoji = "✅") {
   if (!chatId || !messageId) return false;
   const response = await fetch(`https://api.telegram.org/bot${botToken}/setMessageReaction`, {
@@ -1268,12 +1290,13 @@ async function reactToTelegramMessage(chatId, messageId, emoji = "✅") {
     body: JSON.stringify({
       chat_id: chatId,
       message_id: messageId,
-      reaction: [{ type: "emoji", emoji }]
+      reaction: [{ type: "emoji", emoji }],
+      is_big: false
     })
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok || !result.ok) {
-    console.error(`Telegram reaction failed: ${result.description || response.status}`);
+    console.error(`Telegram reaction failed: chat=${chatId} message=${messageId} emoji=${emoji} ${result.description || response.status}`);
     return false;
   }
   return true;
@@ -2611,7 +2634,10 @@ app.post("/telegram", async (req, res) => {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
         if (commandResult.reactionOnly) {
-          await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "✅");
+          const reacted = await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "✅");
+          if (!reacted && !commandResult.message) {
+            await replyToTelegramMessage(chatId, message?.message_id, commandResult.reaction === "⚠️" ? "⚠️已处理，请检查找不到的卡号" : "✅已更改系统");
+          }
           if (commandResult.message) await reply(chatId, commandResult.message);
         } else if (commandResult.message) {
           await reply(chatId, commandResult.message);
@@ -2642,7 +2668,10 @@ app.post("/telegram", async (req, res) => {
     }
     const reacted = await reactToTelegramMessage(chatId, message?.message_id, "✅");
     if (!reacted) {
-      await reply(chatId, `${result.updatedExisting ? "已更新" : "已导入"} ${result.dealerName}`);
+      const proofSent = await replyToTelegramMessage(chatId, message?.message_id, "✅证明已导入");
+      if (!proofSent) {
+        await reply(chatId, `✅证明已导入 ${result.dealerName}`);
+      }
     }
     res.status(200).send("ok");
   } catch (error) {
