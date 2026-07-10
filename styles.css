@@ -9850,4 +9850,139 @@ h3,
     color: #fff8e7 !important;
     box-shadow: 0 12px 24px rgba(15, 118, 110, 0.28) !important;
   }
+
+  /* Fix package/mobile utility panels: never use pale text on white cards. */
+  .index-page[data-mobile-view="packages"] .home-command-grid,
+  .index-page[data-mobile-view="packages"] .home-transit-board,
+  .index-page[data-mobile-view="packages"] .pending-center,
+  .index-page[data-mobile-view="packages"] .unknown-card-center,
+  .index-page .card-dealer-finder {
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    border-radius: 28px !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12) !important;
+  }
+
+  .index-page[data-mobile-view="packages"] .home-command-grid::before {
+    color: #111827 !important;
+    text-shadow: none !important;
+  }
+
+  .index-page .card-finder-heading h2,
+  .index-page .home-transit-board .card-finder-heading h2,
+  .index-page .pending-center-head h2,
+  .index-page .unknown-card-head h2 {
+    color: #111827 !important;
+    text-shadow: none !important;
+  }
+
+  .index-page .section-copy,
+  .index-page .home-transit-board .section-copy,
+  .index-page .pending-center .section-copy,
+  .index-page .unknown-card-center .section-copy {
+    color: #64748b !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+  }
+
+  .index-page .home-transit-board .card-finder-heading .eyebrow,
+  .index-page .card-dealer-finder .card-finder-heading .eyebrow,
+  .index-page .pending-center .eyebrow,
+  .index-page .unknown-card-center .eyebrow {
+    color: #0f766e !important;
+    opacity: 1 !important;
+  }
+
+  .index-page .card-finder-count,
+  .index-page .home-transit-board .card-finder-count,
+  .index-page .pending-count,
+  .index-page .unknown-card-count {
+    border-color: rgba(15, 118, 110, 0.18) !important;
+    background: rgba(15, 118, 110, 0.08) !important;
+    color: #0f766e !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+  }
+
+  .index-page .home-transit-list,
+  .index-page .pending-list,
+  .index-page .unknown-card-list,
+  .index-page .card-finder-results {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .index-page .home-transit-item,
+  .index-page .card-finder-result,
+  .index-page .pending-item,
+  .index-page .unknown-card-item {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    gap: 8px 12px !important;
+    align-items: center !important;
+    min-height: 68px !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    border-left: 5px solid #0f766e !important;
+    border-radius: 20px !important;
+    background: #f8fafc !important;
+    color: #111827 !important;
+    padding: 13px 14px !important;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08) !important;
+    opacity: 1 !important;
+  }
+
+  .index-page .home-transit-item strong,
+  .index-page .card-finder-number,
+  .index-page .card-finder-dealer,
+  .index-page .pending-item strong,
+  .index-page .unknown-card-item strong {
+    color: #111827 !important;
+    opacity: 1 !important;
+    font-size: 17px !important;
+    font-weight: 950 !important;
+    text-shadow: none !important;
+  }
+
+  .index-page .home-transit-item span,
+  .index-page .card-finder-tracking,
+  .index-page .card-finder-status,
+  .index-page .pending-reason,
+  .index-page .pending-meta,
+  .index-page .unknown-card-item span,
+  .index-page .unknown-card-item p,
+  .index-page .unknown-card-item time {
+    color: #475569 !important;
+    opacity: 1 !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    text-shadow: none !important;
+  }
+
+  .index-page .home-transit-item em,
+  .index-page .card-finder-open,
+  .index-page .pending-type {
+    justify-self: end !important;
+    border: 1px solid rgba(15, 118, 110, 0.18) !important;
+    border-radius: 999px !important;
+    background: rgba(15, 118, 110, 0.09) !important;
+    color: #0f766e !important;
+    padding: 7px 10px !important;
+    font-size: 12px !important;
+    font-style: normal !important;
+    font-weight: 950 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+  }
+
+  .index-page .home-transit-empty,
+  .index-page .card-finder-empty {
+    color: #475569 !important;
+    opacity: 1 !important;
+  }
+
+  .index-page .unknown-card-center {
+    margin-bottom: 92px !important;
+  }
 }
