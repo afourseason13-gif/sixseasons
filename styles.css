@@ -10423,3 +10423,395 @@ button:hover,
   background: #ffffff !important;
   color: #111827 !important;
 }
+
+/* 2026-07 cyber command redesign: bold high-tech interface, applied last. */
+:root {
+  --cy-bg-0: #03080b;
+  --cy-bg-1: #061b1f;
+  --cy-panel: rgba(6, 22, 27, 0.82);
+  --cy-panel-strong: rgba(9, 31, 38, 0.94);
+  --cy-card: rgba(10, 36, 43, 0.9);
+  --cy-line: rgba(94, 234, 212, 0.22);
+  --cy-line-strong: rgba(94, 234, 212, 0.42);
+  --cy-text: #eafffb;
+  --cy-muted: #8fb7bd;
+  --cy-dim: #66868c;
+  --cy-neon: #42f5d7;
+  --cy-blue: #38bdf8;
+  --cy-gold: #f8c15c;
+  --cy-red: #ff5c73;
+  --cy-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  --cy-glow: 0 0 28px rgba(66, 245, 215, 0.22);
+}
+
+body.index-page,
+body.dealer-page {
+  background:
+    linear-gradient(rgba(94, 234, 212, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 234, 212, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.26), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(248, 193, 92, 0.18), transparent 26%),
+    radial-gradient(circle at 50% 95%, rgba(20, 184, 166, 0.16), transparent 34%),
+    linear-gradient(135deg, var(--cy-bg-0) 0%, var(--cy-bg-1) 46%, #041014 100%) !important;
+  background-size: 42px 42px, 42px 42px, auto, auto, auto, auto !important;
+  color: var(--cy-text) !important;
+}
+
+body.index-page::before,
+body.dealer-page::before {
+  content: "SIXSEASONS";
+  color: rgba(94, 234, 212, 0.055) !important;
+  text-shadow: 0 0 34px rgba(94, 234, 212, 0.08) !important;
+}
+
+.app-shell {
+  isolation: isolate;
+}
+
+.index-page .topbar,
+.dealer-page .topbar,
+.index-page .index-hero,
+.index-page .notice-panel,
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .pending-center,
+.index-page .unknown-card-center,
+.index-page .announce-panel,
+.index-page .quote-panel,
+.index-page .dealer-section,
+.dealer-page .dealer-overview,
+.dealer-page .dealer-workbench,
+.dealer-page .toolbar,
+.dealer-page .status-board-card,
+.dealer-page .status-panel,
+.dealer-page #recordFormPanel,
+.dealer-page .records,
+.dealer-page .stale-alert,
+.details-dialog {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--cy-line) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018)),
+    var(--cy-panel) !important;
+  color: var(--cy-text) !important;
+  box-shadow: var(--cy-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08), var(--cy-glow) !important;
+  backdrop-filter: blur(22px) saturate(1.25) !important;
+}
+
+.index-page .topbar::after,
+.dealer-page .topbar::after,
+.index-page .index-hero::after,
+.index-page .notice-panel::after,
+.index-page .card-dealer-finder::after,
+.index-page .home-transit-board::after,
+.dealer-page .metric-card::after,
+.dealer-page .status-board-card::after,
+.dealer-page .record-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(94, 234, 212, 0.09) 42%, transparent 58%),
+    radial-gradient(circle at 94% 0%, rgba(248, 193, 92, 0.12), transparent 26%);
+  opacity: 0.8;
+}
+
+.index-page .topbar,
+.dealer-page .topbar,
+.index-page .index-hero {
+  border-color: rgba(94, 234, 212, 0.34) !important;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(248, 193, 92, 0.24), transparent 30%),
+    radial-gradient(circle at 4% 20%, rgba(56, 189, 248, 0.22), transparent 30%),
+    linear-gradient(135deg, rgba(4, 18, 24, 0.98), rgba(8, 48, 54, 0.94) 58%, rgba(16, 27, 20, 0.92)) !important;
+}
+
+.index-page .topbar h1,
+.dealer-page .topbar h1,
+.index-page .index-hero h2 {
+  color: var(--cy-text) !important;
+  text-shadow: 0 0 18px rgba(66, 245, 215, 0.28), 0 2px 18px rgba(0, 0, 0, 0.4) !important;
+}
+
+.index-page .eyebrow,
+.dealer-page .eyebrow,
+.card-finder-heading .eyebrow,
+.unknown-card-head .eyebrow,
+.pending-center .eyebrow {
+  color: var(--cy-gold) !important;
+  text-shadow: 0 0 18px rgba(248, 193, 92, 0.28) !important;
+}
+
+.sync-card,
+.announce-status,
+.card-finder-count,
+.pending-count,
+.unknown-card-count,
+.dealer-count-badge,
+.home-transit-item em,
+.card-finder-open,
+.pending-type,
+.status-board-head span {
+  border: 1px solid rgba(94, 234, 212, 0.28) !important;
+  background: rgba(66, 245, 215, 0.1) !important;
+  color: var(--cy-neon) !important;
+  box-shadow: inset 0 0 18px rgba(66, 245, 215, 0.08), 0 0 18px rgba(66, 245, 215, 0.1) !important;
+}
+
+.sync-card .dot {
+  background: var(--cy-neon) !important;
+  box-shadow: 0 0 0 6px rgba(66, 245, 215, 0.12), 0 0 24px rgba(66, 245, 215, 0.75) !important;
+}
+
+.index-page .notice-panel h2,
+.index-page .notice-panel p,
+.index-page .notice-message,
+.index-page .announce-panel h2,
+.index-page .announce-panel p,
+.index-page .quote-panel p,
+.index-page .card-dealer-finder h2,
+.index-page .card-dealer-finder p,
+.index-page .home-transit-board h2,
+.index-page .home-transit-board p,
+.index-page .pending-center h2,
+.index-page .pending-center p,
+.index-page .unknown-card-center h2,
+.index-page .unknown-card-center p,
+.index-page .dealer-section h2,
+.dealer-page .records-heading h2,
+.dealer-page .status-board-card h2,
+.dealer-page .status-board-card h3,
+.dealer-page .metric-card span,
+.dealer-page .metric-card strong,
+.dealer-page .salary-breakdown span,
+.dealer-page .salary-breakdown strong,
+.dealer-page .salary-breakdown small,
+.dealer-page .salary-breakdown b,
+.dealer-page .salary-group span,
+.dealer-page .salary-group strong,
+.dealer-page .salary-group small,
+.dealer-page .salary-group b,
+.dealer-page .record-row.is-open td {
+  color: var(--cy-text) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.index-page .section-copy,
+.index-page .notice-message,
+.index-page .quote-panel p,
+.dealer-meta,
+.card-finder-tracking,
+.home-transit-item span,
+.pending-meta,
+.unknown-card-item span,
+.dealer-page .records-heading > span,
+.dealer-page .metric-card:not(.salary-total-card) > span,
+.dealer-page .salary-line b,
+.dealer-page .salary-line-main b,
+.dealer-page .record-row.is-open td::before {
+  color: var(--cy-muted) !important;
+}
+
+.search-wrap,
+.card-finder-search,
+.mobile-sort-control,
+input,
+select,
+textarea,
+.inline-edit,
+.status-select,
+.tracking-manual-select {
+  border: 1px solid rgba(94, 234, 212, 0.22) !important;
+  background: rgba(2, 12, 16, 0.72) !important;
+  color: var(--cy-text) !important;
+  box-shadow: inset 0 0 18px rgba(66, 245, 215, 0.04) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(143, 183, 189, 0.72) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.search-wrap:focus-within,
+.card-finder-search:focus-within {
+  border-color: rgba(66, 245, 215, 0.78) !important;
+  box-shadow: 0 0 0 4px rgba(66, 245, 215, 0.12), 0 0 28px rgba(66, 245, 215, 0.18) !important;
+}
+
+.primary,
+button.primary,
+.notice-edit {
+  border: 1px solid rgba(94, 234, 212, 0.38) !important;
+  background:
+    linear-gradient(135deg, rgba(66, 245, 215, 0.95), rgba(14, 116, 144, 0.92)) !important;
+  color: #031014 !important;
+  font-weight: 950 !important;
+  box-shadow: 0 0 26px rgba(66, 245, 215, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+.ghost,
+button.ghost {
+  border: 1px solid rgba(94, 234, 212, 0.24) !important;
+  background: rgba(66, 245, 215, 0.08) !important;
+  color: var(--cy-neon) !important;
+}
+
+.danger,
+button.danger {
+  border: 1px solid rgba(255, 92, 115, 0.28) !important;
+  background: rgba(255, 92, 115, 0.1) !important;
+  color: #ffb3bf !important;
+}
+
+.dealer-card,
+.card-finder-result,
+.home-transit-item,
+.pending-item,
+.unknown-card-item,
+.status-board-item,
+.dealer-page .record-row,
+.dealer-page .metric-card:not(.salary-total-card),
+.dealer-page .salary-breakdown,
+.dealer-page .salary-group {
+  border: 1px solid rgba(94, 234, 212, 0.18) !important;
+  background:
+    linear-gradient(135deg, rgba(9, 31, 38, 0.94), rgba(4, 16, 20, 0.9)) !important;
+  color: var(--cy-text) !important;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+.dealer-card,
+.home-transit-item,
+.card-finder-result,
+.dealer-page .record-row {
+  border-left: 5px solid var(--cy-neon) !important;
+}
+
+.dealer-card:hover,
+.card-finder-result:hover,
+.home-transit-item:hover,
+.status-board-item:hover,
+.dealer-page .record-row:hover {
+  border-color: rgba(66, 245, 215, 0.46) !important;
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.34), 0 0 28px rgba(66, 245, 215, 0.13) !important;
+}
+
+.dealer-rank {
+  background: linear-gradient(135deg, var(--cy-neon), var(--cy-blue)) !important;
+  color: #021014 !important;
+  box-shadow: 0 0 22px rgba(66, 245, 215, 0.28) !important;
+}
+
+.dealer-name,
+.card-finder-number,
+.card-finder-dealer,
+.home-transit-item strong,
+.pending-item strong,
+.unknown-card-item strong,
+.status-board-item strong,
+.dealer-page .record-row::before {
+  color: var(--cy-text) !important;
+  text-shadow: 0 0 14px rgba(66, 245, 215, 0.14) !important;
+}
+
+.dealer-page .salary-total-card {
+  border: 1px solid rgba(248, 193, 92, 0.44) !important;
+  background:
+    radial-gradient(circle at 85% 5%, rgba(248, 193, 92, 0.32), transparent 34%),
+    radial-gradient(circle at 12% 100%, rgba(66, 245, 215, 0.16), transparent 34%),
+    linear-gradient(135deg, #071113 0%, #092b2f 48%, #3b2506 100%) !important;
+  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.36), 0 0 32px rgba(248, 193, 92, 0.12) !important;
+}
+
+.dealer-page .salary-total-card span,
+.dealer-page .salary-total-card strong,
+.dealer-page .salary-total-card small,
+.dealer-page .salary-total-card b {
+  color: #fff2c9 !important;
+  text-shadow: 0 0 20px rgba(248, 193, 92, 0.25) !important;
+}
+
+.salary-group-money {
+  border-color: rgba(248, 193, 92, 0.34) !important;
+  background: linear-gradient(135deg, rgba(62, 39, 8, 0.92), rgba(18, 20, 18, 0.88)) !important;
+}
+
+.status-select.status-problem,
+.record-row.status-problem,
+.record-row.status-cancel,
+.record-row.status-human,
+.record-row.status-stolen {
+  border-left-color: var(--cy-red) !important;
+}
+
+.status-select.status-complete,
+.status-select.status-warranty,
+.record-row.status-complete,
+.record-row.status-warranty {
+  border-left-color: var(--cy-gold) !important;
+}
+
+.mobile-tabbar {
+  border: 1px solid rgba(94, 234, 212, 0.22) !important;
+  background: rgba(3, 14, 18, 0.82) !important;
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.45), 0 0 24px rgba(66, 245, 215, 0.14) !important;
+}
+
+.mobile-tabbar a {
+  color: var(--cy-muted) !important;
+}
+
+.mobile-tabbar a.active,
+.mobile-tabbar a:hover,
+.mobile-tabbar a:focus-visible {
+  background:
+    radial-gradient(circle at 82% 0%, rgba(248, 193, 92, 0.24), transparent 32%),
+    linear-gradient(135deg, rgba(66, 245, 215, 0.95), rgba(14, 116, 144, 0.9)) !important;
+  color: #021014 !important;
+  box-shadow: 0 0 28px rgba(66, 245, 215, 0.28) !important;
+}
+
+@media (max-width: 760px) {
+  body.index-page,
+  body.dealer-page {
+    background-size: 34px 34px, 34px 34px, auto, auto, auto, auto !important;
+  }
+
+  .index-page .topbar,
+  .dealer-page .topbar,
+  .index-page .index-hero,
+  .index-page .notice-panel,
+  .index-page .card-dealer-finder,
+  .index-page .home-transit-board,
+  .index-page .pending-center,
+  .index-page .unknown-card-center,
+  .index-page .announce-panel,
+  .index-page .dealer-section,
+  .dealer-page .metric-card,
+  .dealer-page #recordFormPanel,
+  .dealer-page .status-panel,
+  .dealer-page .status-board-card {
+    border-radius: 26px !important;
+  }
+
+  .dealer-page .record-row.is-open td {
+    background: transparent !important;
+  }
+
+  .dealer-page .record-row:not(.is-open)::after {
+    background: rgba(66, 245, 215, 0.1) !important;
+    color: var(--cy-neon) !important;
+    border-color: rgba(66, 245, 215, 0.28) !important;
+  }
+
+  .dealer-page .record-row.is-open::after {
+    background: rgba(66, 245, 215, 0.12) !important;
+    color: var(--cy-neon) !important;
+  }
+}
