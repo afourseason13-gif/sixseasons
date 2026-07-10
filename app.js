@@ -430,7 +430,7 @@ function recordFromPendingImport(pending, values) {
       ...existing,
       dealerName: values.dealerName,
       cardNumber: values.cardNumber,
-      carrier: pending.carrier || existing.carrier || "鍏朵粬",
+      carrier: pending.carrier || existing.carrier || "其他",
       trackingNumber: values.trackingNumber || existing.trackingNumber || "",
       tailNumber: pending.tailNumber || values.trackingNumber.slice(-4) || existing.tailNumber || "",
       formattedDetails: pending.formattedDetails || existing.formattedDetails || "",
@@ -442,7 +442,7 @@ function recordFromPendingImport(pending, values) {
     ...parsed,
     dealerName: values.dealerName,
     cardNumber: values.cardNumber,
-    carrier: pending.carrier || "鍏朵粬",
+    carrier: pending.carrier || "其他",
     trackingNumber: values.trackingNumber,
     tailNumber: pending.tailNumber || values.trackingNumber.slice(-4),
     formattedDetails: pending.formattedDetails || "",
@@ -1194,15 +1194,15 @@ function editableCarrierSelect(record) {
 
 function statusClassName(status) {
   const source = String(status || "");
-  if (source.includes("过保") || source.includes("杩囦繚")) return "status-expired";
-  if (source.includes("开保") || source.includes("寮€淇")) return "status-opened";
-  if (source.includes("人头关") || source.includes("人头偷钱") || source.includes("赔 150") || source.includes("赔150") || source.includes("浜哄ご鍏")) return "status-closed";
-  if (source.includes("弹卡") || source.includes("寮瑰崱")) return "status-bounced";
-  if (source.includes("炸") || source.includes("鐐")) return "status-rejected";
-  if (source.includes("车手") || source.includes("签收") || source.includes("杞︽墜") || source.includes("绛炬敹")) return "status-signed";
-  if (source.includes("寄") || source.includes("瀵")) return "status-sent";
-  if (source.includes("完成") || source.includes("宸插畬")) return "status-done";
-  if (source.includes("处理") || source.includes("澶勭悊")) return "status-processing";
+  if (source.includes("过保")) return "status-expired";
+  if (source.includes("开保")) return "status-opened";
+  if (source.includes("人头关") || source.includes("人头偷钱") || source.includes("赔 150") || source.includes("赔150")) return "status-closed";
+  if (source.includes("弹卡")) return "status-bounced";
+  if (source.includes("炸")) return "status-rejected";
+  if (source.includes("车手") || source.includes("签收")) return "status-signed";
+  if (source.includes("寄")) return "status-sent";
+  if (source.includes("完成")) return "status-done";
+  if (source.includes("处理")) return "status-processing";
   return "status-default";
 }
 
@@ -1342,8 +1342,8 @@ function isRecordStale(record) {
 
 function recordStatusGroup(record) {
   const status = String(record.status || "");
-  if (status.includes("过保") || status.includes("开保") || status.includes("杩囦繚") || status.includes("寮€淇")) return "active";
-  if (status.includes("弹卡") || status.includes("人头关") || status.includes("人头偷钱") || status.includes("赔 150") || status.includes("赔150") || status.includes("炸") || status.includes("寮瑰崱") || status.includes("浜哄ご鍏")) return "problem";
+  if (status.includes("过保") || status.includes("开保")) return "active";
+  if (status.includes("弹卡") || status.includes("人头关") || status.includes("人头偷钱") || status.includes("赔 150") || status.includes("赔150") || status.includes("炸")) return "problem";
   return "";
 }
 
@@ -1946,6 +1946,8 @@ async function initFirebaseMode() {
 }
 
 async function initApp() {
+  setMobileViewFromHash();
+
   if (hasFirebaseConfig()) {
     await initFirebaseMode();
   } else {
