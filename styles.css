@@ -10302,3 +10302,124 @@ button:hover,
     border: 0 !important;
   }
 }
+
+/* 2026-07 final contrast repair: light cards must always use dark text. */
+.index-page .notice-panel,
+.index-page .card-dealer-finder,
+.index-page .home-transit-board,
+.index-page .pending-center,
+.index-page .unknown-card-center,
+.index-page .announce-panel,
+.index-page .quote-panel,
+.index-page .dealer-section,
+.dealer-page .metric-card:not(.salary-total-card),
+.dealer-page .salary-breakdown,
+.dealer-page .salary-group,
+.dealer-page .status-board-card,
+.dealer-page .status-panel,
+.dealer-page #recordFormPanel,
+.dealer-page .records-heading,
+.dealer-page .record-row.is-open td {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #111827 !important;
+  text-shadow: none !important;
+}
+
+.index-page .notice-panel h2,
+.index-page .notice-panel p,
+.index-page .notice-panel span:not(.dot):not(.notice-live-dot),
+.index-page .notice-message,
+.index-page .announce-panel h2,
+.index-page .announce-panel p,
+.index-page .quote-panel p,
+.index-page .card-dealer-finder h2,
+.index-page .card-dealer-finder p,
+.index-page .home-transit-board h2,
+.index-page .home-transit-board p,
+.index-page .pending-center h2,
+.index-page .pending-center p,
+.index-page .unknown-card-center h2,
+.index-page .unknown-card-center p,
+.index-page .dealer-section h2,
+.dealer-page .metric-card:not(.salary-total-card) span,
+.dealer-page .metric-card:not(.salary-total-card) strong,
+.dealer-page .metric-card:not(.salary-total-card) input,
+.dealer-page .metric-card:not(.salary-total-card) select,
+.dealer-page .salary-breakdown span,
+.dealer-page .salary-breakdown strong,
+.dealer-page .salary-breakdown small,
+.dealer-page .salary-breakdown b,
+.dealer-page .salary-group span,
+.dealer-page .salary-group strong,
+.dealer-page .salary-group small,
+.dealer-page .salary-group b,
+.dealer-page .status-board-card h2,
+.dealer-page .status-board-card h3,
+.dealer-page .status-board-card span,
+.dealer-page .status-board-card strong,
+.dealer-page .records-heading h2,
+.dealer-page .record-row.is-open td,
+.dealer-page .record-row.is-open td::before {
+  color: #111827 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.index-page .notice-panel .eyebrow,
+.index-page .announce-panel .eyebrow,
+.index-page .card-dealer-finder .eyebrow,
+.index-page .home-transit-board .eyebrow,
+.index-page .pending-center .eyebrow,
+.index-page .unknown-card-center .eyebrow,
+.dealer-page .records-heading .eyebrow,
+.dealer-page .salary-breakdown > span:first-child,
+.dealer-page .salary-group-title {
+  color: #0f766e !important;
+}
+
+.index-page .section-copy,
+.index-page .notice-message,
+.index-page .quote-panel p,
+.dealer-page .metric-card:not(.salary-total-card) > span,
+.dealer-page .salary-line b,
+.dealer-page .salary-line-main b,
+.dealer-page .record-row.is-open td::before {
+  color: #475569 !important;
+}
+
+.dealer-page .salary-total-card,
+.dealer-page .salary-total-card span,
+.dealer-page .salary-total-card strong,
+.dealer-page .salary-total-card small,
+.dealer-page .salary-total-card b {
+  color: #fff8e7 !important;
+}
+
+.dealer-page .salary-total-card {
+  background:
+    radial-gradient(circle at 84% 10%, rgba(251, 191, 36, 0.28), transparent 34%),
+    linear-gradient(135deg, #031b1d 0%, #073b3a 62%, #312309 100%) !important;
+}
+
+.index-page .notice-panel .notice-edit,
+.index-page .announce-panel .announce-status,
+.index-page .card-finder-count,
+.index-page .home-transit-board .card-finder-count,
+.index-page .pending-count,
+.index-page .unknown-card-count,
+.dealer-page .status-board-head span,
+.dealer-page .salary-line small,
+.dealer-page .salary-line-main small {
+  color: #0f766e !important;
+}
+
+.index-page .home-transit-item,
+.index-page .card-finder-result,
+.index-page .pending-item,
+.index-page .unknown-card-item,
+.dealer-card,
+.dealer-page .status-board-item,
+.dealer-page .record-row {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
