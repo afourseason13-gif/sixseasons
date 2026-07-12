@@ -14933,3 +14933,66 @@ body.dealer-page .table-wrap {
   }
 }
 
+/* 2026-07-12 mobile scale v3: readable dealer cards on light panel. */
+@media (max-width: 760px) {
+  body.index-page .dealer-section {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(239, 250, 247, 0.92)) !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: initial !important;
+  }
+
+  body.index-page .dealer-section h2,
+  body.index-page .dealer-section .eyebrow {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+  }
+
+  body.index-page .dealer-section .eyebrow {
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+  }
+
+  body.index-page .dealer-card {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(232, 247, 243, 0.95)) !important;
+    border: 1px solid rgba(15, 118, 110, 0.16) !important;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  body.index-page .dealer-card::before {
+    opacity: 0.16 !important;
+  }
+
+  body.index-page .dealer-name,
+  body.index-page .dealer-card .dealer-name {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    text-shadow: none !important;
+  }
+
+  body.index-page .dealer-meta {
+    color: #475569 !important;
+    -webkit-text-fill-color: #475569 !important;
+  }
+
+  body.index-page .dealer-count-badge {
+    background: #dff8f2 !important;
+    border-color: rgba(15, 118, 110, 0.22) !important;
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+  }
+
+  body.index-page .dealer-rank {
+    background: linear-gradient(160deg, #0f3f3b, #059669) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 10px 20px rgba(15, 118, 110, 0.22) !important;
+  }
+
+  body.index-page .dealer-delete {
+    background: #fee2e2 !important;
+    border: 1px solid rgba(239, 68, 68, 0.24) !important;
+  }
+}
+
