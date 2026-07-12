@@ -15332,6 +15332,127 @@ body.dealer-page .table-wrap {
   }
 }
 
+/* 2026-07-12 lookup results: keep card number, dealer, parcel, and status visible. */
+body.index-page .card-finder-results {
+  display: grid !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-height: 290px !important;
+  padding: 12px 0 4px !important;
+  overflow-y: auto !important;
+}
+
+body.index-page .card-finder-result {
+  display: grid !important;
+  grid-template-columns: minmax(150px, 190px) minmax(120px, 160px) minmax(220px, 1fr) minmax(150px, 230px) 84px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-height: 42px !important;
+  padding: 8px 10px 8px 18px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(15, 118, 110, 0.12) !important;
+  border-left: 4px solid #f8c96b !important;
+  background: linear-gradient(90deg, #ffffff 0%, #f7fffb 52%, #ecfdf5 100%) !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: initial !important;
+  text-decoration: none !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08) !important;
+  overflow: hidden !important;
+}
+
+body.index-page .card-finder-result > * {
+  min-width: 0 !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.index-page .card-finder-number {
+  display: block !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: 0 !important;
+}
+
+body.index-page .card-finder-dealer,
+body.index-page .card-finder-tracking {
+  display: block !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 850 !important;
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+}
+
+body.index-page .card-finder-status {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 28px !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #f8c96b, #5eead4) !important;
+  color: #064e3b !important;
+  -webkit-text-fill-color: #064e3b !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+}
+
+body.index-page .card-finder-open {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 28px !important;
+  padding: 3px 8px !important;
+  border-radius: 10px !important;
+  background: #ccfbf1 !important;
+  color: #0f766e !important;
+  -webkit-text-fill-color: #0f766e !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+@media (max-width: 760px) {
+  body.index-page .card-finder-results {
+    max-height: 240px !important;
+  }
+
+  body.index-page .card-finder-result {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 6px 10px !important;
+    min-height: 66px !important;
+    padding: 11px 12px !important;
+  }
+
+  body.index-page .card-finder-number {
+    grid-column: 1 !important;
+    font-size: 18px !important;
+  }
+
+  body.index-page .card-finder-dealer,
+  body.index-page .card-finder-tracking {
+    grid-column: 1 !important;
+    font-size: 12px !important;
+  }
+
+  body.index-page .card-finder-status {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    min-width: 74px !important;
+    font-size: 12px !important;
+  }
+
+  body.index-page .card-finder-open {
+    display: none !important;
+  }
+}
+
 /* 2026-07-12 mobile dealer directory: readable app-style dealer list. */
 @media (max-width: 760px) {
   body.index-page[data-mobile-view="dealers"] .toolbar,
