@@ -13607,3 +13607,115 @@ body.dealer-page .table-wrap {
   }
 }
 
+/* 2026-07-12 mobile hero/package edge fix. */
+@media (max-width: 760px) {
+  body.index-page .app-shell {
+    width: min(100% - 24px, 560px) !important;
+    padding-top: max(10px, env(safe-area-inset-top)) !important;
+  }
+
+  body.index-page .topbar {
+    width: 100% !important;
+    margin: 8px auto 14px !important;
+    padding: 18px 18px !important;
+    border-radius: 24px !important;
+  }
+
+  body.index-page .topbar .eyebrow {
+    max-width: 180px !important;
+    color: #f3c469 !important;
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.12em !important;
+  }
+
+  body.index-page .topbar h1 {
+    margin-top: 8px !important;
+    font-size: 30px !important;
+    line-height: 1.05 !important;
+  }
+
+  body.index-page .sync-card {
+    max-width: 178px !important;
+    min-height: 46px !important;
+    padding: 0 13px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  body.index-page .sync-card span:last-child {
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  body.index-page .index-hero {
+    width: 100% !important;
+    padding: 30px 24px 24px !important;
+    border-radius: 30px !important;
+  }
+
+  body.index-page .index-hero h2 {
+    max-width: 100% !important;
+    margin: 10px 0 18px !important;
+    font-size: clamp(42px, 12.1vw, 60px) !important;
+    line-height: 0.94 !important;
+    letter-spacing: 0.012em !important;
+    transform: none !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+  }
+
+  body.index-page .index-hero h2 br {
+    display: block !important;
+  }
+
+  body.index-page .hero-copy {
+    max-width: 92% !important;
+    font-size: 18px !important;
+    line-height: 1.65 !important;
+  }
+
+  body.index-page .hero-stats {
+    margin-top: 8px !important;
+  }
+
+  body.index-page .notice-panel {
+    margin-top: 14px !important;
+  }
+
+  body.index-page[data-mobile-view="packages"] .home-command-grid::before {
+    display: block !important;
+    margin: 18px 8px 14px !important;
+    padding-left: 2px !important;
+    color: #071315 !important;
+    -webkit-text-fill-color: #071315 !important;
+    font-size: clamp(36px, 10vw, 50px) !important;
+    line-height: 1.05 !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body.index-page[data-mobile-view="packages"] .home-transit-board {
+    margin-top: 0 !important;
+    border-radius: 28px !important;
+    overflow: hidden !important;
+  }
+
+  body.index-page[data-mobile-view="packages"] .home-transit-board .card-finder-heading {
+    padding: 30px 26px 28px !important;
+    border-radius: 24px 24px 0 0 !important;
+  }
+
+  body.index-page[data-mobile-view="packages"] .home-transit-board .card-finder-heading h2 {
+    font-size: clamp(36px, 10.6vw, 52px) !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body.index-page[data-mobile-view="packages"] .home-transit-board .section-copy {
+    font-size: 20px !important;
+    line-height: 1.35 !important;
+  }
+}
+
