@@ -14250,3 +14250,160 @@ body.dealer-page .table-wrap {
   }
 }
 
+/* 2026-07-12 desktop record cards v3: reset old table widths completely. */
+@media (min-width: 761px) {
+  body.dealer-page .records .table-wrap {
+    padding: 22px 24px 34px !important;
+    overflow: visible !important;
+  }
+
+  body.dealer-page .records table,
+  body.dealer-page .records thead,
+  body.dealer-page .records tbody,
+  body.dealer-page .records tr,
+  body.dealer-page .records th,
+  body.dealer-page .records td {
+    table-layout: auto !important;
+    border-collapse: initial !important;
+  }
+
+  body.dealer-page .records table,
+  body.dealer-page .records tbody {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  body.dealer-page .records thead {
+    display: none !important;
+  }
+
+  body.dealer-page tr.record-row {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "card status tracking actions"
+      "carrier tail tracking actions"
+      "details warranty notes updated" !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 0 16px !important;
+    padding: 18px !important;
+    border: 1px solid rgba(15, 118, 110, 0.14) !important;
+    border-left: 6px solid #14b8a6 !important;
+    border-radius: 24px !important;
+    background: linear-gradient(135deg, #ffffff, #f4fbf9) !important;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1) !important;
+  }
+
+  body.dealer-page tr.record-row td,
+  body.dealer-page tr.record-row td:first-child,
+  body.dealer-page tr.record-row td:last-child,
+  body.dealer-page tr.record-row td:nth-child(1),
+  body.dealer-page tr.record-row td:nth-child(2),
+  body.dealer-page tr.record-row td:nth-child(3),
+  body.dealer-page tr.record-row td:nth-child(4),
+  body.dealer-page tr.record-row td:nth-child(5),
+  body.dealer-page tr.record-row td:nth-child(6),
+  body.dealer-page tr.record-row td:nth-child(7),
+  body.dealer-page tr.record-row td:nth-child(8),
+  body.dealer-page tr.record-row td:nth-child(9),
+  body.dealer-page tr.record-row td:nth-child(10) {
+    display: grid !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 78px !important;
+    padding: 12px !important;
+    border: 1px solid rgba(15, 23, 42, 0.06) !important;
+    border-radius: 16px !important;
+    background: rgba(255, 255, 255, 0.84) !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    overflow: visible !important;
+  }
+
+  body.dealer-page tr.record-row td:nth-child(1) { grid-area: card !important; }
+  body.dealer-page tr.record-row td:nth-child(2) { grid-area: details !important; }
+  body.dealer-page tr.record-row td:nth-child(3) { grid-area: carrier !important; }
+  body.dealer-page tr.record-row td:nth-child(4) { grid-area: tail !important; }
+  body.dealer-page tr.record-row td:nth-child(5) { grid-area: tracking !important; }
+  body.dealer-page tr.record-row td:nth-child(6) { grid-area: warranty !important; }
+  body.dealer-page tr.record-row td:nth-child(7) { grid-area: status !important; }
+  body.dealer-page tr.record-row td:nth-child(8) { grid-area: notes !important; }
+  body.dealer-page tr.record-row td:nth-child(9) { grid-area: updated !important; }
+  body.dealer-page tr.record-row td:nth-child(10) { grid-area: actions !important; }
+
+  body.dealer-page tr.record-row td::before {
+    content: attr(data-label) !important;
+    display: block !important;
+    margin-bottom: 8px !important;
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+    font-size: 11px !important;
+    font-weight: 950 !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    writing-mode: horizontal-tb !important;
+  }
+
+  body.dealer-page tr.record-row input,
+  body.dealer-page tr.record-row select,
+  body.dealer-page tr.record-row textarea,
+  body.dealer-page tr.record-row .inline-edit,
+  body.dealer-page tr.record-row button {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 40px !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  body.dealer-page .tracking-cell {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: start !important;
+    gap: 8px !important;
+  }
+
+  body.dealer-page .tracking-cell .inline-edit {
+    grid-column: 1 / -1 !important;
+  }
+
+  body.dealer-page .tracking-status,
+  body.dealer-page .tracking-meta,
+  body.dealer-page .tracking-detail {
+    grid-column: 1 / -1 !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+  }
+
+  body.dealer-page .tracking-check-button,
+  body.dealer-page .photo-link,
+  body.dealer-page .tracking-manual-select {
+    width: 100% !important;
+  }
+
+  body.dealer-page .row-actions {
+    display: grid !important;
+    align-content: start !important;
+    gap: 10px !important;
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  body.dealer-page .row-actions button {
+    min-height: 40px !important;
+    border-radius: 14px !important;
+  }
+}
+
