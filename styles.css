@@ -15616,3 +15616,102 @@ body.dealer-page .table-wrap {
   }
 }
 
+/* 2026-07-12 mobile dealer directory v2: fix squeezed dealer names. */
+@media (max-width: 760px) {
+  body.index-page .dealer-list {
+    gap: 12px !important;
+  }
+
+  body.index-page .dealer-card,
+  body.index-page[data-mobile-view="dealers"] .dealer-card {
+    grid-template-columns: 54px minmax(0, 1fr) 38px !important;
+    column-gap: 12px !important;
+    min-height: 88px !important;
+    padding: 12px 12px 12px 14px !important;
+  }
+
+  body.index-page .dealer-card .dealer-open,
+  body.index-page[data-mobile-view="dealers"] .dealer-card .dealer-open {
+    grid-column: 2 !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-content: center !important;
+    gap: 7px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 50px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
+
+  body.index-page .dealer-card .dealer-title-line,
+  body.index-page[data-mobile-view="dealers"] .dealer-card .dealer-title-line {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
+
+  body.index-page .dealer-card .dealer-name,
+  body.index-page[data-mobile-view="dealers"] .dealer-card .dealer-name {
+    flex: 1 1 auto !important;
+    display: block !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    font-size: 19px !important;
+    font-weight: 950 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    opacity: 1 !important;
+    transform: none !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
+
+  body.index-page .dealer-card .dealer-meta,
+  body.index-page[data-mobile-view="dealers"] .dealer-card .dealer-meta {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    color: #475569 !important;
+    -webkit-text-fill-color: #475569 !important;
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
+
+  body.index-page .dealer-card .dealer-count-badge,
+  body.index-page[data-mobile-view="dealers"] .dealer-card .dealer-count-badge {
+    flex: 0 0 auto !important;
+  }
+
+  body.index-page .dealer-card .dealer-delete,
+  body.index-page[data-mobile-view="dealers"] .dealer-card .dealer-delete {
+    grid-column: 3 !important;
+    align-self: center !important;
+    justify-self: end !important;
+  }
+}
+
