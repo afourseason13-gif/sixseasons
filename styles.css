@@ -15715,3 +15715,167 @@ body.dealer-page .table-wrap {
   }
 }
 
+/* 2026-07-12 desktop compact panels: fit more records and unknown cards onscreen. */
+@media (min-width: 761px) {
+  body.dealer-page .records {
+    border-radius: 22px !important;
+  }
+
+  body.dealer-page .records .table-wrap {
+    padding: 10px 14px 18px !important;
+  }
+
+  body.dealer-page tr.record-row {
+    grid-template-columns: minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(210px, 1.15fr) minmax(140px, 0.9fr) minmax(120px, 0.7fr) !important;
+    grid-template-areas:
+      "card status tracking warranty actions"
+      "carrier tail tracking notes updated"
+      "details details tracking notes updated" !important;
+    gap: 7px !important;
+    margin-bottom: 8px !important;
+    padding: 10px !important;
+    border-radius: 16px !important;
+    border-left-width: 4px !important;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07) !important;
+  }
+
+  body.dealer-page tr.record-row td,
+  body.dealer-page tr.record-row td:first-child,
+  body.dealer-page tr.record-row td:last-child,
+  body.dealer-page tr.record-row td:nth-child(1),
+  body.dealer-page tr.record-row td:nth-child(2),
+  body.dealer-page tr.record-row td:nth-child(3),
+  body.dealer-page tr.record-row td:nth-child(4),
+  body.dealer-page tr.record-row td:nth-child(5),
+  body.dealer-page tr.record-row td:nth-child(6),
+  body.dealer-page tr.record-row td:nth-child(7),
+  body.dealer-page tr.record-row td:nth-child(8),
+  body.dealer-page tr.record-row td:nth-child(9),
+  body.dealer-page tr.record-row td:nth-child(10) {
+    min-height: 48px !important;
+    padding: 7px !important;
+    border-radius: 10px !important;
+  }
+
+  body.dealer-page tr.record-row td:nth-child(1) { grid-area: card !important; }
+  body.dealer-page tr.record-row td:nth-child(2) { grid-area: details !important; }
+  body.dealer-page tr.record-row td:nth-child(3) { grid-area: carrier !important; }
+  body.dealer-page tr.record-row td:nth-child(4) { grid-area: tail !important; }
+  body.dealer-page tr.record-row td:nth-child(5) { grid-area: tracking !important; }
+  body.dealer-page tr.record-row td:nth-child(6) { grid-area: warranty !important; }
+  body.dealer-page tr.record-row td:nth-child(7) { grid-area: status !important; }
+  body.dealer-page tr.record-row td:nth-child(8) { grid-area: notes !important; }
+  body.dealer-page tr.record-row td:nth-child(9) { grid-area: updated !important; }
+  body.dealer-page tr.record-row td:nth-child(10) { grid-area: actions !important; }
+
+  body.dealer-page tr.record-row td::before {
+    margin-bottom: 4px !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+  }
+
+  body.dealer-page tr.record-row input,
+  body.dealer-page tr.record-row select,
+  body.dealer-page tr.record-row textarea,
+  body.dealer-page tr.record-row .inline-edit,
+  body.dealer-page tr.record-row button {
+    min-height: 30px !important;
+    padding: 0 9px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+  }
+
+  body.dealer-page .tracking-cell {
+    gap: 4px !important;
+  }
+
+  body.dealer-page .tracking-status {
+    min-height: 18px !important;
+    padding: 1px 7px !important;
+    font-size: 9px !important;
+  }
+
+  body.dealer-page .tracking-meta,
+  body.dealer-page .tracking-detail,
+  body.dealer-page tr.record-row td:nth-child(9) {
+    font-size: 9px !important;
+    line-height: 1.22 !important;
+  }
+
+  body.dealer-page .tracking-check-button,
+  body.dealer-page .photo-link,
+  body.dealer-page .package-photo-link,
+  body.dealer-page .tracking-manual-select,
+  body.dealer-page .details-button {
+    min-height: 28px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+  }
+
+  body.dealer-page .row-actions,
+  body.dealer-page .record-actions {
+    gap: 6px !important;
+    padding: 6px !important;
+  }
+
+  body.index-page .unknown-card-center {
+    padding: 16px 18px !important;
+    border-radius: 22px !important;
+  }
+
+  body.index-page .unknown-card-head {
+    padding-bottom: 12px !important;
+    gap: 12px !important;
+  }
+
+  body.index-page .unknown-card-head h2 {
+    font-size: 26px !important;
+    line-height: 1.05 !important;
+  }
+
+  body.index-page .unknown-card-head .section-copy {
+    font-size: 12px !important;
+  }
+
+  body.index-page .unknown-card-list {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+    gap: 10px !important;
+    padding-top: 12px !important;
+  }
+
+  body.index-page .unknown-card-item {
+    min-height: 0 !important;
+    gap: 7px !important;
+    padding: 12px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07) !important;
+  }
+
+  body.index-page .unknown-card-item strong {
+    font-size: 19px !important;
+    line-height: 1.05 !important;
+  }
+
+  body.index-page .unknown-card-item span,
+  body.index-page .unknown-card-item p,
+  body.index-page .unknown-card-item time {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  body.index-page .unknown-card-actions {
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
+    gap: 6px !important;
+  }
+
+  body.index-page .unknown-card-dealer,
+  body.index-page .unknown-card-assign,
+  body.index-page .unknown-card-delete {
+    min-height: 32px !important;
+    padding: 0 9px !important;
+    border-radius: 11px !important;
+    font-size: 11px !important;
+  }
+}
+
