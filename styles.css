@@ -14484,3 +14484,334 @@ body.dealer-page .table-wrap {
   }
 }
 
+/* 2026-07-12 mobile scale pass: app-like proportions for home, packages, dealers. */
+@media (max-width: 760px) {
+  html:has(body.index-page),
+  body.index-page {
+    overflow-x: hidden !important;
+    background: #e9f2ef !important;
+  }
+
+  body.index-page .app-shell {
+    width: 100% !important;
+    max-width: 430px !important;
+    margin: 0 auto !important;
+    padding: 10px 14px 112px !important;
+    gap: 12px !important;
+  }
+
+  body.index-page .topbar {
+    min-height: 74px !important;
+    padding: 14px 16px !important;
+    border-radius: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  body.index-page .topbar .eyebrow {
+    font-size: 10px !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.12em !important;
+    max-width: 150px !important;
+  }
+
+  body.index-page .topbar h1 {
+    margin-top: 4px !important;
+    font-size: 25px !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  body.index-page .sync-card {
+    min-width: 112px !important;
+    max-width: 124px !important;
+    min-height: 36px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+    font-size: 11px !important;
+  }
+
+  body.index-page .sync-card span:last-child {
+    display: block !important;
+    max-width: 82px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  body.index-page .index-hero {
+    min-height: 330px !important;
+    padding: 28px 22px 22px !important;
+    border-radius: 28px !important;
+    display: grid !important;
+    align-content: space-between !important;
+    overflow: hidden !important;
+  }
+
+  body.index-page .index-hero .eyebrow {
+    font-size: 10px !important;
+    letter-spacing: 0.14em !important;
+  }
+
+  body.index-page .index-hero h2 {
+    margin: 12px 0 12px !important;
+    font-size: clamp(46px, 13.5vw, 58px) !important;
+    line-height: 0.88 !important;
+    letter-spacing: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body.index-page .hero-copy {
+    max-width: 285px !important;
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+  }
+
+  body.index-page .hero-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    min-height: 64px !important;
+    margin-top: 20px !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+  }
+
+  body.index-page .hero-stat {
+    min-height: 64px !important;
+    padding: 10px 8px !important;
+    border-radius: 0 !important;
+  }
+
+  body.index-page .hero-stat span {
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+
+  body.index-page .hero-stat strong {
+    margin-top: 5px !important;
+    font-size: 23px !important;
+    line-height: 1 !important;
+  }
+
+  body.index-page .notice-panel {
+    min-height: 116px !important;
+    padding: 18px !important;
+    border-radius: 24px !important;
+  }
+
+  body.index-page .notice-view {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+  }
+
+  body.index-page .notice-panel h2 {
+    font-size: 22px !important;
+    line-height: 1 !important;
+  }
+
+  body.index-page .notice-edit {
+    min-width: 78px !important;
+    min-height: 34px !important;
+    padding: 0 12px !important;
+    border-radius: 999px !important;
+    font-size: 12px !important;
+  }
+
+  body.index-page .notice-ticker {
+    margin-top: 12px !important;
+    padding: 10px 12px !important;
+    min-height: 50px !important;
+    border-radius: 18px !important;
+  }
+
+  body.index-page .notice-message {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+    max-height: 40px !important;
+    overflow: hidden !important;
+  }
+
+  body.index-page .card-dealer-finder,
+  body.index-page .home-transit-board,
+  body.index-page .dealer-section,
+  body.index-page .pending-center,
+  body.index-page .unknown-card-center,
+  body.index-page .announce-panel,
+  body.index-page .index-add-panel {
+    border-radius: 24px !important;
+    padding: 18px !important;
+  }
+
+  body.index-page .card-finder-heading,
+  body.index-page .home-transit-board .card-finder-heading,
+  body.index-page .dealer-section > .panel-title {
+    padding: 0 !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+  }
+
+  body.index-page .card-dealer-finder h2,
+  body.index-page .home-transit-board h2,
+  body.index-page .dealer-section h2,
+  body.index-page .pending-center h2,
+  body.index-page .unknown-card-center h2 {
+    font-size: 25px !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body.index-page .section-copy {
+    margin-top: 6px !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  body.index-page .card-finder-count,
+  body.index-page .home-transit-board .card-finder-count,
+  body.index-page .pending-count,
+  body.index-page .unknown-card-count {
+    min-width: 48px !important;
+    min-height: 30px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  body.index-page .card-finder-search {
+    margin-top: 14px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 72px !important;
+    gap: 8px !important;
+  }
+
+  body.index-page .card-finder-search input,
+  body.index-page .card-finder-search button,
+  body.index-page .search-wrap input,
+  body.index-page .index-add-panel input,
+  body.index-page .index-add-panel button {
+    min-height: 42px !important;
+    border-radius: 14px !important;
+    font-size: 13px !important;
+  }
+
+  body.index-page[data-mobile-view="packages"] .home-transit-board {
+    min-height: auto !important;
+    padding: 18px !important;
+  }
+
+  body.index-page .home-transit-list {
+    margin-top: 14px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  body.index-page .home-transit-item {
+    min-height: 74px !important;
+    padding: 12px 14px !important;
+    border-radius: 16px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 5px 10px !important;
+  }
+
+  body.index-page .home-transit-item strong {
+    font-size: 18px !important;
+    line-height: 1.1 !important;
+  }
+
+  body.index-page .home-transit-item span {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+
+  body.index-page .home-transit-item em {
+    min-height: 24px !important;
+    padding: 3px 9px !important;
+    border-radius: 999px !important;
+    font-size: 11px !important;
+    align-self: start !important;
+  }
+
+  body.index-page .dealer-list {
+    margin-top: 14px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+
+  body.index-page .dealer-card {
+    min-height: 76px !important;
+    padding: 12px 58px 12px 58px !important;
+    border-radius: 18px !important;
+  }
+
+  body.index-page .dealer-rank {
+    width: 38px !important;
+    min-width: 38px !important;
+    font-size: 13px !important;
+  }
+
+  body.index-page .dealer-name {
+    font-size: 19px !important;
+    line-height: 1.1 !important;
+  }
+
+  body.index-page .dealer-meta {
+    margin-top: 6px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+
+  body.index-page .dealer-delete {
+    width: 34px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    right: 12px !important;
+    font-size: 0 !important;
+  }
+
+  body.index-page .mobile-tabbar {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    max-width: 402px !important;
+    margin: 0 auto !important;
+    min-height: 66px !important;
+    padding: 7px !important;
+    border-radius: 28px !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+  }
+
+  body.index-page .mobile-tabbar a {
+    min-height: 52px !important;
+    padding: 6px 4px !important;
+    border-radius: 22px !important;
+  }
+
+  body.index-page .mobile-tabbar a span {
+    font-size: 18px !important;
+    line-height: 1 !important;
+  }
+
+  body.index-page .mobile-tabbar a strong {
+    margin-top: 4px !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+  }
+}
+
