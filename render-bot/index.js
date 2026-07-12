@@ -2666,12 +2666,10 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ok");
       return;
     }
-    const reacted = await reactToTelegramMessage(chatId, message?.message_id, "✅");
-    if (!reacted) {
-      const proofSent = await replyToTelegramMessage(chatId, message?.message_id, "✅证明已导入");
-      if (!proofSent) {
-        await reply(chatId, `✅证明已导入 ${result.dealerName}`);
-      }
+    const proofMessage = `已导入 ${result.dealerName || ""}`.trim();
+    const proofSent = await replyToTelegramMessage(chatId, message?.message_id, proofMessage);
+    if (!proofSent) {
+      await reply(chatId, proofMessage);
     }
     res.status(200).send("ok");
   } catch (error) {
