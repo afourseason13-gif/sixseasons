@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dealer 资料</title>
-    <link rel="stylesheet" href="./styles.css?v=20260712-lookup-results1" />
+    <link rel="stylesheet" href="./styles.css?v=20260712-gaming-analytics1" />
   </head>
   <body class="dealer-page">
     <main class="app-shell">
@@ -145,6 +145,60 @@
       </details>
       </section>
 
+      <section class="dealer-analytics-panel" id="dealerGamingAnalytics" aria-label="Dealer gaming analytics">
+        <div class="analytics-hero">
+          <div>
+            <p class="eyebrow">GAMING ANALYTICS</p>
+            <h2>派送战况分析</h2>
+            <p>邮寄区域、过保与问题状态集中监控。</p>
+          </div>
+          <strong id="analyticsScore">0%</strong>
+        </div>
+        <div class="analytics-grid">
+          <article class="analytics-card map-card">
+            <div class="analytics-card-head">
+              <span>DISPATCH MAP</span>
+              <strong id="analyticsShipmentTotal">0</strong>
+            </div>
+            <div class="dispatch-map">
+              <div class="dispatch-node johor-node"><span>JOHOR</span><strong id="analyticsJohor">0</strong></div>
+              <div class="dispatch-node ipoh-node"><span>IPOH</span><strong id="analyticsIpoh">0</strong></div>
+              <div class="dispatch-node other-node"><span>OTHER</span><strong id="analyticsOther">0</strong></div>
+            </div>
+          </article>
+          <article class="analytics-card chart-card">
+            <div class="analytics-card-head">
+              <span>CARD STATUS</span>
+              <strong id="analyticsCardTotal">0</strong>
+            </div>
+            <div class="analytics-bars">
+              <div class="analytics-bar-row">
+                <span>过保/开保</span>
+                <div class="analytics-bar-track"><i id="analyticsActiveBar"></i></div>
+                <strong id="analyticsActive">0</strong>
+              </div>
+              <div class="analytics-bar-row danger">
+                <span>问题状态</span>
+                <div class="analytics-bar-track"><i id="analyticsProblemBar"></i></div>
+                <strong id="analyticsProblem">0</strong>
+              </div>
+              <div class="analytics-bar-row">
+                <span>寄 / 运输</span>
+                <div class="analytics-bar-track"><i id="analyticsShippingBar"></i></div>
+                <strong id="analyticsShipping">0</strong>
+              </div>
+            </div>
+          </article>
+          <article class="analytics-card hot-card">
+            <div class="analytics-card-head">
+              <span>HOT LIST</span>
+              <strong id="analyticsHotCount">0</strong>
+            </div>
+            <div class="analytics-hot-list" id="analyticsHotList"></div>
+          </article>
+        </div>
+      </section>
+
       <section class="toolbar" aria-label="记录工具">
         <div class="search-wrap">
           <span aria-hidden="true">⌕</span>
@@ -245,6 +299,6 @@
     </div>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260712-lookup-results1"></script>
+    <script src="./app.js?v=20260712-gaming-analytics1"></script>
   </body>
 </html>

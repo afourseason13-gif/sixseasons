@@ -1398,6 +1398,98 @@ function renderStatusBoard(dealerRecords) {
   renderList(problemList, groups.problem);
 }
 
+function analyticsLocationText(record) {
+  return [
+    record.trackingLocation,
+    record.trackingMyDetail,
+    record.packageStatus,
+    record.notes,
+    record.carrier,
+    record.trackingNumber
+  ].join(" ").toUpperCase();
+}
+
+function analyticsLocationGroup(record) {
+  const text = analyticsLocationText(record);
+  if (/\b(JOHOR|JOHOR BAHRU|JHR|JB)\b/.test(text)) return "johor";
+  if (/\b(IPOH|KINTA)\b/.test(text)) return "ipoh";
+  return "other";
+}
+
+function isShippingAnalyticsRecord(record) {
+  const status = String(record.status || "");
+  const packageStatus = String(record.packageStatus || "");
+  return status.includes("\u5bc4")
+    || packageStatus.includes("\u8fd0\u8f93")
+    || packageStatus.includes("\u6d3e\u9001")
+    || packageStatus.includes("\u5df2\u9001\u8fbe")
+    || Boolean(record.trackingNumber);
+}
+
+function renderDealerAnalytics(dealerRecords) {
+  const panel = document.querySelector("#dealerGamingAnalytics");
+  if (!panel) return;
+
+  const shippingRecords = dealerRecords.filter(isShippingAnalyticsRecord);
+  const activeRecords = dealerRecords.filter((record) => recordStatusGroup(record) === "active");
+  const problemRecords = dealerRecords.filter((record) => recordStatusGroup(record) === "problem");
+  const total = Math.max(1, dealerRecords.length);
+  const locationCounts = { johor: 0, ipoh: 0, other: 0 };
+  for (const record of shippingRecords) locationCounts[analyticsLocationGroup(record)] += 1;
+
+  const setText = (selector, value) => {
+    const element = document.querySelector(selector);
+    if (element) element.textContent = String(value);
+  };
+  const setBar = (selector, count) => {
+    const element = document.querySelector(selector);
+    if (element) element.style.width = `${Math.max(4, Math.round((count / total) * 100))}%`;
+  };
+
+  setText("#analyticsShipmentTotal", shippingRecords.length);
+  setText("#analyticsJohor", locationCounts.johor);
+  setText("#analyticsIpoh", locationCounts.ipoh);
+  setText("#analyticsOther", locationCounts.other);
+  setText("#analyticsCardTotal", dealerRecords.length);
+  setText("#analyticsActive", activeRecords.length);
+  setText("#analyticsProblem", problemRecords.length);
+  setText("#analyticsShipping", shippingRecords.length);
+  setBar("#analyticsActiveBar", activeRecords.length);
+  setBar("#analyticsProblemBar", problemRecords.length);
+  setBar("#analyticsShippingBar", shippingRecords.length);
+
+  const score = Math.max(0, Math.round(((activeRecords.length + shippingRecords.length) / total) * 100) - (problemRecords.length * 8));
+  setText("#analyticsScore", `${Math.min(100, score)}%`);
+
+  const hotList = document.querySelector("#analyticsHotList");
+  const hotCount = document.querySelector("#analyticsHotCount");
+  if (!hotList) return;
+  const hotRecords = [...problemRecords, ...activeRecords, ...shippingRecords]
+    .filter((record, index, list) => list.findIndex((item) => item.id === record.id) === index)
+    .slice(0, 8);
+  if (hotCount) hotCount.textContent = String(hotRecords.length);
+  hotList.textContent = "";
+  if (!hotRecords.length) {
+    const empty = document.createElement("span");
+    empty.className = "analytics-empty";
+    empty.textContent = "暂无重点卡";
+    hotList.append(empty);
+    return;
+  }
+  for (const record of hotRecords) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "analytics-hot-item";
+    item.innerHTML = `
+      <strong>${escapeHtml(record.cardNumber || "-")}</strong>
+      <span>${escapeHtml(record.status || record.packageStatus || "-")}</span>
+      <small>${escapeHtml(record.trackingLocation || record.trackingMyDetail || record.carrier || "")}</small>
+    `;
+    item.addEventListener("click", () => dealerPageFillForm?.(record));
+    hotList.append(item);
+  }
+}
+
 function recordStatusPriority(record) {
   const status = String(record.status || "").replace(/\s+/g, "");
   const packageStatus = String(record.packageStatus || "");
@@ -1467,6 +1559,7 @@ function renderDealerPage(dealerName, fillForm) {
 
   renderDealerMetrics(dealerRecords);
   renderStatusBoard(dealerRecords);
+  renderDealerAnalytics(dealerRecords);
   renderStatusOptionsList();
   recordsBody.textContent = "";
   totalCount.textContent = String(visibleRecords.length);
