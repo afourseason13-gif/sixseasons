@@ -14407,3 +14407,80 @@ body.dealer-page .table-wrap {
   }
 }
 
+/* 2026-07-12 desktop record cards v4: denser white cards. */
+@media (min-width: 761px) {
+  body.dealer-page .records .table-wrap {
+    padding: 14px 18px 24px !important;
+  }
+
+  body.dealer-page tr.record-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(260px, 1.15fr) minmax(150px, 0.75fr) !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+    padding: 12px !important;
+    border-radius: 18px !important;
+    border-left-width: 5px !important;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  body.dealer-page tr.record-row td,
+  body.dealer-page tr.record-row td:first-child,
+  body.dealer-page tr.record-row td:last-child,
+  body.dealer-page tr.record-row td:nth-child(1),
+  body.dealer-page tr.record-row td:nth-child(2),
+  body.dealer-page tr.record-row td:nth-child(3),
+  body.dealer-page tr.record-row td:nth-child(4),
+  body.dealer-page tr.record-row td:nth-child(5),
+  body.dealer-page tr.record-row td:nth-child(6),
+  body.dealer-page tr.record-row td:nth-child(7),
+  body.dealer-page tr.record-row td:nth-child(8),
+  body.dealer-page tr.record-row td:nth-child(9),
+  body.dealer-page tr.record-row td:nth-child(10) {
+    min-height: 58px !important;
+    padding: 8px !important;
+    border-radius: 12px !important;
+  }
+
+  body.dealer-page tr.record-row td::before {
+    margin-bottom: 5px !important;
+    font-size: 10px !important;
+  }
+
+  body.dealer-page tr.record-row input,
+  body.dealer-page tr.record-row select,
+  body.dealer-page tr.record-row textarea,
+  body.dealer-page tr.record-row .inline-edit,
+  body.dealer-page tr.record-row button {
+    min-height: 34px !important;
+    padding: 0 10px !important;
+    border-radius: 11px !important;
+    font-size: 12px !important;
+  }
+
+  body.dealer-page .tracking-cell {
+    gap: 5px !important;
+  }
+
+  body.dealer-page .tracking-status {
+    min-height: 20px !important;
+    padding: 2px 8px !important;
+    font-size: 10px !important;
+  }
+
+  body.dealer-page .tracking-meta,
+  body.dealer-page .tracking-detail,
+  body.dealer-page tr.record-row td:nth-child(9) {
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+  }
+
+  body.dealer-page .row-actions {
+    gap: 7px !important;
+    padding: 8px !important;
+  }
+
+  body.dealer-page .row-actions button {
+    min-height: 34px !important;
+  }
+}
+
