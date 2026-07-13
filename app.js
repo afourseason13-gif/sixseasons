@@ -863,8 +863,12 @@ function normalizeMalaysiaPhone(raw) {
 }
 
 function extractGmailPhones(text) {
-  const matches = String(text || "").match(/(?:\+?60|0)?1[\d\s-]{7,13}\d/g) || [];
-  return [...new Set(matches.map(normalizeMalaysiaPhone).filter(Boolean))];
+  const source = String(text || "");
+  const candidates = [
+    ...(source.match(/(?:\+?60|0)?1[\d\s-]{7,13}\d/g) || []),
+    ...source.split(/\r?\n/).map((line) => line.trim())
+  ];
+  return [...new Set(candidates.map(normalizeMalaysiaPhone).filter(Boolean))];
 }
 
 function initGmailListTest() {
