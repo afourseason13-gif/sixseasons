@@ -16808,3 +16808,46 @@ body.index-page .card-finder-open {
   }
 }
 
+/* 2026-07-13 status board readability: make card codes crisp. */
+body.dealer-page .status-board-item {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    rgba(8, 28, 28, 0.72) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+body.dealer-page .status-board-item strong {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-family: Arial, "Inter", "Segoe UI", sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.035em !important;
+  line-height: 1.08 !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.62) !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+body.dealer-page .status-board-item span {
+  color: #d7eee9 !important;
+  -webkit-text-fill-color: #d7eee9 !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.02em !important;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45) !important;
+}
+
+@media (min-width: 761px) {
+  body.dealer-page .status-board-item {
+    min-height: 54px !important;
+    padding: 10px 13px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body.dealer-page .status-board-item strong {
+    font-size: 13px !important;
+    letter-spacing: 0.025em !important;
+  }
+}
