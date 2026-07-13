@@ -920,6 +920,7 @@ function renderIndexPage() {
   }
   renderCardDealerFinder();
   renderHomeTransitBoard();
+  renderDealerAnalytics(records);
   renderPendingCenter();
 }
 
@@ -1485,7 +1486,13 @@ function renderDealerAnalytics(dealerRecords) {
       <span>${escapeHtml(record.status || record.packageStatus || "-")}</span>
       <small>${escapeHtml(record.trackingLocation || record.trackingMyDetail || record.carrier || "")}</small>
     `;
-    item.addEventListener("click", () => dealerPageFillForm?.(record));
+    item.addEventListener("click", () => {
+      if (dealerPageFillForm) {
+        dealerPageFillForm(record);
+      } else if (record.dealerName) {
+        location.href = dealerUrl(record.dealerName);
+      }
+    });
     hotList.append(item);
   }
 }
@@ -1559,7 +1566,6 @@ function renderDealerPage(dealerName, fillForm) {
 
   renderDealerMetrics(dealerRecords);
   renderStatusBoard(dealerRecords);
-  renderDealerAnalytics(dealerRecords);
   renderStatusOptionsList();
   recordsBody.textContent = "";
   totalCount.textContent = String(visibleRecords.length);
