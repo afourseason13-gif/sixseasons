@@ -16851,3 +16851,112 @@ body.dealer-page .status-board-item span {
     letter-spacing: 0.025em !important;
   }
 }
+
+/* 2026-07-13 site salary pie chart. */
+:is(body.index-page, body.dealer-page) .salary-pie-wrap {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+:is(body.index-page, body.dealer-page) .salary-pie {
+  position: relative;
+  width: 148px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(rgba(255, 255, 255, 0.14) 0 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 18px 42px rgba(0, 0, 0, 0.24),
+    inset 0 0 28px rgba(255, 255, 255, 0.16);
+}
+
+:is(body.index-page, body.dealer-page) .salary-pie::after {
+  content: "";
+  position: absolute;
+  inset: 30px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(5, 20, 22, 0.98), rgba(19, 48, 42, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+:is(body.index-page, body.dealer-page) .salary-pie span {
+  position: absolute;
+  inset: 40px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1.05;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:is(body.index-page, body.dealer-page) .salary-pie-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+:is(body.index-page, body.dealer-page) .salary-pie-row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.055);
+  color: #ffffff !important;
+  text-decoration: none;
+}
+
+:is(body.index-page, body.dealer-page) .salary-pie-row i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--pie-color);
+  box-shadow: 0 0 12px var(--pie-color);
+}
+
+:is(body.index-page, body.dealer-page) .salary-pie-row strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: 13px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(body.index-page, body.dealer-page) .salary-pie-row span,
+:is(body.index-page, body.dealer-page) .salary-pie-row em {
+  color: #fef3c7 !important;
+  -webkit-text-fill-color: #fef3c7 !important;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+:is(body.index-page, body.dealer-page) .salary-empty {
+  color: rgba(255, 255, 255, 0.72) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+@media (max-width: 980px) {
+  :is(body.index-page, body.dealer-page) .salary-pie-wrap {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  :is(body.index-page, body.dealer-page) .salary-pie {
+    width: 120px;
+  }
+}

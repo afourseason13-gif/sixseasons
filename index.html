@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260713-status-card-text1" />
+    <link rel="stylesheet" href="./styles.css?v=20260713-salary-pie1" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -248,10 +248,15 @@
           </article>
           <article class="analytics-card">
             <div class="analytics-card-head">
-              <span>HOT LIST</span>
-              <strong id="analyticsHotCount">0</strong>
+              <span>SALARY PIE</span>
+              <strong id="analyticsSalaryTotal">RM0</strong>
             </div>
-            <div class="analytics-hot-list" id="analyticsHotList"></div>
+            <div class="salary-pie-wrap">
+              <div class="salary-pie" id="analyticsSalaryPie" aria-label="Dealer salary chart">
+                <span id="analyticsSalaryLeader">-</span>
+              </div>
+              <div class="salary-pie-list" id="analyticsSalaryList"></div>
+            </div>
           </article>
         </div>
       </section>
@@ -265,6 +270,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260713-status-card-text1"></script>
+    <script src="./app.js?v=20260713-salary-pie1"></script>
   </body>
 </html>

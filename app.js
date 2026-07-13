@@ -1462,38 +1462,53 @@ function renderDealerAnalytics(dealerRecords) {
   const score = Math.max(0, Math.round(((activeRecords.length + shippingRecords.length) / total) * 100) - (problemRecords.length * 8));
   setText("#analyticsScore", `${Math.min(100, score)}%`);
 
-  const hotList = document.querySelector("#analyticsHotList");
-  const hotCount = document.querySelector("#analyticsHotCount");
-  if (!hotList) return;
-  const hotRecords = [...problemRecords, ...activeRecords, ...shippingRecords]
-    .filter((record, index, list) => list.findIndex((item) => item.id === record.id) === index)
-    .slice(0, 8);
-  if (hotCount) hotCount.textContent = String(hotRecords.length);
-  hotList.textContent = "";
-  if (!hotRecords.length) {
+  const salaryPie = document.querySelector("#analyticsSalaryPie");
+  const salaryList = document.querySelector("#analyticsSalaryList");
+  const salaryTotal = document.querySelector("#analyticsSalaryTotal");
+  const salaryLeader = document.querySelector("#analyticsSalaryLeader");
+  if (!salaryPie || !salaryList) return;
+
+  const colors = ["#f8c96b", "#5eead4", "#60a5fa", "#fb7185", "#a78bfa", "#34d399"];
+  const salaryRows = uniqueDealers()
+    .map((name) => ({ name, salary: Math.max(0, Number(dealerStats(name).salary || 0)) }))
+    .filter((item) => item.salary > 0)
+    .sort((a, b) => b.salary - a.salary);
+  const salarySum = salaryRows.reduce((sum, item) => sum + item.salary, 0);
+  if (salaryTotal) salaryTotal.textContent = `RM${salarySum}`;
+  salaryList.textContent = "";
+
+  if (!salaryRows.length || salarySum <= 0) {
+    salaryPie.style.background = "conic-gradient(rgba(255,255,255,0.14) 0 100%)";
+    if (salaryLeader) salaryLeader.textContent = "RM0";
     const empty = document.createElement("span");
-    empty.className = "analytics-empty";
-    empty.textContent = "暂无重点卡";
-    hotList.append(empty);
+    empty.className = "analytics-empty salary-empty";
+    empty.textContent = "\u6682\u65e0\u5de5\u8d44\u6570\u636e";
+    salaryList.append(empty);
     return;
   }
-  for (const record of hotRecords) {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "analytics-hot-item";
-    item.innerHTML = `
-      <strong>${escapeHtml(record.cardNumber || "-")}</strong>
-      <span>${escapeHtml(record.status || record.packageStatus || "-")}</span>
-      <small>${escapeHtml(record.trackingLocation || record.trackingMyDetail || record.carrier || "")}</small>
+
+  let cursor = 0;
+  const gradient = salaryRows.slice(0, colors.length).map((item, index) => {
+    const startPercent = cursor;
+    cursor += (item.salary / salarySum) * 100;
+    return `${colors[index]} ${startPercent.toFixed(2)}% ${cursor.toFixed(2)}%`;
+  });
+  if (cursor < 100) gradient.push(`rgba(255,255,255,0.14) ${cursor.toFixed(2)}% 100%`);
+  salaryPie.style.background = `conic-gradient(${gradient.join(", ")})`;
+  if (salaryLeader) salaryLeader.textContent = salaryRows[0]?.name || "-";
+
+  for (const [index, item] of salaryRows.slice(0, 6).entries()) {
+    const percent = Math.round((item.salary / salarySum) * 100);
+    const row = document.createElement("a");
+    row.className = "salary-pie-row";
+    row.href = dealerUrl(item.name);
+    row.innerHTML = `
+      <i style="--pie-color:${colors[index]}"></i>
+      <strong>${escapeHtml(item.name)}</strong>
+      <span>RM${item.salary}</span>
+      <em>${percent}%</em>
     `;
-    item.addEventListener("click", () => {
-      if (dealerPageFillForm) {
-        dealerPageFillForm(record);
-      } else if (record.dealerName) {
-        location.href = dealerUrl(record.dealerName);
-      }
-    });
-    hotList.append(item);
+    salaryList.append(row);
   }
 }
 
