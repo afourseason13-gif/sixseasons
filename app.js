@@ -878,13 +878,27 @@ function initGmailListTest() {
   const rawInput = document.querySelector("#gmailRawList");
   const result = document.querySelector("#gmailListResult");
   const status = document.querySelector("#gmailListStatus");
+  const stockCount = document.querySelector("#gmailStockCount");
+  const lastChecked = document.querySelector("#gmailLastChecked");
   if (!form || !dealerInput || !countInput || !rawInput || !result) return;
+
+  const updateStock = () => {
+    const phones = extractGmailPhones(rawInput.value);
+    if (stockCount) stockCount.textContent = String(phones.length);
+    if (lastChecked) lastChecked.textContent = `Checked ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+    if (status) status.textContent = `STOCK ${phones.length}`;
+    return phones;
+  };
+
+  rawInput.addEventListener("input", updateStock);
+  updateStock();
+  setInterval(updateStock, 10 * 60 * 1000);
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const dealer = dealerInput.value.trim() || "dealer";
     const requested = Math.max(1, Number(countInput.value || 20));
-    const phones = extractGmailPhones(rawInput.value);
+    const phones = updateStock();
     const selected = phones.slice(0, requested);
     const today = new Date().toLocaleDateString("en-GB");
     const enough = phones.length >= requested;
