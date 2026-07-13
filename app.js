@@ -686,6 +686,7 @@ function initIndexPage() {
       await assignUnknownDriverCard(card.dataset.id, dealerName);
     }
   });
+  initGmailListTest();
   renderIndexPage();
 }
 
@@ -850,6 +851,54 @@ function renderHomeTransitBoard() {
     `;
     list.append(item);
   }
+}
+
+function normalizeMalaysiaPhone(raw) {
+  const digits = String(raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("60") && digits.length >= 10 && digits.length <= 13) return digits;
+  if (digits.startsWith("0") && digits.length >= 10 && digits.length <= 11) return `6${digits}`;
+  if (digits.startsWith("1") && digits.length >= 9 && digits.length <= 10) return `60${digits}`;
+  return "";
+}
+
+function extractGmailPhones(text) {
+  const matches = String(text || "").match(/(?:\+?60|0)?1[\d\s-]{7,13}\d/g) || [];
+  return [...new Set(matches.map(normalizeMalaysiaPhone).filter(Boolean))];
+}
+
+function initGmailListTest() {
+  const form = document.querySelector("#gmailListForm");
+  const dealerInput = document.querySelector("#gmailDealerName");
+  const countInput = document.querySelector("#gmailExportCount");
+  const rawInput = document.querySelector("#gmailRawList");
+  const result = document.querySelector("#gmailListResult");
+  const status = document.querySelector("#gmailListStatus");
+  if (!form || !dealerInput || !countInput || !rawInput || !result) return;
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const dealer = dealerInput.value.trim() || "dealer";
+    const requested = Math.max(1, Number(countInput.value || 20));
+    const phones = extractGmailPhones(rawInput.value);
+    const selected = phones.slice(0, requested);
+    const today = new Date().toLocaleDateString("en-GB");
+    const enough = phones.length >= requested;
+    if (status) status.textContent = enough ? `OK ${selected.length}/${requested}` : `STOCK ${phones.length}/${requested}`;
+    result.classList.toggle("is-warning", !enough);
+    result.innerHTML = `
+      <strong>${enough ? "READY" : "NOT ENOUGH"} - ${escapeHtml(dealer)} - ${selected.length}/${requested}</strong>
+      <pre>${escapeHtml([
+        today,
+        "",
+        dealer,
+        "1",
+        ...selected,
+        "",
+        enough ? "TEST: enough stock. Real version will write to Sheet and mark Gmail as exported." : `TEST: found ${phones.length} phone numbers, requested ${requested}.`
+      ].join("\n"))}</pre>
+    `;
+  });
 }
 
 function renderIndexPage() {
@@ -2085,6 +2134,7 @@ function setMobileViewFromHash() {
     mobilePackages: "packages",
     mobileDealers: "dealers",
     mobileAddDealer: "add",
+    mobileGmailList: "gmail",
     dealerRecords: "records",
     recordFormPanel: "add"
   };

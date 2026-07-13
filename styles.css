@@ -16960,3 +16960,164 @@ body.dealer-page .status-board-item span {
     width: 120px;
   }
 }
+
+/* 2026-07-13 mobile Gmail list export test. */
+body.index-page .gmail-list-panel {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  body.index-page[data-mobile-view="gmail"] .topbar,
+  body.index-page[data-mobile-view="gmail"] .index-hero,
+  body.index-page[data-mobile-view="gmail"] .notice-panel,
+  body.index-page[data-mobile-view="gmail"] .home-command-grid,
+  body.index-page[data-mobile-view="gmail"] .home-transit-board,
+  body.index-page[data-mobile-view="gmail"] .pending-center,
+  body.index-page[data-mobile-view="gmail"] .unknown-card-center,
+  body.index-page[data-mobile-view="gmail"] .announce-panel,
+  body.index-page[data-mobile-view="gmail"] .quote-panel,
+  body.index-page[data-mobile-view="gmail"] .toolbar,
+  body.index-page[data-mobile-view="gmail"] .dealer-section,
+  body.index-page[data-mobile-view="gmail"] .dealer-analytics-panel,
+  body.index-page[data-mobile-view="gmail"] .index-add-panel {
+    display: none !important;
+  }
+
+  body.index-page[data-mobile-view="gmail"] .gmail-list-panel {
+    display: block !important;
+  }
+
+  body.index-page .gmail-list-panel {
+    width: min(100%, 560px);
+    margin: 18px auto 110px;
+    padding: 20px;
+    border: 1px solid rgba(15, 118, 110, 0.16);
+    border-radius: 28px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(94, 234, 212, 0.2), transparent 34%),
+      linear-gradient(145deg, #ffffff, #eefaf7);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+  }
+
+  body.index-page .gmail-list-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  body.index-page .gmail-list-head h2 {
+    margin: 4px 0;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 950;
+  }
+
+  body.index-page .gmail-list-head p:not(.eyebrow) {
+    margin: 0;
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 750;
+  }
+
+  body.index-page #gmailListStatus {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #ccfbf1;
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  body.index-page .gmail-list-form {
+    display: grid;
+    grid-template-columns: 1fr 0.7fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  body.index-page .gmail-list-form .wide {
+    grid-column: 1 / -1;
+  }
+
+  body.index-page .gmail-list-form label {
+    display: grid;
+    gap: 6px;
+  }
+
+  body.index-page .gmail-list-form label span {
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  body.index-page .gmail-list-form input,
+  body.index-page .gmail-list-form textarea {
+    width: 100%;
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    border-radius: 15px;
+    background: #ffffff;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  body.index-page .gmail-list-form textarea {
+    min-height: 150px;
+    padding: 12px;
+    resize: vertical;
+  }
+
+  body.index-page .gmail-list-result {
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid rgba(15, 118, 110, 0.14);
+    border-radius: 18px;
+    background: #f8fafc;
+  }
+
+  body.index-page .gmail-list-result.is-warning {
+    border-color: rgba(245, 158, 11, 0.34);
+    background: #fffbeb;
+  }
+
+  body.index-page .gmail-list-result strong {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    font-size: 15px;
+    font-weight: 950;
+  }
+
+  body.index-page .gmail-list-result pre {
+    max-height: 260px;
+    margin: 10px 0 0;
+    overflow: auto;
+    color: #334155 !important;
+    -webkit-text-fill-color: #334155 !important;
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+
+  body.index-page .mobile-tabbar {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 8px !important;
+  }
+
+  body.index-page .mobile-tabbar a {
+    min-width: 0 !important;
+    padding: 8px 5px !important;
+  }
+}

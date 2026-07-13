@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260713-analytics-above-dealers1" />
+    <link rel="stylesheet" href="./styles.css?v=20260713-gmail-list-test1" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -168,6 +168,38 @@
         </form>
       </details>
 
+      
+
+      <section class="gmail-list-panel" id="mobileGmailList" aria-label="Gmail list test">
+        <div class="gmail-list-head">
+          <div>
+            <p class="eyebrow">GMAIL LIST TEST</p>
+            <h2>List &#23548;&#20986;&#27979;&#35797;</h2>
+            <p>&#27979;&#35797;&#29256;&#65306;&#20808;&#36148; Gmail &#26631;&#39064;&#20869;&#23481;&#65292;&#21482;&#25235;&#25163;&#26426;&#21495;&#30721;&#65292;&#20043;&#21518;&#20877;&#25509;&#30495;&#23454; Gmail &#24211;&#23384;&#12290;</p>
+          </div>
+          <span id="gmailListStatus">TEST</span>
+        </div>
+        <form class="gmail-list-form" id="gmailListForm" autocomplete="off">
+          <label>
+            <span>Dealer &#21517;&#23383;</span>
+            <input id="gmailDealerName" placeholder="&#20363;&#22914;: xiang" />
+          </label>
+          <label>
+            <span>&#23548;&#20986;&#25968;&#37327;</span>
+            <input id="gmailExportCount" type="number" min="1" step="1" placeholder="20" />
+          </label>
+          <label class="wide">
+            <span>Gmail &#20869;&#23481;&#27979;&#35797;&#21306;</span>
+            <textarea id="gmailRawList" rows="8" placeholder="&#25226; Gmail &#37038;&#20214;&#26631;&#39064;&#22797;&#21046;&#36827;&#26469;&#27979;&#35797;&#10;&#20363;&#22914;: YapAT 01983192091 10k Kota Kinabalu"></textarea>
+          </label>
+          <button class="primary wide" type="submit">&#27979;&#35797;&#23548;&#20986;</button>
+        </form>
+        <div class="gmail-list-result" id="gmailListResult">
+          <strong>&#31561;&#24453;&#27979;&#35797;</strong>
+          <pre>&#36755;&#20837; Dealer&#12289;&#25968;&#37327;&#21644; Gmail &#20869;&#23481;&#21518;&#65292;&#20250;&#22312;&#36825;&#37324;&#26174;&#31034;&#23548;&#20986;&#21495;&#30721;&#12290;</pre>
+        </div>
+      </section>
+
       <section class="toolbar" aria-label="搜索">
         <div class="search-wrap">
           <span aria-hidden="true">⌕</span>
@@ -268,9 +300,10 @@
       <a href="#mobilePackages" data-mobile-view="packages"><span>▣</span><strong>包裹</strong></a>
       <a href="#mobileDealers" data-mobile-view="dealers"><span>◫</span><strong>Dealer</strong></a>
       <a href="#mobileAddDealer" data-mobile-view="add"><span>＋</span><strong>新增</strong></a>
+      <a href="#mobileGmailList" data-mobile-view="gmail"><span>L</span><strong>List</strong></a>
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260713-analytics-above-dealers1"></script>
+    <script src="./app.js?v=20260713-gmail-list-test1"></script>
   </body>
 </html>
