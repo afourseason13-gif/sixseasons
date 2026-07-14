@@ -484,6 +484,18 @@ function gmailAccounts() {
   return [{ user: gmailImapUser, appPassword: gmailImapAppPassword, host: gmailImapHost }];
 }
 
+function formatImapError(error) {
+  const parts = [
+    error?.message,
+    error?.code,
+    error?.response,
+    error?.serverResponse,
+    error?.status,
+    error?.authenticationFailed ? "authentication_failed" : ""
+  ].map((value) => clean(value)).filter(Boolean);
+  return parts.length ? [...new Set(parts)].join(" | ") : String(error || "unknown_imap_error");
+}
+
 async function syncUnreadGmailLists() {
   const accounts = gmailAccounts();
   if (!accounts.length) {
@@ -529,7 +541,16 @@ async function syncUnreadGmailLists() {
       }
       await client.logout();
     } catch (error) {
-      errors.push(`${account.user}:${error.message || error}`);
+      errors.push(`${account.user}:${formatImapError(error)}`);
+      console.error("Gmail IMAP sync failed", {
+        user: account.user,
+        message: error?.message,
+        code: error?.code,
+        response: error?.response,
+        serverResponse: error?.serverResponse,
+        status: error?.status,
+        authenticationFailed: error?.authenticationFailed
+      });
       try {
         await client.logout();
       } catch (_) {
