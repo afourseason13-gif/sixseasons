@@ -143,7 +143,7 @@ function normalizePhoneList(values) {
     .filter((value) => value.length >= 9 && value.length <= 13))];
 }
 
-function findListExportColumn(rows, dateText) {
+function findListExportSlot(rows, dateText, dealerName) {
   const dateRow = rows[0] || [];
   const dealerRow = rows[1] || [];
   const usedWidth = Math.max(dateRow.length, dealerRow.length);
@@ -151,7 +151,9 @@ function findListExportColumn(rows, dateText) {
   if (dateStart < 0) {
     return {
       columnIndex: Math.max(usedWidth + (usedWidth ? 1 : 0), 0),
+      startRowIndex: 0,
       sequence: 1,
+      appendExisting: false,
       isNewDate: true
     };
   }
@@ -164,17 +166,36 @@ function findListExportColumn(rows, dateText) {
     }
   }
 
+  const normalizedDealer = clean(dealerName).toLowerCase();
+  for (let index = dateStart; index < nextDate; index += 1) {
+    if (clean(dealerRow[index]).toLowerCase() !== normalizedDealer) continue;
+    let lastDataRow = 2;
+    for (let rowIndex = 3; rowIndex < rows.length; rowIndex += 1) {
+      if (clean((rows[rowIndex] || [])[index])) lastDataRow = rowIndex;
+    }
+    const sequence = Number(clean((rows[2] || [])[index])) || (dealerRow.slice(dateStart, index + 1).filter((value) => clean(value)).length || 1);
+    return {
+      columnIndex: index,
+      startRowIndex: lastDataRow + 1,
+      sequence,
+      appendExisting: true,
+      isNewDate: false
+    };
+  }
+
   for (let index = dateStart; index < nextDate; index += 1) {
     if (!clean(dealerRow[index])) {
       const usedBefore = dealerRow.slice(dateStart, index).filter((value) => clean(value)).length;
-      return { columnIndex: index, sequence: usedBefore + 1, isNewDate: false };
+      return { columnIndex: index, startRowIndex: 0, sequence: usedBefore + 1, appendExisting: false, isNewDate: false };
     }
   }
 
   const usedBefore = dealerRow.slice(dateStart, nextDate).filter((value) => clean(value)).length;
   return {
     columnIndex: nextDate >= usedWidth ? usedWidth + 1 : nextDate,
+    startRowIndex: 0,
     sequence: usedBefore + 1,
+    appendExisting: false,
     isNewDate: nextDate >= usedWidth
   };
 }
@@ -184,16 +205,20 @@ async function exportGmailListToSheet({ dealer, phones }) {
   if (!clean(dealer)) throw new Error("missing_dealer");
   if (!selected.length) throw new Error("missing_phones");
   const dateText = todayListDate();
-  const readRange = `${encodeURIComponent(gmailListSheetName)}!A1:AZ3`;
+  const readRange = `${encodeURIComponent(gmailListSheetName)}!A1:AZ300`;
   const read = await googleSheetsApi(`${gmailListSpreadsheetId}/values/${readRange}`);
   const rows = read.values || [];
-  const target = findListExportColumn(rows, dateText);
+  const target = findListExportSlot(rows, dateText, dealer);
   const column = sheetColumnName(target.columnIndex);
-  const values = [[dateText], [clean(dealer)], [String(target.sequence)], ...selected.map((phone) => [phone])];
-  const writeRange = `${encodeURIComponent(gmailListSheetName)}!${column}1:${column}${values.length}`;
+  const values = target.appendExisting
+    ? selected.map((phone) => [phone])
+    : [[dateText], [clean(dealer)], [String(target.sequence)], ...selected.map((phone) => [phone])];
+  const startRow = target.startRowIndex + 1;
+  const endRow = target.startRowIndex + values.length;
+  const writeRange = `${encodeURIComponent(gmailListSheetName)}!${column}${startRow}:${column}${endRow}`;
   await googleSheetsApi(`${gmailListSpreadsheetId}/values/${writeRange}?valueInputOption=USER_ENTERED`, {
     method: "PUT",
-    body: JSON.stringify({ range: `${gmailListSheetName}!${column}1:${column}${values.length}`, majorDimension: "ROWS", values })
+    body: JSON.stringify({ range: `${gmailListSheetName}!${column}${startRow}:${column}${endRow}`, majorDimension: "ROWS", values })
   });
   return {
     date: dateText,
@@ -201,6 +226,7 @@ async function exportGmailListToSheet({ dealer, phones }) {
     count: selected.length,
     column,
     sequence: target.sequence,
+    appended: target.appendExisting,
     sheetUrl: `https://docs.google.com/spreadsheets/d/${gmailListSpreadsheetId}/edit#gid=333333002`
   };
 }

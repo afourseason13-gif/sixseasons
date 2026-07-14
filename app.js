@@ -939,6 +939,7 @@ function initGmailListTest() {
         <strong>SAVED - ${escapeHtml(body.date || today)} - ${escapeHtml(dealer)} - ${selected.length}</strong>
         <pre>${escapeHtml([
           `Sheet: ${body.column || "-"} column`,
+          body.appended ? "Mode: append existing dealer" : "Mode: new dealer column",
           "",
           dealer,
           String(body.sequence || 1),
