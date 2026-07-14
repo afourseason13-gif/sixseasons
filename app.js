@@ -883,6 +883,7 @@ function initGmailListTest() {
   const stockCount = document.querySelector("#gmailStockCount");
   const stockStats = document.querySelector("#gmailStockStats");
   const dealerTakenStats = document.querySelector("#gmailDealerTakenStats");
+  const backendSheetStats = document.querySelector("#gmailBackendSheetStats");
   const lastChecked = document.querySelector("#gmailLastChecked");
   if (!form || !dealerInput || !countInput || !result) return;
 
@@ -905,6 +906,12 @@ function initGmailListTest() {
       stockStats.textContent = "???? " + Number(body.todayAdded || 0) + " ? ? ???? " + Number(body.todayTaken || selectedCount || 0) + " ?";
     }
     if (dealerTakenStats) dealerTakenStats.textContent = formatDealerTaken(body.dealerTakenList || body.dealerTaken);
+    if (backendSheetStats) {
+      const sheet = body.backendSheet || {};
+      backendSheetStats.textContent = sheet.status
+        ? `后台库存表：${sheet.status} · ${sheet.lastChecked || "-"}`
+        : "后台库存表：等待同步";
+    }
   };
   const setStockLoading = () => {
     if (status) status.textContent = "CHECKING";

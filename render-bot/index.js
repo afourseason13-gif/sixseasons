@@ -33,6 +33,7 @@ const gmailImapLimit = Math.max(1, Number(process.env.GMAIL_IMAP_LIMIT || 50));
 const gmailListSpreadsheetId = process.env.GMAIL_LIST_SPREADSHEET_ID || "1-TchpPhupL_Dxu-RAJTF1fOsrP89W9b8unoMkUKXATg";
 const gmailExportSheetName = process.env.GMAIL_LIST_SHEET_NAME || "\u5bfc\u51fa\u8bb0\u5f55";
 const gmailStockSheetName = process.env.GMAIL_STOCK_SHEET_NAME || "\u5e93\u5b58\u6392\u8868";
+const gmailBackendStockSheetName = process.env.GMAIL_BACKEND_STOCK_SHEET_NAME || "\u540e\u53f0\u5e93\u5b58";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -254,7 +255,6 @@ function parseGmailLeadText(text, source = "gmail") {
   return leads;
 }
 
-async 
 async function appendGmailStockRows(leads) {
   const rows = (leads || []).map((lead) => [
     lead.date || todayListDate(),
@@ -370,7 +370,6 @@ function parseGmailLeadTextV2(text, source = "gmail") {
   return leads;
 }
 
-async 
 async function appendGmailStockRowsV2(leads) {
   const rows = (leads || []).map((lead) => [lead.date || todayListDate(), lead.name || "gmail", normalizeLeadPhone(lead.phone), lead.amount || "", lead.location || "", lead.job || "", lead.source || "gmail", lead.importedAt || new Date().toISOString(), "\u672a\u9886\u53d6", "", ""]).filter((row) => row[2]);
   if (!rows.length) return { appended: 0 };
@@ -379,7 +378,6 @@ async function appendGmailStockRowsV2(leads) {
   return { appended: rows.length };
 }
 
-async 
 async function saveGmailLeadsV2(leads) {
   const stockSnap = await db.ref(gmailStockPath).get();
   const current = stockSnap.val() || {};
@@ -399,7 +397,6 @@ async function saveGmailLeadsV2(leads) {
   return { imported: newLeads.length, leads: newLeads };
 }
 
-async 
 async function markGmailStockRowsClaimed(phones, dealer) {
   const selected = new Set((phones || []).map(normalizeLeadPhone).filter(Boolean));
   if (!selected.size) return { marked: 0 };
@@ -609,7 +606,6 @@ async function exportGmailListToSheet({ dealer, phones }) {
   };
 }
 
-async 
 async function getGmailListStock() {
   const now = new Date().toISOString();
   const stockSnap = await db.ref(gmailStockPath).get();
@@ -653,6 +649,46 @@ async function takeGmailListStock({ dealer, count }) {
   const dealerTaken = { ...(stock.dealerTaken || {}) };
   dealerTaken[clean(dealer)] = (dealerTaken[clean(dealer)] || 0) + selected.length;
   return { ...exported, requested, phones: selected, remaining: Math.max(0, stock.count - selected.length), stockBefore: stock.count, todayTaken: stock.todayTaken + selected.length, todayAdded: stock.todayAdded, dealerTaken, dealerTakenList: Object.entries(dealerTaken).map(([name, total]) => ({ dealer: name, count: total })) };
+}
+
+async function writeGmailBackendStockSheet(stock, sync = {}) {
+  const now = new Date();
+  const checkedText = now.toLocaleString("en-GB", {
+    timeZone: "Asia/Singapore",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  const statusText = sync.message === "missing_gmail_imap_config"
+    ? "\u672a\u8bbe\u7f6e Gmail"
+    : sync.errors?.length
+      ? "\u540c\u6b65\u6709\u9519\u8bef"
+      : "\u6b63\u5e38";
+  const rows = [
+    ["\u9879\u76ee", "\u6570\u91cf", "\u8bf4\u660e", "\u6700\u540e\u68c0\u6d4b", "\u9891\u7387"],
+    ["\u5e93\u5b58\u53f7\u7801", Number(stock.total || 0), "\u540e\u53f0\u603b\u53f7\u7801\uff0c\u5305\u542b\u5df2\u9886\u53d6", checkedText, "10\u5206\u949f"],
+    ["\u5df2\u5bfc\u51fa", Number(stock.exported || 0), "\u5df2\u9886\u53d6\u5e76\u5199\u5165\u5bfc\u51fa\u8bb0\u5f55", checkedText, "-"],
+    ["\u5269\u4f59\u5e93\u5b58", Number(stock.count || 0), "\u624b\u673a List \u53ef\u9886\u53d6\u6570\u91cf", checkedText, "-"],
+    ["\u4eca\u65e5\u65b0\u589e", Number(stock.todayAdded || 0), "\u4eca\u5929 Gmail \u5bfc\u5165\u7684\u53f7\u7801", checkedText, "-"],
+    ["\u4eca\u65e5\u5df2\u62ff", Number(stock.todayTaken || 0), "\u4eca\u5929\u5df2\u5206\u914d\u7ed9 Dealer", checkedText, "-"],
+    ["\u72b6\u6001", statusText, sync.imported ? `\u521a\u540c\u6b65 ${sync.imported} \u6761` : "\u65e0\u65b0\u90ae\u4ef6", checkedText, "-"]
+  ];
+  const writeRange = encodeURIComponent(gmailBackendStockSheetName) + "!A1:E7?valueInputOption=USER_ENTERED";
+  await googleSheetsApi(gmailListSpreadsheetId + "/values/" + writeRange, {
+    method: "PUT",
+    body: JSON.stringify({
+      range: gmailBackendStockSheetName + "!A1:E7",
+      majorDimension: "ROWS",
+      values: rows
+    })
+  });
+  return {
+    sheetName: gmailBackendStockSheetName,
+    status: statusText,
+    lastChecked: checkedText
+  };
 }
 
 
@@ -1397,7 +1433,6 @@ async function getDriverSignedDetailsFromText(text) {
   return { details, missing };
 }
 
-async 
 async function applyRecordCommand(command) {
   if (command.action === "deleteReplyImport") {
     const record = await findTelegramImportByMessage(command.replyMessageId);
@@ -1451,7 +1486,6 @@ async function applyRecordCommand(command) {
   return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: command.status, warrantyDate: updateData.warrantyDate || "", warrantyDays: updateData.warrantyDays || 0 };
 }
 
-async 
 async function findLatestTelegramImport() {
   const snapshot = await db.ref("dealer-card-tracker/records").get();
   const records = Object.entries(snapshot.val() || {})
@@ -1472,7 +1506,6 @@ async function findTelegramImportByMessage(messageId) {
   return records[0] || null;
 }
 
-async 
 async function autoExpireWarrantyRecords() {
   const today = formatDateInMalaysia(new Date());
   const snapshot = await db.ref("dealer-card-tracker/records").get();
@@ -1489,7 +1522,6 @@ async function autoExpireWarrantyRecords() {
   return Object.keys(updates).length / 2;
 }
 
-async 
 async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
   await autoExpireWarrantyRecords();
   const cardFillResult = await fillMissingCardsByParcelReference(text);
@@ -2968,6 +3000,7 @@ app.get("/gmail/stock", async (_req, res) => {
   try {
     const sync = await syncUnreadGmailLists();
     const stock = await getGmailListStock();
+    const backendSheet = await writeGmailBackendStockSheet(stock, sync);
     res.json({
       ok: true,
       count: stock.count,
@@ -2981,7 +3014,8 @@ app.get("/gmail/stock", async (_req, res) => {
       checked: sync.checked || 0,
       gmailReady: sync.message !== "missing_gmail_imap_config",
       syncErrors: sync.errors || [],
-      checkedAt: stock.checkedAt
+      checkedAt: stock.checkedAt,
+      backendSheet
     });
   } catch (error) {
     console.error(error);
@@ -2994,6 +3028,7 @@ app.post("/gmail/sync", async (_req, res) => {
   try {
     const sync = await syncUnreadGmailLists();
     const stock = await getGmailListStock();
+    const backendSheet = await writeGmailBackendStockSheet(stock, sync);
     res.json({
       ok: true,
       ...sync,
@@ -3001,7 +3036,8 @@ app.post("/gmail/sync", async (_req, res) => {
       todayAdded: stock.todayAdded,
       todayTaken: stock.todayTaken,
       dealerTaken: stock.dealerTaken,
-      dealerTakenList: stock.dealerTakenList
+      dealerTakenList: stock.dealerTakenList,
+      backendSheet
     });
   } catch (error) {
     console.error(error);
@@ -3016,7 +3052,9 @@ app.post("/gmail/take-list", async (req, res) => {
       dealer: req.body?.dealer,
       count: req.body?.count
     });
-    res.json({ ok: true, ...result });
+    const stock = await getGmailListStock();
+    const backendSheet = await writeGmailBackendStockSheet(stock, { imported: 0 });
+    res.json({ ok: true, ...result, backendSheet });
   } catch (error) {
     console.error(error);
     res.status(200).json({ ok: false, message: error.message || "gmail_take_failed" });
