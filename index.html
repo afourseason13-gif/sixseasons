@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260713-gmail-stock-auto1" />
+    <link rel="stylesheet" href="./styles.css?v=20260714-gmail-stock-firebase2" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -173,15 +173,16 @@
       <section class="gmail-list-panel" id="mobileGmailList" aria-label="Gmail list test">
         <div class="gmail-list-head">
           <div>
-            <p class="eyebrow">GMAIL LIST TEST</p>
-            <h2>List &#23548;&#20986;&#27979;&#35797;</h2>
-            <p>&#36755;&#20837; dealer &#21644;&#25968;&#37327;&#65292;&#23548;&#20986;&#21518;&#20250;&#20889;&#20837; Google Sheet &#23548;&#20986;&#35760;&#24405;&#12290;</p>
+            <p class="eyebrow">GMAIL LIST STOCK</p>
+            <h2>List &#21518;&#21488;&#24211;&#23384;</h2>
+            <p>&#36755;&#20837; dealer &#21644;&#25968;&#37327;&#65292;&#31995;&#32479;&#20250;&#20174;&#21518;&#21488;&#24211;&#23384;&#21462;&#21495;&#65292;&#28982;&#21518;&#20889;&#20837; Google Sheet &#23548;&#20986;&#35760;&#24405;&#12290;</p>
           </div>
           <span id="gmailListStatus">TEST</span>
         </div>
         <div class="gmail-stock-card">
-          <span>&#24403;&#21069;&#24211;&#23384;</span>
+          <span>&#24403;&#21069;&#21487;&#39046;&#24211;&#23384;</span>
           <strong id="gmailStockCount">0</strong>
+          <small id="gmailStockStats">&#20170;&#26085;&#26032;&#22686; 0 &#26465; &#183; &#20170;&#26085;&#24050;&#25343; 0 &#26465;</small>
           <em id="gmailLastChecked">&#31561;&#24453;&#26816;&#27979;</em>
         </div>
         <form class="gmail-list-form" id="gmailListForm" autocomplete="off">
@@ -194,14 +195,14 @@
             <input id="gmailExportCount" type="number" min="1" step="1" placeholder="20" />
           </label>
           <label class="wide">
-            <span>Gmail &#20869;&#23481;&#27979;&#35797;&#21306;</span>
-            <textarea id="gmailRawList" rows="8" placeholder="&#25226; Gmail &#37038;&#20214;&#26631;&#39064;&#25110;&#20998;&#34892;&#20869;&#23481;&#22797;&#21046;&#36827;&#26469;&#27979;&#35797;&#10;faizal&#10;0133439877&#10;25k&#10;kemaman&#10;opereta kren"></textarea>
+            <span>&#35828;&#26126;</span>
+            <div class="gmail-stock-note">&#21495;&#30721;&#20174; Google Sheet &#24211;&#23384;&#34920;&#33258;&#21160;&#33719;&#21462;&#65292;&#23548;&#20986;&#21518;&#20250;&#33258;&#21160;&#25187;&#24211;&#23384;&#12290;</div>
           </label>
-          <button class="primary wide" type="submit">&#23548;&#20986;&#21040; Sheet</button>
+          <button class="primary wide" type="submit">&#39046;&#21462;&#24182;&#20889;&#20837; Sheet</button>
         </form>
         <div class="gmail-list-result" id="gmailListResult">
-          <strong>&#31561;&#24453;&#27979;&#35797;</strong>
-          <pre>&#36755;&#20837; Dealer&#12289;&#25968;&#37327;&#21644; Gmail &#20869;&#23481;&#21518;&#65292;&#20250;&#20889;&#20837; Google Sheet &#23548;&#20986;&#35760;&#24405;&#12290;</pre>
+          <strong>&#31561;&#24453;&#25805;&#20316;</strong>
+          <pre>&#36755;&#20837; Dealer &#21644;&#25968;&#37327;&#21518;&#65292;&#20250;&#20174;&#21518;&#21488;&#24211;&#23384;&#21462;&#21495;&#24182;&#20889;&#20837;&#23548;&#20986;&#35760;&#24405;&#12290;</pre>
         </div>
       </section>
 
@@ -309,6 +310,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260714-gmail-sheet-export1"></script>
+    <script src="./app.js?v=20260714-gmail-stock-firebase2"></script>
   </body>
 </html>

@@ -17054,6 +17054,7 @@ body.index-page .gmail-list-panel {
   }
 
   body.index-page .gmail-stock-card span,
+  body.index-page .gmail-stock-card small,
   body.index-page .gmail-stock-card em {
     color: #0f766e !important;
     -webkit-text-fill-color: #0f766e !important;
@@ -17064,8 +17065,16 @@ body.index-page .gmail-list-panel {
     text-transform: uppercase;
   }
 
+  body.index-page .gmail-stock-card small {
+    color: #334155 !important;
+    -webkit-text-fill-color: #334155 !important;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
   body.index-page .gmail-stock-card strong {
-    grid-row: 1 / 3;
+    grid-row: 1 / 4;
     grid-column: 2;
     color: #0f172a !important;
     -webkit-text-fill-color: #0f172a !important;
@@ -17122,6 +17131,19 @@ body.index-page .gmail-list-panel {
     min-height: 150px;
     padding: 12px;
     resize: vertical;
+  }
+
+  body.index-page .gmail-stock-note {
+    min-height: 52px;
+    padding: 13px 14px;
+    border: 1px solid rgba(7, 126, 116, 0.14);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.72);
+    color: #23434c;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.55;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
   }
 
   body.index-page .gmail-list-result {

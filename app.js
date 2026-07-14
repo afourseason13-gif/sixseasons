@@ -8,6 +8,8 @@ const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
 const trackingCheckEndpoint = "https://dealer-tracker.onrender.com/check-trackingmy";
 const recordPhotoEndpoint = "https://dealer-tracker.onrender.com/record-photo";
 const gmailListExportEndpoint = "https://dealer-tracker.onrender.com/gmail/export-list";
+const gmailListStockEndpoint = "https://dealer-tracker.onrender.com/gmail/stock";
+const gmailListTakeEndpoint = "https://dealer-tracker.onrender.com/gmail/take-list";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "人头偷钱", "赔 150", "炸"];
 const defaultNewRecordStatus = "寄";
 const salaryStatuses = new Set(["过保", "开保", "赔 150"]);
@@ -876,89 +878,91 @@ function initGmailListTest() {
   const form = document.querySelector("#gmailListForm");
   const dealerInput = document.querySelector("#gmailDealerName");
   const countInput = document.querySelector("#gmailExportCount");
-  const rawInput = document.querySelector("#gmailRawList");
   const result = document.querySelector("#gmailListResult");
   const status = document.querySelector("#gmailListStatus");
   const stockCount = document.querySelector("#gmailStockCount");
+  const stockStats = document.querySelector("#gmailStockStats");
   const lastChecked = document.querySelector("#gmailLastChecked");
-  if (!form || !dealerInput || !countInput || !rawInput || !result) return;
+  if (!form || !dealerInput || !countInput || !result) return;
 
-  const updateStock = () => {
-    const phones = extractGmailPhones(rawInput.value);
-    if (stockCount) stockCount.textContent = String(phones.length);
-    if (lastChecked) lastChecked.textContent = `Checked ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
-    if (status) status.textContent = `STOCK ${phones.length}`;
-    return phones;
+  let latestStock = 0;
+  const formatCheckTime = (date = new Date()) => date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const setStockLoading = () => {
+    if (status) status.textContent = "CHECKING";
+    if (lastChecked) lastChecked.textContent = "Checking backend stock...";
+  };
+  const loadStock = async () => {
+    setStockLoading();
+    try {
+      const response = await fetch(gmailListStockEndpoint);
+      const body = await response.json().catch(() => ({}));
+      if (!body.ok) throw new Error(body.message || "stock_failed");
+      latestStock = Number(body.count || 0);
+      if (stockCount) stockCount.textContent = String(latestStock);
+      if (stockStats) stockStats.textContent = `今日新增 ${Number(body.todayAdded || 0)} 条 · 今日已拿 ${Number(body.todayTaken || 0)} 条`;
+      if (status) status.textContent = `STOCK ${latestStock}`;
+      if (lastChecked) lastChecked.textContent = `Checked ${formatCheckTime()}`;
+      return latestStock;
+    } catch (error) {
+      if (status) status.textContent = "STOCK FAILED";
+      if (lastChecked) lastChecked.textContent = error.message || "Failed to load stock";
+      return latestStock;
+    }
   };
 
-  rawInput.addEventListener("input", updateStock);
-  updateStock();
-  setInterval(updateStock, 10 * 60 * 1000);
+  loadStock();
+  setInterval(loadStock, 10 * 60 * 1000);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const dealer = dealerInput.value.trim() || "dealer";
     const requested = Math.max(1, Number(countInput.value || 20));
-    const phones = updateStock();
-    const selected = phones.slice(0, requested);
     const today = new Date().toLocaleDateString("en-GB");
-    const enough = phones.length >= requested;
-    if (status) status.textContent = enough ? `OK ${selected.length}/${requested}` : `STOCK ${phones.length}/${requested}`;
-    result.classList.toggle("is-warning", !enough);
-    if (!selected.length) {
-      result.innerHTML = `
-        <strong>NO PHONE FOUND - ${escapeHtml(dealer)}</strong>
-        <pre>Paste Gmail content first.</pre>
-      `;
-      return;
-    }
-    if (status) status.textContent = "WRITING SHEET...";
+    if (status) status.textContent = "TAKING STOCK...";
+    result.classList.remove("is-warning");
     result.innerHTML = `
-      <strong>${enough ? "READY" : "NOT ENOUGH"} - ${escapeHtml(dealer)} - ${selected.length}/${requested}</strong>
+      <strong>TAKING ${requested} - ${escapeHtml(dealer)}</strong>
       <pre>${escapeHtml([
         today,
         "",
         dealer,
-        "1",
-        ...selected,
         "",
-        "Writing to Google Sheet..."
+        "Reading backend stock...",
+        "Writing export record..."
       ].join("\n"))}</pre>
     `;
     try {
-      const response = await fetch(gmailListExportEndpoint, {
+      const response = await fetch(gmailListTakeEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dealer, phones: selected })
+        body: JSON.stringify({ dealer, count: requested })
       });
       const body = await response.json().catch(() => ({}));
-      if (!body.ok) throw new Error(body.message || "sheet_write_failed");
+      if (!body.ok) throw new Error(body.message || "take_list_failed");
+      const selected = Array.isArray(body.phones) ? body.phones : [];
+      latestStock = Number(body.remaining || 0);
+      if (stockCount) stockCount.textContent = String(latestStock);
+      if (stockStats) stockStats.textContent = `今日新增 ${Number(body.todayAdded || 0)} 条 · 今日已拿 ${Number(body.todayTaken || selected.length)} 条`;
+      if (lastChecked) lastChecked.textContent = `Checked ${formatCheckTime()}`;
       if (status) status.textContent = `SHEET ${body.count}`;
       result.classList.remove("is-warning");
       result.innerHTML = `
         <strong>SAVED - ${escapeHtml(body.date || today)} - ${escapeHtml(dealer)} - ${selected.length}</strong>
-        <pre>${escapeHtml([
-          `Sheet: ${body.column || "-"} column`,
-          body.appended ? "Mode: append existing dealer" : "Mode: new dealer column",
-          "",
-          dealer,
-          String(body.sequence || 1),
-          ...selected
-        ].join("\n"))}</pre>
+        <pre>${escapeHtml(selected.join("\n"))}</pre>
       `;
     } catch (error) {
       if (status) status.textContent = "SHEET FAILED";
       result.classList.add("is-warning");
       result.innerHTML = `
-        <strong>SHEET FAILED - ${escapeHtml(dealer)} - ${selected.length}</strong>
+        <strong>EXPORT FAILED - ${escapeHtml(dealer)}</strong>
         <pre>${escapeHtml([
-          error.message || "Failed to write Google Sheet.",
+          error.message || "Failed to take backend stock.",
           "",
-          "Check Render logs and make sure the Sheet is shared with the Firebase service account.",
+          "Check Render logs and Google Sheet permission.",
           "",
-          dealer,
-          "1",
-          ...selected
+          `Dealer: ${dealer}`,
+          `Requested: ${requested}`,
+          `Current stock: ${latestStock}`
         ].join("\n"))}</pre>
       `;
     }

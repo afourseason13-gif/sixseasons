@@ -23,7 +23,10 @@ const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 const announceSecret = process.env.ANNOUNCE_SECRET || "";
 const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
 const trackingMoreApiKey = process.env.TRACKINGMORE_API_KEY || "";
+const gmailStockPath = "dealer-card-tracker/gmailListStock/phones";
 const gmailListSpreadsheetId = process.env.GMAIL_LIST_SPREADSHEET_ID || "1-TchpPhupL_Dxu-RAJTF1fOsrP89W9b8unoMkUKXATg";
+const gmailExportSheetName = process.env.GMAIL_LIST_SHEET_NAME || "\u5bfc\u51fa\u8bb0\u5f55";
+const gmailStockSheetName = process.env.GMAIL_STOCK_SHEET_NAME || "\u5e93\u5b58\u6392\u8868";
 const gmailListSheetName = process.env.GMAIL_LIST_SHEET_NAME || "导出记录";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
@@ -143,6 +146,67 @@ function normalizePhoneList(values) {
     .filter((value) => value.length >= 9 && value.length <= 13))];
 }
 
+function extractPhonesFromRows(rows, startRowIndex = 0) {
+  return normalizePhoneList((rows || [])
+    .slice(startRowIndex)
+    .flatMap((row) => row || []));
+}
+
+function extractStockLeadsFromRows(rows) {
+  const leads = [];
+  const seen = new Set();
+  const tableRows = rows || [];
+  for (let rowIndex = 1; rowIndex < tableRows.length; rowIndex += 1) {
+    const row = tableRows[rowIndex] || [];
+    const tablePhone = normalizePhoneList([row[2]])[0];
+    if (tablePhone) {
+      if (!seen.has(tablePhone)) {
+        seen.add(tablePhone);
+        leads.push({
+          date: clean(row[0]) || todayListDate(),
+          name: clean(row[1]) || "gmail",
+          phone: tablePhone,
+          source: clean(row[3]) || gmailStockSheetName,
+          importedAt: clean(row[4]) || new Date().toISOString()
+        });
+      }
+      continue;
+    }
+
+    for (let columnIndex = 0; columnIndex < row.length; columnIndex += 1) {
+      const phone = normalizePhoneList([row[columnIndex]])[0];
+      if (!phone || seen.has(phone)) continue;
+      const previousRow = tableRows[rowIndex - 1] || [];
+      const nextRow = tableRows[rowIndex + 1] || [];
+      const previousText = clean(previousRow[columnIndex]);
+      const nextText = clean(nextRow[columnIndex]);
+      const name = previousText && !normalizePhoneList([previousText])[0]
+        ? previousText
+        : (nextText && !normalizePhoneList([nextText])[0] ? nextText : "gmail");
+      seen.add(phone);
+      leads.push({
+        date: todayListDate(),
+        name,
+        phone,
+        source: gmailStockSheetName,
+        importedAt: new Date().toISOString()
+      });
+    }
+  }
+  return leads;
+}
+
+function singaporeDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Singapore",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
 function findListExportSlot(rows, dateText, dealerName) {
   const dateRow = rows[0] || [];
   const dealerRow = rows[1] || [];
@@ -205,7 +269,7 @@ async function exportGmailListToSheet({ dealer, phones }) {
   if (!clean(dealer)) throw new Error("missing_dealer");
   if (!selected.length) throw new Error("missing_phones");
   const dateText = todayListDate();
-  const readRange = `${encodeURIComponent(gmailListSheetName)}!A1:AZ300`;
+  const readRange = `${encodeURIComponent(gmailExportSheetName)}!A1:AZ300`;
   const read = await googleSheetsApi(`${gmailListSpreadsheetId}/values/${readRange}`);
   const rows = read.values || [];
   const target = findListExportSlot(rows, dateText, dealer);
@@ -215,10 +279,10 @@ async function exportGmailListToSheet({ dealer, phones }) {
     : [[dateText], [clean(dealer)], [String(target.sequence)], ...selected.map((phone) => [phone])];
   const startRow = target.startRowIndex + 1;
   const endRow = target.startRowIndex + values.length;
-  const writeRange = `${encodeURIComponent(gmailListSheetName)}!${column}${startRow}:${column}${endRow}`;
+  const writeRange = `${encodeURIComponent(gmailExportSheetName)}!${column}${startRow}:${column}${endRow}`;
   await googleSheetsApi(`${gmailListSpreadsheetId}/values/${writeRange}?valueInputOption=USER_ENTERED`, {
     method: "PUT",
-    body: JSON.stringify({ range: `${gmailListSheetName}!${column}${startRow}:${column}${endRow}`, majorDimension: "ROWS", values })
+    body: JSON.stringify({ range: `${gmailExportSheetName}!${column}${startRow}:${column}${endRow}`, majorDimension: "ROWS", values })
   });
   return {
     date: dateText,
@@ -228,6 +292,79 @@ async function exportGmailListToSheet({ dealer, phones }) {
     sequence: target.sequence,
     appended: target.appendExisting,
     sheetUrl: `https://docs.google.com/spreadsheets/d/${gmailListSpreadsheetId}/edit#gid=333333002`
+  };
+}
+
+async function getGmailListStock() {
+  const stockRange = `${encodeURIComponent(gmailStockSheetName)}!A1:AZ500`;
+  const stockRead = await googleSheetsApi(`${gmailListSpreadsheetId}/values/${stockRange}`);
+  const sheetLeads = extractStockLeadsFromRows(stockRead.values || []);
+  const now = new Date().toISOString();
+  const updates = {};
+  const stockSnap = await db.ref(gmailStockPath).get();
+  const current = stockSnap.val() || {};
+  sheetLeads.forEach((lead) => {
+    const key = firebaseKey(lead.phone);
+    if (current[key]) return;
+    updates[`${gmailStockPath}/${key}`] = {
+      phone: lead.phone,
+      name: lead.name,
+      source: lead.source,
+      stockDate: lead.date,
+      importedAt: lead.importedAt || now,
+      syncedAt: now,
+      exportedAt: "",
+      exportedDealer: ""
+    };
+  });
+  if (Object.keys(updates).length) {
+    await db.ref().update(updates);
+  }
+
+  const freshSnap = Object.keys(updates).length ? await db.ref(gmailStockPath).get() : stockSnap;
+  const records = Object.values(freshSnap.val() || {})
+    .filter((item) => item && item.phone)
+    .sort((a, b) => clean(a.importedAt).localeCompare(clean(b.importedAt)) || clean(a.phone).localeCompare(clean(b.phone)));
+  const today = singaporeDateKey();
+  const available = records.filter((item) => !item.exportedAt).map((item) => item.phone);
+  const exportedRecords = records.filter((item) => item.exportedAt);
+  const todayAdded = records.filter((item) => singaporeDateKey(new Date(item.importedAt || item.syncedAt || now)) === today).length;
+  const todayTaken = exportedRecords.filter((item) => singaporeDateKey(new Date(item.exportedAt)) === today).length;
+  return {
+    total: records.length,
+    exported: exportedRecords.length,
+    available,
+    count: available.length,
+    todayAdded,
+    todayTaken,
+    imported: Object.keys(updates).length,
+    checkedAt: now
+  };
+}
+
+async function takeGmailListStock({ dealer, count }) {
+  const requested = Math.max(1, Number(count || 0));
+  if (!clean(dealer)) throw new Error("missing_dealer");
+  const stock = await getGmailListStock();
+  const selected = stock.available.slice(0, requested);
+  if (!selected.length) throw new Error("stock_empty");
+  const exported = await exportGmailListToSheet({ dealer, phones: selected });
+  const exportedAt = new Date().toISOString();
+  const updates = {};
+  selected.forEach((phone) => {
+    updates[`${gmailStockPath}/${firebaseKey(phone)}/exportedAt`] = exportedAt;
+    updates[`${gmailStockPath}/${firebaseKey(phone)}/exportedDealer`] = clean(dealer);
+    updates[`${gmailStockPath}/${firebaseKey(phone)}/exportDate`] = todayListDate();
+  });
+  await db.ref().update(updates);
+  return {
+    ...exported,
+    requested,
+    phones: selected,
+    remaining: Math.max(0, stock.count - selected.length),
+    stockBefore: stock.count,
+    todayTaken: stock.todayTaken + selected.length,
+    todayAdded: stock.todayAdded
   };
 }
 
@@ -2676,6 +2813,40 @@ app.post("/gmail/export-list", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(200).json({ ok: false, message: error.message || "gmail_export_failed" });
+  }
+});
+
+app.get("/gmail/stock", async (_req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  try {
+    const stock = await getGmailListStock();
+    res.json({
+      ok: true,
+      count: stock.count,
+      total: stock.total,
+      exported: stock.exported,
+      todayAdded: stock.todayAdded,
+      todayTaken: stock.todayTaken,
+      imported: stock.imported,
+      checkedAt: stock.checkedAt
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(200).json({ ok: false, message: error.message || "gmail_stock_failed" });
+  }
+});
+
+app.post("/gmail/take-list", async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  try {
+    const result = await takeGmailListStock({
+      dealer: req.body?.dealer,
+      count: req.body?.count
+    });
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error(error);
+    res.status(200).json({ ok: false, message: error.message || "gmail_take_failed" });
   }
 });
 
