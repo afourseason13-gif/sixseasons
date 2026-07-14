@@ -33,7 +33,6 @@ const gmailImapLimit = Math.max(1, Number(process.env.GMAIL_IMAP_LIMIT || 50));
 const gmailListSpreadsheetId = process.env.GMAIL_LIST_SPREADSHEET_ID || "1-TchpPhupL_Dxu-RAJTF1fOsrP89W9b8unoMkUKXATg";
 const gmailExportSheetName = process.env.GMAIL_LIST_SHEET_NAME || "\u5bfc\u51fa\u8bb0\u5f55";
 const gmailStockSheetName = process.env.GMAIL_STOCK_SHEET_NAME || "\u5e93\u5b58\u6392\u8868";
-const gmailListSheetName = process.env.GMAIL_LIST_SHEET_NAME || "导出记录";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -255,21 +254,19 @@ function parseGmailLeadText(text, source = "gmail") {
   return leads;
 }
 
+async 
 async function appendGmailStockRows(leads) {
   const rows = (leads || []).map((lead) => [
     lead.date || todayListDate(),
     lead.name || "gmail",
-    lead.phone,
+    normalizeLeadPhone ? normalizeLeadPhone(lead.phone) : normalizePhoneList([lead.phone])[0],
     lead.source || "gmail",
     lead.importedAt || new Date().toISOString(),
-    "未领取"
+    "\u672a\u9886\u53d6"
   ]).filter((row) => row[2]);
   if (!rows.length) return { appended: 0 };
-  const appendRange = `${encodeURIComponent(gmailStockSheetName)}!A:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-  await googleSheetsApi(`${gmailListSpreadsheetId}/values/${appendRange}`, {
-    method: "POST",
-    body: JSON.stringify({ values: rows })
-  });
+  const appendRange = encodeURIComponent(gmailStockSheetName) + "!A:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS";
+  await googleSheetsApi(gmailListSpreadsheetId + "/values/" + appendRange, { method: "POST", body: JSON.stringify({ values: rows }) });
   return { appended: rows.length };
 }
 
@@ -305,62 +302,58 @@ async function saveGmailLeads(leads) {
   return { imported: newLeads.length, leads: newLeads };
 }
 
+
+function normalizeLeadPhone(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("6001") && digits.length >= 12) digits = "60" + digits.slice(3);
+  if (digits.startsWith("60") && digits.length >= 10 && digits.length <= 12 && digits[2] === "1") return digits;
+  if (digits.startsWith("0") && digits.length >= 10 && digits.length <= 11 && digits[1] === "1") return "6" + digits;
+  if (digits.startsWith("1") && digits.length >= 9 && digits.length <= 10) return "60" + digits;
+  return "";
+}
+
+function extractLeadPhones(value) {
+  const source = String(value || "");
+  const matches = source.match(/(?:\+?60|0)?1[\d\s().-]{7,15}\d/g) || [];
+  return [...new Set(matches.map(normalizeLeadPhone).filter(Boolean))];
+}
+
+
 function parseGmailLeadTextV2(text, source = "gmail") {
   const sourceText = String(text || "").replace(/\r/g, "\n");
-  const lines = sourceText
-    .split(/\n+/)
-    .map((line) => clean(line.replace(/\s+/g, " ")))
-    .filter(Boolean);
+  const lines = sourceText.split(/\n+/).map((line) => clean(line.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "))).filter(Boolean);
   const leads = [];
   const seen = new Set();
-
   const labelValue = (labels) => {
     for (const line of lines) {
-      const match = line.match(/^([^:：]+)[:：]\s*(.+)$/);
+      const match = line.match(/^([^:\uFF1A]+)[:\uFF1A]\s*(.+)$/u);
       if (!match) continue;
       const label = match[1].trim().toLowerCase();
       if (labels.some((item) => label.includes(item))) return clean(match[2]);
     }
     return "";
   };
-
   const labeled = {
-    name: labelValue(["nama", "name", "名字"]),
-    phone: labelValue(["no.hubungi", "no hubungi", "telefon", "phone", "whatsapp", "手机", "电话号码"]),
-    amount: labelValue(["jumlah pinjaman", "pinjaman", "amount", "金额"]),
-    location: labelValue(["lokasi", "location", "地区"]),
-    job: labelValue(["pekerjaan", "occupation", "kerja", "职业"])
+    name: labelValue(["nama", "name"]),
+    phone: labelValue(["no.hubungi", "no hubungi", "telefon", "phone", "whatsapp", "contact"]),
+    amount: labelValue(["jumlah pinjaman", "pinjaman", "amount"]),
+    location: labelValue(["lokasi", "location", "alamat"]),
+    job: labelValue(["pekerjaan", "occupation", "kerja", "job"])
   };
-
   const addLead = (phone, data = {}, rawText = "") => {
-    const normalizedPhone = normalizePhoneList([phone])[0];
+    const normalizedPhone = normalizeLeadPhone(phone);
     if (!normalizedPhone || seen.has(normalizedPhone)) return;
     seen.add(normalizedPhone);
-    leads.push({
-      date: todayListDate(),
-      name: clean(data.name) || "gmail",
-      phone: normalizedPhone,
-      amount: clean(data.amount),
-      location: clean(data.location),
-      job: clean(data.job),
-      source,
-      importedAt: new Date().toISOString(),
-      rawText: clean(rawText || sourceText).slice(0, 500)
-    });
+    leads.push({ date: todayListDate(), name: clean(data.name) || "gmail", phone: normalizedPhone, amount: clean(data.amount), location: clean(data.location), job: clean(data.job), source, importedAt: new Date().toISOString(), rawText: clean(rawText || sourceText).slice(0, 500) });
   };
-
-  if (labeled.phone) addLead(labeled.phone, labeled, sourceText);
-
+  extractLeadPhones(labeled.phone).forEach((phone) => addLead(phone, labeled, sourceText));
   lines.forEach((line, index) => {
-    const phones = normalizePhoneList([line]);
+    const phones = extractLeadPhones(line);
     phones.forEach((phone) => {
       let name = "";
       for (let back = index - 1; back >= Math.max(0, index - 3); back -= 1) {
         const candidate = lines[back];
-        if (!normalizePhoneList([candidate])[0] && /[a-zA-Z]/.test(candidate)) {
-          name = candidate;
-          break;
-        }
+        if (!extractLeadPhones(candidate).length && /[a-zA-Z]/.test(candidate)) { name = candidate; break; }
       }
       if (!name) {
         const localPhone = phone.replace(/^60/, "0");
@@ -369,46 +362,24 @@ function parseGmailLeadTextV2(text, source = "gmail") {
       }
       const nextLines = lines.slice(index + 1, index + 5);
       const amount = labeled.amount || nextLines.find((item) => /\b\d+\s*k\b/i.test(item) || /^\d{3,6}$/.test(item)) || "";
-      const location = labeled.location || nextLines.find((item) => !normalizePhoneList([item])[0] && /[a-zA-Z]/.test(item) && item !== amount) || "";
-      const job = labeled.job || nextLines.find((item) => !normalizePhoneList([item])[0] && /[a-zA-Z]/.test(item) && item !== amount && item !== location) || "";
+      const location = labeled.location || nextLines.find((item) => !extractLeadPhones(item).length && /[a-zA-Z]/.test(item) && item !== amount) || "";
+      const job = labeled.job || nextLines.find((item) => !extractLeadPhones(item).length && /[a-zA-Z]/.test(item) && item !== amount && item !== location) || "";
       addLead(phone, { name: labeled.name || name, amount, location, job }, line);
     });
   });
-
-  const inlineMatches = sourceText.match(/(?:\+?60|0)?1[\d\s-]{7,13}\d/g) || [];
-  inlineMatches.forEach((phone) => {
-    const index = sourceText.indexOf(phone);
-    const before = sourceText.slice(Math.max(0, index - 90), index);
-    const nameMatch = before.match(/([A-Za-z][A-Za-z\s.'-]{1,70})\s*$/);
-    addLead(phone, { ...labeled, name: labeled.name || (nameMatch ? nameMatch[1] : "gmail") }, sourceText.slice(Math.max(0, index - 120), index + 140));
-  });
-
   return leads;
 }
 
+async 
 async function appendGmailStockRowsV2(leads) {
-  const rows = (leads || []).map((lead) => [
-    lead.date || todayListDate(),
-    lead.name || "gmail",
-    lead.phone,
-    lead.amount || "",
-    lead.location || "",
-    lead.job || "",
-    lead.source || "gmail",
-    lead.importedAt || new Date().toISOString(),
-    "未领取",
-    "",
-    ""
-  ]).filter((row) => row[2]);
+  const rows = (leads || []).map((lead) => [lead.date || todayListDate(), lead.name || "gmail", normalizeLeadPhone(lead.phone), lead.amount || "", lead.location || "", lead.job || "", lead.source || "gmail", lead.importedAt || new Date().toISOString(), "\u672a\u9886\u53d6", "", ""]).filter((row) => row[2]);
   if (!rows.length) return { appended: 0 };
-  const appendRange = `${encodeURIComponent(gmailStockSheetName)}!A:K:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-  await googleSheetsApi(`${gmailListSpreadsheetId}/values/${appendRange}`, {
-    method: "POST",
-    body: JSON.stringify({ values: rows })
-  });
+  const appendRange = encodeURIComponent(gmailStockSheetName) + "!A:K:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS";
+  await googleSheetsApi(gmailListSpreadsheetId + "/values/" + appendRange, { method: "POST", body: JSON.stringify({ values: rows }) });
   return { appended: rows.length };
 }
 
+async 
 async function saveGmailLeadsV2(leads) {
   const stockSnap = await db.ref(gmailStockPath).get();
   const current = stockSnap.val() || {};
@@ -416,56 +387,34 @@ async function saveGmailLeadsV2(leads) {
   const newLeads = [];
   const now = new Date().toISOString();
   (leads || []).forEach((lead) => {
-    const phone = normalizePhoneList([lead.phone])[0];
+    const phone = normalizeLeadPhone(lead.phone);
     if (!phone) return;
     const key = firebaseKey(phone);
-    if (current[key] || updates[`${gmailStockPath}/${key}`]) return;
-    const saved = {
-      phone,
-      name: clean(lead.name) || "gmail",
-      amount: clean(lead.amount),
-      location: clean(lead.location),
-      job: clean(lead.job),
-      source: clean(lead.source) || "gmail",
-      stockDate: clean(lead.date) || todayListDate(),
-      importedAt: clean(lead.importedAt) || now,
-      syncedAt: now,
-      exportedAt: "",
-      exportedDealer: "",
-      rawText: clean(lead.rawText).slice(0, 500)
-    };
-    updates[`${gmailStockPath}/${key}`] = saved;
+    if (current[key] || updates[gmailStockPath + "/" + key]) return;
+    const saved = { phone, name: clean(lead.name) || "gmail", amount: clean(lead.amount), location: clean(lead.location), job: clean(lead.job), source: clean(lead.source) || "gmail", stockDate: clean(lead.date) || todayListDate(), importedAt: clean(lead.importedAt) || now, syncedAt: now, exportedAt: "", exportedDealer: "", rawText: clean(lead.rawText).slice(0, 500) };
+    updates[gmailStockPath + "/" + key] = saved;
     newLeads.push(saved);
   });
-  if (Object.keys(updates).length) {
-    await db.ref().update(updates);
-    await appendGmailStockRowsV2(newLeads);
-  }
+  if (Object.keys(updates).length) { await db.ref().update(updates); await appendGmailStockRowsV2(newLeads); }
   return { imported: newLeads.length, leads: newLeads };
 }
 
+async 
 async function markGmailStockRowsClaimed(phones, dealer) {
-  const selected = new Set(normalizePhoneList(phones));
+  const selected = new Set((phones || []).map(normalizeLeadPhone).filter(Boolean));
   if (!selected.size) return { marked: 0 };
-  const readRange = `${encodeURIComponent(gmailStockSheetName)}!A1:K1000`;
-  const read = await googleSheetsApi(`${gmailListSpreadsheetId}/values/${readRange}`);
+  const readRange = encodeURIComponent(gmailStockSheetName) + "!A1:K1000";
+  const read = await googleSheetsApi(gmailListSpreadsheetId + "/values/" + readRange);
   const rows = read.values || [];
   let marked = 0;
   for (let index = 1; index < rows.length; index += 1) {
-    const phone = normalizePhoneList([(rows[index] || [])[2]])[0];
+    const phone = normalizeLeadPhone((rows[index] || [])[2]);
     if (!phone || !selected.has(phone)) continue;
     const status = clean((rows[index] || [])[8]);
-    if (status === "已拿") continue;
+    if (status === "\u5df2\u62ff") continue;
     const rowNumber = index + 1;
-    const writeRange = `${encodeURIComponent(gmailStockSheetName)}!I${rowNumber}:K${rowNumber}`;
-    await googleSheetsApi(`${gmailListSpreadsheetId}/values/${writeRange}?valueInputOption=USER_ENTERED`, {
-      method: "PUT",
-      body: JSON.stringify({
-        range: `${gmailStockSheetName}!I${rowNumber}:K${rowNumber}`,
-        majorDimension: "ROWS",
-        values: [["已拿", clean(dealer), new Date().toISOString()]]
-      })
-    });
+    const writeRange = encodeURIComponent(gmailStockSheetName) + "!I" + rowNumber + ":K" + rowNumber;
+    await googleSheetsApi(gmailListSpreadsheetId + "/values/" + writeRange + "?valueInputOption=USER_ENTERED", { method: "PUT", body: JSON.stringify({ range: gmailStockSheetName + "!I" + rowNumber + ":K" + rowNumber, majorDimension: "ROWS", values: [["\u5df2\u62ff", clean(dealer), new Date().toISOString()]] }) });
     marked += 1;
   }
   return { marked };
@@ -660,72 +609,67 @@ async function exportGmailListToSheet({ dealer, phones }) {
   };
 }
 
+async 
 async function getGmailListStock() {
   const now = new Date().toISOString();
   const stockSnap = await db.ref(gmailStockPath).get();
-  const records = Object.values(stockSnap.val() || {})
-    .filter((item) => item && item.phone)
-    .sort((a, b) => clean(a.importedAt).localeCompare(clean(b.importedAt)) || clean(a.phone).localeCompare(clean(b.phone)));
+  const rawStock = stockSnap.val() || {};
+  const cleanup = {};
+  const records = [];
+  Object.entries(rawStock).forEach(([key, item]) => {
+    const phone = normalizeLeadPhone(item && item.phone);
+    if (!item || !phone) { cleanup[gmailStockPath + "/" + key] = null; return; }
+    records.push({ ...item, key, phone });
+  });
+  if (Object.keys(cleanup).length) await db.ref().update(cleanup);
+  records.sort((a, b) => clean(a.importedAt).localeCompare(clean(b.importedAt)) || clean(a.phone).localeCompare(clean(b.phone)));
   const today = singaporeDateKey();
-  const available = records.filter((item) => !item.exportedAt).map((item) => item.phone);
+  const availableRecords = records.filter((item) => !item.exportedAt);
   const exportedRecords = records.filter((item) => item.exportedAt);
   const todayAdded = records.filter((item) => singaporeDateKey(new Date(item.importedAt || item.syncedAt || now)) === today).length;
-  const todayTaken = exportedRecords.filter((item) => singaporeDateKey(new Date(item.exportedAt)) === today).length;
-  return {
-    total: records.length,
-    exported: exportedRecords.length,
-    available,
-    count: available.length,
-    todayAdded,
-    todayTaken,
-    imported: 0,
-    checkedAt: now
-  };
+  const todayTakenRecords = exportedRecords.filter((item) => singaporeDateKey(new Date(item.exportedAt)) === today);
+  const dealerTaken = todayTakenRecords.reduce((acc, item) => { const dealer = clean(item.exportedDealer) || "-"; acc[dealer] = (acc[dealer] || 0) + 1; return acc; }, {});
+  return { total: records.length, exported: exportedRecords.length, available: availableRecords.map((item) => item.phone), availableRecords, count: availableRecords.length, todayAdded, todayTaken: todayTakenRecords.length, dealerTaken, dealerTakenList: Object.entries(dealerTaken).map(([dealer, count]) => ({ dealer, count })), imported: 0, checkedAt: now, cleaned: Object.keys(cleanup).length };
 }
 
 async function takeGmailListStock({ dealer, count }) {
   const requested = Math.max(1, Number(count || 0));
   if (!clean(dealer)) throw new Error("missing_dealer");
   const stock = await getGmailListStock();
-  const selected = stock.available.slice(0, requested);
+  const selectedRecords = stock.availableRecords.slice(0, requested);
+  const selected = selectedRecords.map((item) => item.phone);
   if (!selected.length) throw new Error("stock_empty");
   const exported = await exportGmailListToSheet({ dealer, phones: selected });
   const exportedAt = new Date().toISOString();
   const updates = {};
-  selected.forEach((phone) => {
-    updates[`${gmailStockPath}/${firebaseKey(phone)}/exportedAt`] = exportedAt;
-    updates[`${gmailStockPath}/${firebaseKey(phone)}/exportedDealer`] = clean(dealer);
-    updates[`${gmailStockPath}/${firebaseKey(phone)}/exportDate`] = todayListDate();
+  selectedRecords.forEach((record) => {
+    const key = record.key || firebaseKey(record.phone);
+    updates[gmailStockPath + "/" + key + "/exportedAt"] = exportedAt;
+    updates[gmailStockPath + "/" + key + "/exportedDealer"] = clean(dealer);
+    updates[gmailStockPath + "/" + key + "/exportDate"] = todayListDate();
   });
   await db.ref().update(updates);
   await markGmailStockRowsClaimed(selected, dealer);
-  return {
-    ...exported,
-    requested,
-    phones: selected,
-    remaining: Math.max(0, stock.count - selected.length),
-    stockBefore: stock.count,
-    todayTaken: stock.todayTaken + selected.length,
-    todayAdded: stock.todayAdded
-  };
+  const dealerTaken = { ...(stock.dealerTaken || {}) };
+  dealerTaken[clean(dealer)] = (dealerTaken[clean(dealer)] || 0) + selected.length;
+  return { ...exported, requested, phones: selected, remaining: Math.max(0, stock.count - selected.length), stockBefore: stock.count, todayTaken: stock.todayTaken + selected.length, todayAdded: stock.todayAdded, dealerTaken, dealerTakenList: Object.entries(dealerTaken).map(([name, total]) => ({ dealer: name, count: total })) };
 }
 
+
 function pickLineValue(text, labels) {
-  const lines = text.split(/\r?\n/);
+  const lines = String(text || "").split(/\r?\n/);
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    const cleaned = line.replace(/\*/g, "").trim();
-    const match = cleaned.match(/^([^:：]+)[:：]\s*(.*)$/);
+    const cleaned = lines[index].replace(/\*/g, "").trim();
+    const match = cleaned.match(/^([^:\uFF1A]+)[:\uFF1A]\s*(.*)$/u);
     if (!match) continue;
     const label = match[1].trim().toUpperCase();
     if (!labels.some((item) => label === item || label.includes(item))) continue;
     const value = match[2].trim();
     if (value) return value;
-
     for (let nextIndex = index + 1; nextIndex < lines.length; nextIndex += 1) {
       const nextValue = lines[nextIndex].replace(/\*/g, "").trim();
       if (!nextValue || /^-+$/.test(nextValue)) continue;
-      if (/^[^:：]+[:：]/.test(nextValue)) break;
+      if (/^[^:\uFF1A]+[:\uFF1A]/u.test(nextValue)) break;
       return nextValue;
     }
   }
@@ -738,34 +682,30 @@ function telegramSenderName(message) {
   return clean(fullName || from.username || message?.sender_chat?.title || message?.chat?.title || "");
 }
 
+
 function parseDealer(text, fallbackName = "") {
-  const value = pickLineValue(text, ["DEALER", "DEALER 名字", "代理"]);
+  const value = pickLineValue(text, ["DEALER", "DEALER NAME"]);
   if (value) return value;
-  const hashMatch = text.match(/#dealer\s+(.+)/i);
+  const hashMatch = String(text || "").match(/#dealer\s+(.+)/i);
   if (hashMatch) return clean(hashMatch[1]);
-  const firstLine = clean(text.split(/\r?\n/).find(Boolean));
+  const firstLine = clean(String(text || "").split(/\r?\n/).find(Boolean));
   if (/^dealer\s+/i.test(firstLine)) return clean(firstLine.replace(/^dealer\s+/i, "Dealer "));
   return clean(fallbackName) || "Telegram";
 }
 
-function isImportMessage(text, fallbackName = "") {
-  const dealer = pickLineValue(text, ["DEALER", "DEALER 名字", "代理"]) || text.match(/#dealer\s+(.+)/i);
 
+function isImportMessage(text, fallbackName = "") {
+  const dealer = pickLineValue(text, ["DEALER", "DEALER NAME"]) || String(text || "").match(/#dealer\s+(.+)/i);
   const fields = {
     name: pickLineValue(text, ["NAMA", "NAME"]),
     ic: pickLineValue(text, ["IC NO", "IC"]),
     bank: pickLineValue(text, ["BANK", "NAMA BANK"]),
     account: pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
-    card: pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]),
+        card: pickLineValue(clean(updatedRecord.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]) || updatedRecord.cardNumber,
     pin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
   };
   const filledCount = Object.values(fields).filter(Boolean).length;
-
-  // Require a clearly structured customer record so ordinary group chat is ignored.
-  return Boolean(dealer || clean(fallbackName))
-    && Boolean(fields.name && fields.ic && fields.bank && fields.account)
-    && Boolean(fields.card || fields.pin)
-    && filledCount >= 5;
+  return Boolean(dealer || clean(fallbackName)) && Boolean(fields.name && fields.ic && fields.bank && fields.card) && filledCount >= 4;
 }
 
 function isPotentialImportMessage(text) {
@@ -788,7 +728,7 @@ function parseShipmentCode(text) {
   ];
   for (const line of lines) {
     if (/^(DEALER|NAME|NAMA|IC|BANK|NO AKAUN|NO KAD|PIN|\*)/i.test(line)) continue;
-    if (line.includes(":") || line.includes("：") || /^-+$/.test(line)) continue;
+    if (line.includes(":") || line.includes("\uFF1A") || /^-+$/.test(line)) continue;
     const compact = line.replace(/[^A-Za-z0-9&]/g, "").toUpperCase();
     const prefixedCarrier = carrierPrefixes.find((prefix) => compact.startsWith(prefix) && compact.length > prefix.length + 2);
     if (prefixedCarrier) {
@@ -837,11 +777,12 @@ function telegramLargestPhotoFileId(message) {
   return "";
 }
 
+
 function ccidStatusLine(result) {
-  if (!result?.checked) return "CCID status: CHECK FAILED. Carian 0 kali ⚠️";
+  if (!result?.checked) return "CCID status: CHECK FAILED. Carian 0 kali \u26A0";
   const count = Number(result.searchCount || 0);
-  if (result.reportCount > 0) return `CCID status: report ${result.reportCount}. Carian ${count} kali ❌`;
-  return `CCID status: NO report. Carian ${count} kali ✅`;
+  if (result.reportCount > 0) return "CCID status: report " + result.reportCount + ". Carian " + count + " kali \u274C";
+  return "CCID status: NO report. Carian " + count + " kali \u2705";
 }
 
 function buildTelegramFormattedDetails(fields, ccidResult) {
@@ -982,8 +923,9 @@ async function findExistingDealerName(name) {
   return existing?.name || "";
 }
 
+
 function parseCardNumber(text) {
-  return pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
+  return pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]);
 }
 
 function bankAlias(bankName) {
@@ -1063,8 +1005,9 @@ function formatDateInMalaysia(date) {
   return `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, "0")}-${String(local.getUTCDate()).padStart(2, "0")}`;
 }
 
+
 function parseWarrantyDays(text) {
-  const match = text.match(/(?:保|warranty|waranti)\s*(5|7)\b|(?:^|[^\d])(5|7)\s*天/i);
+  const match = String(text || "").match(/(?:\u4fdd|warranty|waranti)\s*(5|7)\b|(?:^|[^\d])(5|7)\s*\u5929/i);
   return match ? Number(match[1] || match[2]) : 0;
 }
 
@@ -1083,103 +1026,90 @@ function daysSince(dateText, todayText) {
   return Math.max(1, Math.floor((end - start) / (24 * 60 * 60 * 1000)) + 1);
 }
 
+
 function hasRejectedMark(text) {
-  return /[❌✕×]/.test(text);
+  return /[xX\u2716\u00d7]/.test(String(text || ""));
 }
 
+
 function problemStatusFromText(text) {
-  if (text.includes("人头偷钱")) return "人头偷钱";
-  if (text.includes("赔 150") || text.includes("赔150") || text.includes("赔钱150")) return "赔 150";
-  if (text.includes("人头关") || text.includes("公户")) return "人头关";
-  if (text.includes("弹卡") || text.includes("有问题") || text.includes("问题")) return "弹卡";
-  if (hasRejectedMark(text)) return "炸";
+  const source = String(text || "");
+  if (source.includes("\u4eba\u5934\u5077\u94b1")) return "\u4eba\u5934\u5077\u94b1";
+  if (source.includes("\u8d54150") || source.includes("\u8d54 150")) return "\u8d54 150";
+  if (source.includes("\u4eba\u5934\u5173") || source.includes("\u516c\u6237")) return "\u4eba\u5934\u5173";
+  if (source.includes("\u5f39\u5361") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898")) return "\u5f39\u5361";
+  if (source.includes("\u70b8") || hasRejectedMark(source)) return "\u70b8";
   return "";
 }
 
-function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
-  const warrantyDate = parseCommandDate(text) || defaultWarrantyDate;
-  const warrantyDays = parseWarrantyDays(text);
-  if (!warrantyDate || !/(开保|保\d*|\d+\s*天)/.test(text)) return [];
 
+function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
+  const source = String(text || "");
+  const warrantyDate = parseCommandDate(source) || defaultWarrantyDate;
+  const warrantyDays = parseWarrantyDays(source);
+  if (!warrantyDate || !/(\u5f00\u4fdd|\u4fdd\d*|\d+\s*\u5929)/.test(source)) return [];
   const commands = [];
   const seen = new Set();
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of source.split(/\r?\n/)) {
     const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
     for (const cardToken of cardTokens) {
       if (seen.has(cardToken)) continue;
       seen.add(cardToken);
-      commands.push({
-        action: "status",
-        status: problemStatusFromText(line) || "开保",
-        cardToken,
-        warrantyDate,
-        warrantyDays
-      });
+      commands.push({ action: "status", status: problemStatusFromText(line) || "\u5f00\u4fdd", cardToken, warrantyDate, warrantyDays });
     }
   }
   return commands;
 }
 
+
 function statusFromCommandLine(line) {
   const source = String(line || "");
-  if (source.includes("赔 150") || source.includes("赔150") || source.includes("赔钱150")) return "赔 150";
-  if (source.includes("\u4eba\u5934\u5173") || source.includes("\u516c\u6237") || source.includes("浜哄ご鍏") || source.includes("鍏埛")) return "\u4eba\u5934\u5173";
-  if (source.includes("\u5f39\u5361") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898") || source.includes("寮瑰崱")) return "\u5f39\u5361";
+  if (source.includes("\u8d54150") || source.includes("\u8d54 150")) return "\u8d54 150";
+  if (source.includes("\u4eba\u5934\u5077\u94b1")) return "\u4eba\u5934\u5077\u94b1";
+  if (source.includes("\u4eba\u5934\u5173") || source.includes("\u516c\u6237")) return "\u4eba\u5934\u5173";
+  if (source.includes("\u5f39\u5361") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898")) return "\u5f39\u5361";
   if (source.includes("\u70b8") || hasRejectedMark(source)) return "\u70b8";
-  if (source.includes("\u8fc7\u4fdd") || source.includes("杩囦繚")) return "\u8fc7\u4fdd";
-  if (source.includes("\u5f00\u4fdd") || source.includes("寮€淇")) return "\u5f00\u4fdd";
-  if (source.includes("\u5bc4") || source.includes("瀵")) return "\u5bc4";
-  if (source.includes("\u8f66\u624b\u5df2\u7b7e\u6536") || source.includes("\u7b7e\u6536")) return "\u8f66\u624b\u5df2\u7b7e\u6536";
+  if (source.includes("\u8fc7\u4fdd")) return "\u8fc7\u4fdd";
+  if (source.includes("\u5f00\u4fdd")) return "\u5f00\u4fdd";
+  if (source.includes("\u5bc4")) return "\u5bc4";
+  if (source.includes("\u8f66\u624b\u5df2\u7b7e\u6536") || source.includes("\u8f66\u624b\u5df2\u62ff") || source.includes("\u7b7e\u6536")) return "\u8f66\u624b\u5df2\u7b7e\u6536";
   return "";
 }
+
 
 function parseGeneralBulkRecordCommands(text, defaultWarrantyDate = "") {
   const commands = [];
   const seen = new Set();
-  const warrantyDate = parseCommandDate(text) || defaultWarrantyDate;
-  const warrantyDays = parseWarrantyDays(text);
+  const source = String(text || "");
+  const warrantyDate = parseCommandDate(source) || defaultWarrantyDate;
+  const warrantyDays = parseWarrantyDays(source);
   let sectionStatus = "";
-
-  for (const line of String(text || "").split(/\r?\n/)) {
+  for (const line of source.split(/\r?\n/)) {
     const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
     const inlineStatus = statusFromCommandLine(line);
-
-    // A status-only line starts a section. A date/warranty heading starts an
-    // open-warranty section. A status written beside a card applies only to
-    // that line and must not leak into the following cards.
     if (!cardTokens.length) {
       if (inlineStatus) sectionStatus = inlineStatus;
-      else if (line.includes("开保") || parseWarrantyDays(line)) sectionStatus = "开保";
+      else if (line.includes("\u5f00\u4fdd") || parseWarrantyDays(line)) sectionStatus = "\u5f00\u4fdd";
       continue;
     }
-
     const status = inlineStatus || sectionStatus;
     if (!status) continue;
     for (const cardToken of cardTokens) {
       if (seen.has(cardToken)) continue;
       seen.add(cardToken);
-      commands.push({
-        action: "status",
-        status,
-        cardToken,
-        warrantyDate: status === "开保" ? warrantyDate : "",
-        warrantyDays: status === "开保" ? warrantyDays : 0
-      });
+      commands.push({ action: "status", status, cardToken, warrantyDate: status === "\u5f00\u4fdd" ? warrantyDate : "", warrantyDays: status === "\u5f00\u4fdd" ? warrantyDays : 0 });
     }
   }
   return commands;
 }
 
+
 function parseDriverSignedCommands(text) {
   const source = String(text || "");
-  const hasSignedLabel = source.includes("车手已签收") || source.includes("车手已拿");
-  const courierCodes = new Set([
-    "JNT", "JT", "POS", "POSLAJU", "SPX", "SHOPEE", "GDEX", "NINJA",
-    "NINJAVAN", "DHL", "SKY", "SKYNET", "CITY", "FLASH", "LEX", "LAZ"
-  ]);
-
+  const hasSignedLabel = source.includes("\u8f66\u624b\u5df2\u7b7e\u6536") || source.includes("\u8f66\u624b\u5df2\u62ff");
+  const courierCodes = new Set(["JNT", "JT", "POS", "POSLAJU", "SPX", "SHOPEE", "GDEX", "NINJA", "NINJAVAN", "DHL", "SKY", "SKYNET", "CITY", "FLASH", "LEX", "LAZ"]);
   const commands = [];
   const seen = new Set();
   for (const line of source.split(/\r?\n/)) {
@@ -1187,21 +1117,12 @@ function parseDriverSignedCommands(text) {
     const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
     if (!cardTokens.length) continue;
     if (!hasSignedLabel) {
-      const hasParcelReference = cardTokens.some((token) => {
-        const code = token.replace(/\d{4}$/, "");
-        return courierCodes.has(code);
-      });
-      const hasSeparateCard = cardTokens.some((token) => {
-        const code = token.replace(/\d{4}$/, "");
-        return !courierCodes.has(code);
-      });
+      const hasParcelReference = cardTokens.some((token) => courierCodes.has(token.replace(/\d{4}$/, "")));
+      const hasSeparateCard = cardTokens.some((token) => !courierCodes.has(token.replace(/\d{4}$/, "")));
       if (!hasParcelReference || !hasSeparateCard) continue;
     }
     const cardToken = cardTokens[cardTokens.length - 1];
-    const parcelToken = cardTokens.find((token) => {
-      const code = token.replace(/\d{4}$/, "");
-      return courierCodes.has(code);
-    }) || "";
+    const parcelToken = cardTokens.find((token) => courierCodes.has(token.replace(/\d{4}$/, ""))) || "";
     if (seen.has(cardToken)) continue;
     seen.add(cardToken);
     commands.push({ action: "deleteDriverSigned", cardToken, parcelToken });
@@ -1285,35 +1206,29 @@ async function fillMissingCardsByParcelReference(text) {
   return { filled, ambiguous };
 }
 
+
 function undoWordsFromText(text) {
-  return ["撤销导入", "撤銷導入", "取消导入", "取消導入"].some((item) => text.includes(item));
+  const source = String(text || "");
+  return ["\u64a4\u9500\u5bfc\u5165", "\u53d6\u6d88\u5bfc\u5165", "undo import", "delete import"].some((item) => source.toLowerCase().includes(item.toLowerCase()));
 }
 
-function parseRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
-  const statuses = ["车手已签收", "未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "弹卡", "人头关", "人头偷钱", "赔 150", "炸"];
-  const latestUndoWords = ["撤销导入", "撤銷導入", "取消导入", "取消導入"];
-  const deleteWords = ["删除", "刪除", "撤回", "撤销", "撤銷", ...latestUndoWords];
-  const status = statuses.find((item) => text.includes(item)) || statusFromCommandLine(text) || problemStatusFromText(text);
-  const shouldDelete = deleteWords.some((item) => text.includes(item));
-  if (!status && !shouldDelete) return null;
-  if (replyMessageId && undoWordsFromText(text)) {
-    return { action: "deleteReplyImport", replyMessageId };
-  }
 
-  const compact = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
+function parseRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
+  const source = String(text || "");
+  const statuses = ["\u8f66\u624b\u5df2\u7b7e\u6536", "\u672a\u5904\u7406", "\u5904\u7406\u4e2d", "\u5df2\u5bc4\u51fa", "\u5df2\u5b8c\u6210", "\u8fc7\u4fdd", "\u5f00\u4fdd", "\u5bc4", "\u5f39\u5361", "\u4eba\u5934\u5173", "\u4eba\u5934\u5077\u94b1", "\u8d54 150", "\u70b8"];
+  const latestUndoWords = ["\u64a4\u9500\u5bfc\u5165", "\u53d6\u6d88\u5bfc\u5165", "undo import", "delete import"];
+  const deleteWords = ["\u5220\u9664", "delete", ...latestUndoWords];
+  const status = statuses.find((item) => source.includes(item)) || statusFromCommandLine(source) || problemStatusFromText(source);
+  const shouldDelete = deleteWords.some((item) => source.toLowerCase().includes(item.toLowerCase()));
+  if (!status && !shouldDelete) return null;
+  if (replyMessageId && undoWordsFromText(source)) return { action: "deleteReplyImport", replyMessageId };
+  const compact = source.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const cardMatch = compact.match(/([A-Z]{2,12}\d{4}|\d{4})/);
   if (!cardMatch) {
-    if (latestUndoWords.some((item) => text.includes(item))) return { action: "deleteLatestImport" };
+    if (latestUndoWords.some((item) => source.toLowerCase().includes(item.toLowerCase()))) return { action: "deleteLatestImport" };
     return null;
   }
-
-  return {
-    action: shouldDelete ? "delete" : "status",
-    status,
-    cardToken: cardMatch[1],
-    warrantyDate: parseCommandDate(text) || (status === "开保" ? defaultWarrantyDate : ""),
-    warrantyDays: parseWarrantyDays(text)
-  };
+  return { action: shouldDelete ? "delete" : "status", status, cardToken: cardMatch[1], warrantyDate: parseCommandDate(source) || (status === "\u5f00\u4fdd" ? defaultWarrantyDate : ""), warrantyDays: parseWarrantyDays(source) };
 }
 
 function recordMatchesCard(record, cardToken) {
@@ -1340,9 +1255,9 @@ function formatSignedRecordDetails(record) {
   const ic = recordDetailValue(record, "icNumber", ["IC NO", "IC"]);
   const bank = recordDetailValue(record, "bankName", ["BANK", "NAMA BANK"]);
   const account = normalizeBankAccount(recordDetailValue(record, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]));
-  const cardLabel = clean(record?.cardNumber) || recordDetailValue(record, "cardNumber", ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]);
+  const cardLabel = clean(record?.cardNumber) || recordDetailValue(record, "cardNumber", ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]);
   const fullCard = clean(record?.receivedCardNumber)
-    || pickLineValue(clean(record?.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"])
+    || pickLineValue(clean(record?.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"])
     || cardLabel;
   const pin = recordDetailValue(record, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]);
   const ccidLine = clean(record?.ccidStatusLine)
@@ -1389,7 +1304,7 @@ async function ensureRecordCcidStatus(record) {
     ic: recordDetailValue(updatedRecord, "icNumber", ["IC NO", "IC"]),
     bank: recordDetailValue(updatedRecord, "bankName", ["BANK", "NAMA BANK"]),
     account,
-    card: pickLineValue(clean(updatedRecord.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "卡号"]) || updatedRecord.cardNumber,
+    card: pickLineValue(clean(updatedRecord.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]) || updatedRecord.cardNumber,
     pin: recordDetailValue(updatedRecord, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
   }, ccidResult);
   updatedRecord.formattedDetails = formattedDetails;
@@ -1407,24 +1322,17 @@ async function ensureRecordCcidStatus(record) {
   return updatedRecord;
 }
 
+
 function formatDriverPickupNotice(stopped, missing = []) {
   const lines = stopped.map((result) => {
     const parcel = clean(result.parcelToken || "");
     const card = clean(result.cardNumber || result.record?.cardNumber || result.cardToken || "-");
     const dealer = clean(result.record?.dealerName || "");
-    const changed = result.cardChanged
-      ? `\n\u5df2\u8865\u5361\u53f7\uff1a${result.originalCardNumber || "-"} \u2192 ${result.newCardNumber || card}`
-      : "";
-    return `${parcel ? `${parcel} | ` : ""}${card}${dealer ? ` \u00b7 ${dealer}` : ""}${changed}`;
+    const changed = result.cardChanged ? "\n\u5df2\u8865\u5361\u53f7\uff1a" + (result.originalCardNumber || "-") + " -> " + (result.newCardNumber || card) : "";
+    return (parcel ? parcel + " | " : "") + card + (dealer ? " ? " + dealer : "") + changed;
   });
-  const missingLines = missing.length ? ["", `找不到：${missing.join(", ")}`] : [];
-  return [
-    `车手已拿，已停止查询 ${stopped.length} 条`,
-    "请通知人头删除 App",
-    "",
-    ...lines,
-    ...missingLines
-  ].filter((line, index) => index < 3 || clean(line)).join("\n");
+  const missingLines = missing.length ? ["", "\u627e\u4e0d\u5230\u8d44\u6599: " + missing.join(", ")] : [];
+  return ["\u8f66\u624b\u5df2\u7b7e\u6536\uff0c\u5df2\u505c\u6b62\u67e5\u8be2 " + stopped.length + " \u6761", "\u8bf7\u5728 App \u67e5\u770b\u660e\u7ec6", "", ...lines, ...missingLines].filter((line, index) => index < 3 || clean(line)).join("\n");
 }
 
 async function findLatestRecordByCard(cardToken) {
@@ -1464,7 +1372,7 @@ async function rememberUnknownDriverCard(command) {
     id,
     parcelToken,
     cardToken,
-    reason: "车手已收到，但系统找不到对应资料",
+    reason: "driver_card_not_found",
     count: Number(existing.count || 0) + 1,
     createdAt: existing.createdAt || new Date().toISOString(),
     lastSeenAt: new Date().toISOString(),
@@ -1489,91 +1397,66 @@ async function getDriverSignedDetailsFromText(text) {
   return { details, missing };
 }
 
+async 
 async function applyRecordCommand(command) {
   if (command.action === "deleteReplyImport") {
     const record = await findTelegramImportByMessage(command.replyMessageId);
-    if (!record) return { ok: false, message: "找不到这条回复对应的导入资料" };
-    await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
-    return { ok: true, cardNumber: record.cardNumber || record.id, status: "删除" };
+    if (!record) return { ok: false, message: "record_not_found" };
+    await db.ref("dealer-card-tracker/records/" + record.key).remove();
+    return { ok: true, cardNumber: record.cardNumber || record.id, status: "\u5220\u9664" };
   }
 
   if (command.action === "deleteLatestImport") {
     const record = await findLatestTelegramImport();
-    if (!record) return { ok: false, message: "找不到可以撤销的导入资料" };
-    await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
-    return { ok: true, cardNumber: record.cardNumber || record.id, status: "删除" };
+    if (!record) return { ok: false, message: "latest_import_not_found" };
+    await db.ref("dealer-card-tracker/records/" + record.key).remove();
+    return { ok: true, cardNumber: record.cardNumber || record.id, status: "\u5220\u9664" };
   }
 
   let record = null;
-  if (command.action === "deleteDriverSigned" && command.parcelToken) {
-    record = await findLatestRecordByParcelToken(command.parcelToken);
-  }
+  if (command.action === "deleteDriverSigned" && command.parcelToken) record = await findLatestRecordByParcelToken(command.parcelToken);
   if (!record) record = await findLatestRecordByCard(command.cardToken);
   if (!record) {
     if (command.action === "deleteDriverSigned") await rememberUnknownDriverCard(command);
-    return { ok: false, cardToken: command.cardToken, message: `找不到卡号 ${command.cardToken}` };
+    return { ok: false, cardToken: command.cardToken, message: "record_not_found:" + command.cardToken };
   }
 
   if (command.action === "delete") {
-    await db.ref(`dealer-card-tracker/records/${record.key}`).remove();
-    return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: "删除" };
+    await db.ref("dealer-card-tracker/records/" + record.key).remove();
+    return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: "\u5220\u9664" };
   }
 
   if (command.action === "deleteDriverSigned") {
     const incomingCard = clean(command.cardToken).toUpperCase();
     const savedCard = clean(record.cardNumber).toUpperCase().replace(/[^A-Z0-9]/g, "");
     const shouldFillMissingCard = incomingCard && isMissingCardNumber(savedCard);
-    const updateData = {
-      status: "车手已签收",
-      packageStatus: "车手已签收",
-      trackingStoppedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const updateData = { status: "\u8f66\u624b\u5df2\u7b7e\u6536", packageStatus: "\u8f66\u624b\u5df2\u7b7e\u6536", trackingStoppedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     if (shouldFillMissingCard) {
       updateData.cardNumber = incomingCard;
       updateData.cardMatchedAt = new Date().toISOString();
-      updateData.notes = `${clean(record.notes)} \u00b7 \u8f66\u624b\u6309\u5305\u88f9\u5c3e\u53f7\u81ea\u52a8\u8865\u4e0a\u5361\u53f7`.trim();
+      updateData.notes = (clean(record.notes) + " ? " + "\u8f66\u624b\u6309\u5305\u88f9\u5c3e\u53f7\u81ea\u52a8\u8865\u4e0a\u5361\u53f7").trim();
       record = { ...record, ...updateData };
     }
-    await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
+    await db.ref("dealer-card-tracker/records/" + record.key).update(updateData);
     const readyRecord = await ensureRecordCcidStatus({ ...record, ...updateData, key: record.key });
-    return {
-      ok: true,
-      cardNumber: readyRecord.cardNumber || command.cardToken,
-      cardToken: command.cardToken,
-      parcelToken: command.parcelToken || "",
-      cardChanged: Boolean(updateData.cardNumber),
-      originalCardNumber: savedCard || "",
-      newCardNumber: updateData.cardNumber || "",
-      status: "车手已签收",
-      record: readyRecord
-    };
+    return { ok: true, cardNumber: readyRecord.cardNumber || command.cardToken, cardToken: command.cardToken, parcelToken: command.parcelToken || "", cardChanged: Boolean(updateData.cardNumber), originalCardNumber: savedCard || "", newCardNumber: updateData.cardNumber || "", status: "\u8f66\u624b\u5df2\u7b7e\u6536", record: readyRecord };
   }
 
-  const updateData = {
-    status: command.status,
-    updatedAt: new Date().toISOString()
-  };
-  if (command.status !== "寄") updateData.trackingStoppedAt = new Date().toISOString();
-  if (command.status === "寄") updateData.trackingStoppedAt = null;
-  if (command.status === "开保" && command.warrantyDate) updateData.warrantyDate = command.warrantyDate;
-  if (command.status === "开保" && command.warrantyDays) updateData.warrantyDays = command.warrantyDays;
-
-  await db.ref(`dealer-card-tracker/records/${record.key}`).update(updateData);
-  return {
-    ok: true,
-    cardNumber: record.cardNumber || command.cardToken,
-    status: command.status,
-    warrantyDate: updateData.warrantyDate || "",
-    warrantyDays: updateData.warrantyDays || 0
-  };
+  const updateData = { status: command.status, updatedAt: new Date().toISOString() };
+  if (command.status !== "\u5bc4") updateData.trackingStoppedAt = new Date().toISOString();
+  if (command.status === "\u5bc4") updateData.trackingStoppedAt = null;
+  if (command.status === "\u5f00\u4fdd" && command.warrantyDate) updateData.warrantyDate = command.warrantyDate;
+  if (command.status === "\u5f00\u4fdd" && command.warrantyDays) updateData.warrantyDays = command.warrantyDays;
+  await db.ref("dealer-card-tracker/records/" + record.key).update(updateData);
+  return { ok: true, cardNumber: record.cardNumber || command.cardToken, status: command.status, warrantyDate: updateData.warrantyDate || "", warrantyDays: updateData.warrantyDays || 0 };
 }
 
+async 
 async function findLatestTelegramImport() {
   const snapshot = await db.ref("dealer-card-tracker/records").get();
   const records = Object.entries(snapshot.val() || {})
     .map(([key, record]) => ({ key, ...record }))
-    .filter((record) => clean(record.notes).includes("Telegram 自动导入"))
+    .filter((record) => clean(record.notes).includes("Telegram"))
     .sort((a, b) => clean(b.createdAt || b.updatedAt).localeCompare(clean(a.createdAt || a.updatedAt)));
   return records[0] || null;
 }
@@ -1589,6 +1472,7 @@ async function findTelegramImportByMessage(messageId) {
   return records[0] || null;
 }
 
+async 
 async function autoExpireWarrantyRecords() {
   const today = formatDateInMalaysia(new Date());
   const snapshot = await db.ref("dealer-card-tracker/records").get();
@@ -1596,94 +1480,44 @@ async function autoExpireWarrantyRecords() {
   for (const [key, record] of Object.entries(snapshot.val() || {})) {
     const days = Number(record.warrantyDays || 0);
     const expireDate = addDays(record.warrantyDate, days);
-    if (record.status === "开保" && days > 0 && expireDate && today >= expireDate) {
-      updates[`dealer-card-tracker/records/${key}/status`] = "过保";
-      updates[`dealer-card-tracker/records/${key}/updatedAt`] = new Date().toISOString();
+    if (record.status === "\u5f00\u4fdd" && days > 0 && expireDate && today >= expireDate) {
+      updates["dealer-card-tracker/records/" + key + "/status"] = "\u8fc7\u4fdd";
+      updates["dealer-card-tracker/records/" + key + "/updatedAt"] = new Date().toISOString();
     }
   }
   if (Object.keys(updates).length) await db.ref().update(updates);
   return Object.keys(updates).length / 2;
 }
 
+async 
 async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageId = "") {
   await autoExpireWarrantyRecords();
   const cardFillResult = await fillMissingCardsByParcelReference(text);
   const signedCommands = parseDriverSignedCommands(text);
   if (signedCommands.length) {
     const results = [];
-    for (const command of signedCommands) {
-      results.push(await applyRecordCommand(command));
-    }
+    for (const command of signedCommands) results.push(await applyRecordCommand(command));
     const stopped = results.filter((result) => result.ok);
     const missing = results.filter((result) => !result.ok).map((result) => result.cardToken);
-    const missingText = missing.length ? `\n找不到：${missing.join(", ")}` : "";
-    return {
-      handled: true,
-      message: `车手已签收，已停止查询 ${stopped.length} 条${missingText}`,
-      pickupNotice: formatDriverPickupNotice(stopped, missing)
-    };
+    const missingText = missing.length ? "\n\u627e\u4e0d\u5230\u8d44\u6599: " + missing.join(", ") : "";
+    return { handled: true, message: "\u8f66\u624b\u5df2\u7b7e\u6536\uff0c\u5df2\u505c\u6b62\u67e5\u8be2 " + stopped.length + " \u6761" + missingText, pickupNotice: formatDriverPickupNotice(stopped, missing) };
   }
-
-  const generalBulkCommands = parseGeneralBulkRecordCommands(text, defaultWarrantyDate);
-  if (generalBulkCommands.length) {
-    const results = [];
-    for (const command of generalBulkCommands) {
-      results.push(await applyRecordCommand(command));
-    }
-    const summary = {};
-    for (const item of results.filter((result) => result.ok)) {
-      summary[item.status] = (summary[item.status] || 0) + 1;
-    }
-    const summaryText = Object.entries(summary).map(([status, count]) => `${status}${count}`).join("\uff0c") || "0";
-    const missing = results.filter((item) => !item.ok).map((item) => item.cardToken);
-    return {
-      handled: true,
-      reactionOnly: true,
-      reaction: missing.length ? "⚠️" : "✅",
-      message: missing.length ? `⚠️ 找不到：${missing.join(", ")}` : "",
-      updatedSummary: summaryText
-    };
-  }
-
-  const bulkCommands = parseBulkRecordCommands(text, defaultWarrantyDate);
+  if (cardFillResult.filled || cardFillResult.ambiguous) return { handled: true, message: "\u5df2\u8865\u5361\u53f7 " + cardFillResult.filled + " \u6761" };
+  const bulkCommands = [
+    ...parseBulkRecordCommands(text, defaultWarrantyDate),
+    ...parseGeneralBulkRecordCommands(text, defaultWarrantyDate)
+  ];
   if (bulkCommands.length) {
     const results = [];
-    for (const command of bulkCommands) {
-      results.push(await applyRecordCommand(command));
-    }
-    const opened = results.filter((item) => item.ok && item.status === "开保").length;
-    const bounced = results.filter((item) => item.ok && item.status === "弹卡").length;
-    const closed = results.filter((item) => item.ok && item.status === "人头关").length;
-    const stolen = results.filter((item) => item.ok && item.status === "人头偷钱").length;
-    const rejected = results.filter((item) => item.ok && item.status === "炸").length;
-    const missing = results.filter((item) => !item.ok).map((item) => item.cardToken);
-    return {
-      handled: true,
-      reactionOnly: true,
-      reaction: missing.length ? "⚠️" : "✅",
-      message: missing.length ? `⚠️ 找不到：${missing.join(", ")}` : "",
-      updatedSummary: `开保${opened}，弹卡${bounced}，人头关${closed}，人头偷钱${stolen}，炸${rejected}`
-    };
+    for (const command of bulkCommands) results.push(await applyRecordCommand(command));
+    const ok = results.filter((result) => result.ok);
+    const failed = results.filter((result) => !result.ok);
+    return { handled: true, message: "\u5df2\u66f4\u65b0 " + ok.length + " \u6761" + (failed.length ? "\n\u5931\u8d25 " + failed.length + " \u6761" : "") };
   }
-
   const command = parseRecordCommand(text, defaultWarrantyDate, replyMessageId);
-  if (!command) {
-    if (cardFillResult.filled || cardFillResult.ambiguous) {
-      return {
-        handled: true,
-        message: [
-          cardFillResult.filled ? `\u5df2\u6309\u5305\u88f9\u5c3e\u53f7\u81ea\u52a8\u8865\u4e0a ${cardFillResult.filled} \u4e2a\u5361\u53f7` : "",
-          cardFillResult.ambiguous ? `${cardFillResult.ambiguous} \u6761\u5339\u914d\u5230\u591a\u4efd\u8d44\u6599\uff0c\u5df2\u653e\u5165\u5f85\u5339\u914d\u4e2d\u5fc3` : ""
-        ].filter(Boolean).join("\n")
-      };
-    }
-    return { handled: false };
-  }
-
+  if (!command) return { handled: false, message: "" };
   const result = await applyRecordCommand(command);
-  if (!result.ok) return { handled: true, message: result.message };
-  if (result.status === "删除") return { handled: true, message: `已删除 ${result.cardNumber}` };
-  return { handled: true, reactionOnly: true, reaction: "✅", message: "" };
+  return { handled: true, message: result.ok ? "\u5df2\u66f4\u65b0 " + (result.cardNumber || command.cardToken) + ": " + result.status : result.message };
 }
 
 function detectCarrier(text, carrierCode = "") {
@@ -1710,27 +1544,28 @@ function detectCarrier(text, carrierCode = "") {
   for (const [carrier, keys] of checks) {
     if (keys.some((key) => source.includes(key) || compact.includes(key.replace(/[^A-Z0-9]/g, "")))) return carrier;
   }
-  return "其他";
+  return "\u5176\u4ed6";
 }
 
-async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessageId = "", photoFileId = "") {
+async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegramMessageId = "", senderName = "") {
   const requestedDealerName = parseDealer(text, fallbackDealerName);
   const existingDealerName = await findExistingDealerName(requestedDealerName);
   const rawCardNumber = parseCardNumber(text);
   const rawBankName = pickLineValue(text, ["BANK", "NAMA BANK"]);
-  const bankName = detectBank(text);
+  const bankName = detectBank((rawBankName || "") + "\n" + text);
   const shipment = parseShipmentCode(text);
   const cardNumber = displayCardNumber(text, bankName);
   const bankAccount = normalizeBankAccount(pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]));
+  const atmPin = pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]);
   const formattedDetails = buildTelegramFormattedDetails({
     name: pickLineValue(text, ["NAMA", "NAME"]),
     ic: pickLineValue(text, ["IC NO", "IC"]),
     bank: rawBankName || bankName,
     account: bankAccount,
     card: rawCardNumber || cardNumber,
-    pin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
+    pin: atmPin
   });
-  const now = new Date().toISOString();
+
   const recordsSnapshot = await db.ref("dealer-card-tracker/records").get();
   const existingRecords = Object.entries(recordsSnapshot.val() || {}).map(([id, record]) => ({ id, ...record }));
   const normalizeLookup = (value) => clean(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -1750,22 +1585,20 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
   let pendingReason = "";
   let pendingType = "missing";
   const requiredFields = {
-    "姓名": pickLineValue(text, ["NAMA", "NAME"]),
-    "IC": pickLineValue(text, ["IC NO", "IC"]),
-    "银行": rawBankName || bankName,
-    "银行账号": bankAccount,
-    "卡号": rawCardNumber
+    NAMA: pickLineValue(text, ["NAMA", "NAME"]),
+    "IC NO": pickLineValue(text, ["IC NO", "IC"]),
+    BANK: rawBankName || bankName,
+    "NO AKAUN": bankAccount,
+    "NO KAD": rawCardNumber
   };
   const missingFields = Object.entries(requiredFields).filter(([, value]) => !clean(value)).map(([label]) => label);
-  // New and incomplete records are saved under the Telegram sender first.
-  // A later driver message can attach the missing card by parcel reference.
   const dealerName = existingDealerName || requestedDealerName || fallbackDealerName || "Telegram";
 
   if (!dealerName) {
-    pendingReason = `找不到 Dealer：${requestedDealerName || "未提供"}`;
+    pendingReason = "Dealer not found: " + (requestedDealerName || "unknown");
   } else if (!existingRecord && trackingMatch && normalizeLookup(trackingMatch.cardNumber) !== normalizedCard) {
     pendingType = "conflict";
-    pendingReason = `包裹号码已绑定 ${trackingMatch.cardNumber || "其他卡号"}`;
+    pendingReason = "Tracking number already belongs to " + (trackingMatch.cardNumber || "another card");
   }
 
   if (pendingReason) {
@@ -1774,86 +1607,58 @@ async function saveTelegramRecord(text, fallbackDealerName = "", telegramMessage
       telegramMessageId && String(item.telegramMessageId || "") === String(telegramMessageId)
     ));
     if (duplicatePending) {
-      return { pending: true, reason: duplicatePending.reason || pendingReason, cardNumber: duplicatePending.cardNumber || cardNumber };
+      return { ok: false, pending: true, duplicate: true, reason: pendingReason, dealerName, cardNumber };
     }
     const pendingRef = db.ref("dealer-card-tracker/pendingImports").push();
     await pendingRef.set({
-      id: pendingRef.key,
       type: pendingType,
       reason: pendingReason,
-      suggestedDealerName: dealerName || "",
-      requestedDealerName,
-      senderName: fallbackDealerName,
-      cardNumber,
-      rawCardNumber,
-      bankName: rawBankName || bankName,
-      carrier: shipment.carrier || detectCarrier(text, shipment.carrierCode),
-      trackingNumber: isFullTrackingNumber(shipment.trackingNumber) ? shipment.trackingNumber : "",
-      tailNumber: shipment.tailNumber,
+      missingFields,
+      dealerName,
+      senderName,
+      text,
       formattedDetails,
-      ccidStatus: "",
-      ccidSearchCount: 0,
-      ccidReportCount: 0,
-      ccidCheckedAt: "",
-      ccidStatusLine: "",
-      telegramMessageId: String(telegramMessageId || ""),
-      createdAt: now,
-      updatedAt: now
+      cardNumber,
+      bankName,
+      rawBankName,
+      bankAccount,
+      trackingNumber: shipment.trackingNumber,
+      carrier: shipment.carrier,
+      trackingTail: shipment.tail,
+      telegramMessageId,
+      createdAt: new Date().toISOString()
     });
-    return { pending: true, reason: pendingReason, cardNumber };
+    return { ok: false, pending: true, reason: pendingReason, dealerName, cardNumber };
   }
-  const recordKey = existingRecord?.id || existingRecord?.key || db.ref("dealer-card-tracker/records").push().key;
 
-  await db.ref(`dealer-card-tracker/dealers/${firebaseKey(dealerName)}`).update({
-    name: dealerName,
-    createdAt: now
-  });
-
-  const nextTrackingNumber = isFullTrackingNumber(shipment.trackingNumber) ? shipment.trackingNumber : (existingRecord?.trackingNumber || "");
-  const nextCarrier = shipment.carrier || detectCarrier(text, shipment.carrierCode) || existingRecord?.carrier || "Other";
-  const nextTailNumber = shipment.tailNumber || existingRecord?.tailNumber || "";
-  const recordData = {
-    id: recordKey,
+  const dealerId = await ensureDealer(dealerName);
+  const baseUpdate = {
+    dealerId,
     dealerName,
-    customerName: pickLineValue(text, ["NAMA", "NAME"]),
-    icNumber: pickLineValue(text, ["IC NO", "IC"]),
-    bankName: rawBankName || bankName,
-    bankAccount,
     cardNumber,
-    atmPin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]),
+    carrier: shipment.carrier,
+    trackingTail: shipment.tail,
+    trackingNumber: shipment.trackingNumber,
+    status: "\u5bc4",
+    note: "Telegram \u81ea\u52a8\u5bfc\u5165",
     formattedDetails,
-    ccidStatus: existingRecord?.ccidStatus || "",
-    ccidSearchCount: existingRecord?.ccidSearchCount || 0,
-    ccidReportCount: existingRecord?.ccidReportCount || 0,
-    ccidCheckedAt: existingRecord?.ccidCheckedAt || "",
-    ccidStatusLine: existingRecord?.ccidStatusLine || "",
-    carrier: nextCarrier,
-    trackingNumber: nextTrackingNumber,
-    trackingMoreCourierCode: trackingMoreCourierCode(shipment.carrierCode) || existingRecord?.trackingMoreCourierCode || "",
-    tailNumber: nextTailNumber,
-    warrantyDate: existingRecord?.warrantyDate || "",
-    warrantyDays: existingRecord?.warrantyDays || 0,
-    status: existingRecord?.status || "\u5bc4",
-    notes: missingFields.length
-      ? `Telegram 自动导入 · 待补资料：${missingFields.join("、")}`
-      : "Telegram 自动导入",
-    missingFields,
-    telegramMessageId: String(telegramMessageId || existingRecord?.telegramMessageId || ""),
-    telegramBotReplyMessageId: existingRecord?.telegramBotReplyMessageId || "",
-    packagePhotoFileId: photoFileId || existingRecord?.packagePhotoFileId || "",
-    packagePhotoUpdatedAt: photoFileId ? now : (existingRecord?.packagePhotoUpdatedAt || ""),
-    packageStatus: existingRecord?.packageStatus || "",
-    trackingMyDetail: existingRecord?.trackingMyDetail || "",
-    trackingLocation: existingRecord?.trackingLocation || "",
-    trackingStoppedAt: existingRecord?.trackingStoppedAt || "",
-    updatedAt: now,
-    createdAt: existingRecord?.createdAt || now
+    telegramMessageId,
+    telegramSenderName: senderName,
+    importedFromTelegram: true,
+    updatedAt: Date.now()
   };
 
-  await db.ref(`dealer-card-tracker/records/${recordKey}`).set(recordData);
-  await registerTrackingMore(recordData);
+  if (existingRecord) {
+    await db.ref("dealer-card-tracker/records/" + existingRecord.id).update(baseUpdate);
+    return { ok: true, updated: true, recordId: existingRecord.id, dealerName, cardNumber };
+  }
 
-  return { dealerName, recordId: recordKey, updatedExisting: Boolean(existingRecord) };
+  const recordRef = db.ref("dealer-card-tracker/records").push();
+  await recordRef.set({
+    ...baseUpdate,
+    createdAt: Date.now()
+  });
+  return { ok: true, created: true, recordId: recordRef.key, dealerName, cardNumber };
 }
 
 async function rememberTelegramBotReply(recordId, messageId) {
@@ -1946,7 +1751,7 @@ async function replyToTelegramMessage(chatId, messageId, text) {
   return true;
 }
 
-async function reactToTelegramMessage(chatId, messageId, emoji = "✅") {
+async function reactToTelegramMessage(chatId, messageId, emoji = "\u2705") {
   if (!chatId || !messageId) return false;
   const response = await fetch(`https://api.telegram.org/bot${botToken}/setMessageReaction`, {
     method: "POST",
@@ -2028,10 +1833,10 @@ function chatMatchesRole(chatId, roleChatId) {
 function telegramRoleSummary(chatId, roles) {
   const current = String(chatId);
   const assigned = [];
-  if (roles.import === current) assigned.push("资料导入群");
-  if (roles.warranty === current) assigned.push("开保状态群");
-  if (roles.tracking === current) assigned.push("包裹通知群");
-  return assigned.length ? assigned.join("、") : "未分配任务";
+  if (roles.import === current) assigned.push("\u5361\u53f7\u8d44\u6599\u5bfc\u5165\u7fa4");
+  if (roles.warranty === current) assigned.push("\u5f00\u4fdd/\u95ee\u9898\u72b6\u6001\u7fa4");
+  if (roles.tracking === current) assigned.push("\u5305\u88f9\u72b6\u6001\u4e0e\u8f66\u624b\u7fa4");
+  return assigned.length ? assigned.join(" / ") : "\u672a\u6307\u5b9a\u7fa4\u7528\u9014";
 }
 
 async function sendTelegramMessage(chatId, text) {
@@ -2065,9 +1870,9 @@ function pickWebhookTracking(body) {
 
 function normalizeTrackingStatus(status, checkpoint = "") {
   const source = `${status} ${checkpoint}`.toLowerCase();
-  if (source.includes("delivered") || source.includes("已送达") || source.includes("已签收")) return "delivered";
-  if (source.includes("pickup") || source.includes("out for delivery") || source.includes("派送")) return "pickup";
-  if (source.includes("exception") || source.includes("failed") || source.includes("异常")) return "exception";
+  if (source.includes("delivered") || source.includes("delivery completed") || source.includes("\u5df2\u9001\u8fbe") || source.includes("\u9001\u8fbe")) return "delivered";
+  if (source.includes("pickup") || source.includes("out for delivery") || source.includes("on delivery") || source.includes("\u6d3e\u9001")) return "pickup";
+  if (source.includes("exception") || source.includes("failed") || source.includes("inaccessible") || source.includes("\u5f02\u5e38")) return "exception";
   return "";
 }
 
@@ -2082,27 +1887,26 @@ async function notifyTrackingUpdate(body) {
   const recordSnapshot = recordId ? await db.ref(`dealer-card-tracker/records/${recordId}`).get() : null;
   const record = recordSnapshot?.val() || trackingInfo;
   if (!record) return { notified: false };
-  // Package tracking remains active only while the record is marked as sent.
-  if (clean(record.status) !== "寄") return { notified: false };
+  if (clean(record.status) !== "\u5bc4") return { notified: false };
   if (record.lastTrackingNotifyStatus === normalizedStatus) return { notified: false };
 
   const labelMap = {
-    pickup: "派送中",
-    delivered: "已送达",
-    exception: "异常"
+    pickup: "\u6d3e\u9001\u4e2d",
+    delivered: "\u5df2\u9001\u8fbe",
+    exception: "\u5f02\u5e38"
   };
   const label = labelMap[normalizedStatus] || event.status;
   const chatId = announceChatId || (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
   if (!chatId) return { notified: false };
 
   const message = [
-    `包裹${label}`,
+    "\u5305\u88f9" + label,
     "",
     `Dealer: ${record.dealerName || "-"}`,
-    `卡号: ${record.cardNumber || "-"}`,
-    `快递: ${record.carrier || trackingInfo.carrier || "-"}`,
-    `单号: ${event.trackingNumber}`,
-    event.checkpoint ? `状态: ${event.checkpoint}` : ""
+    `\u5361\u53f7: ${record.cardNumber || "-"}`,
+    `\u5feb\u9012: ${record.carrier || trackingInfo.carrier || "-"}`,
+    `\u5355\u53f7: ${event.trackingNumber}`,
+    event.checkpoint ? `\u4f4d\u7f6e: ${event.checkpoint}` : ""
   ].filter(Boolean).join("\n");
 
   await sendTelegramMessage(chatId, message);
@@ -2874,7 +2678,7 @@ function shouldIncludeTrackingSummary(record, today) {
 }
 
 function wasTakenByDriverToday(record, today) {
-  if (clean(record.status) !== "车手已签收") return false;
+  if (clean(record.status) !== "\u8f66\u624b\u5df2\u7b7e\u6536") return false;
   if (!record.trackingStoppedAt) return false;
   return formatDateInMalaysia(new Date(record.trackingStoppedAt)) === today;
 }
@@ -2898,7 +2702,7 @@ function trackingSummaryLocation(record) {
 
 function trackingLocationGroup(location) {
   const source = clean(location).toUpperCase();
-  if (!source) return "位置待确认";
+  if (!source) return "\u672a\u77e5\u5730\u533a";
   if (source.includes("IPOH") || source.includes("KINTA")) return "IPOH / KINTA";
   if (source.includes("JOHOR BAHRU") || source.includes("JHR")) return "JOHOR BAHRU";
   if (source.includes("KAMPAR")) return "KAMPAR";
@@ -2911,14 +2715,14 @@ function trackingLocationGroup(location) {
 }
 
 function buildTrackingSummaryMessage(records, today, options = {}) {
+  const unknownGroup = "\u672a\u77e5\u5730\u533a";
+  const sortKey = (record) => {
+    const group = trackingLocationGroup(trackingSummaryLocation(record));
+    return `${group === unknownGroup ? "ZZZ" : group}${trackingCarrierCode(record)}${trackingTail(record)}${clean(record.cardNumber)}`;
+  };
   const summaryRecords = records
     .filter((record) => shouldIncludeTrackingSummary(record, today))
-    .sort((a, b) => {
-      const aGroup = trackingLocationGroup(trackingSummaryLocation(a));
-      const bGroup = trackingLocationGroup(trackingSummaryLocation(b));
-      return `${aGroup === "位置待确认" ? "ZZZ" : aGroup}${trackingCarrierCode(a)}${trackingTail(a)}${clean(a.cardNumber)}`
-        .localeCompare(`${bGroup === "位置待确认" ? "ZZZ" : bGroup}${trackingCarrierCode(b)}${trackingTail(b)}${clean(b.cardNumber)}`);
-    });
+    .sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
 
   if (!summaryRecords.length) return "";
   const groupedLines = new Map();
@@ -2926,13 +2730,14 @@ function buildTrackingSummaryMessage(records, today, options = {}) {
     const location = trackingSummaryLocation(record);
     const group = trackingLocationGroup(location);
     const parcelLabel = `${trackingCarrierCode(record)}${trackingTail(record)}`;
-    const line = `${parcelLabel} | ${clean(record.cardNumber || "-")} ${packageStatusText(record, today)}`;
+    const statusText = packageStatusText(record, today);
+    const line = `${parcelLabel} | ${clean(record.cardNumber || "-")} ${statusText}${location ? " ? " + location : ""}`;
     if (!groupedLines.has(group)) groupedLines.set(group, []);
     groupedLines.get(group).push(line);
   }
   const lines = [];
   for (const [group, groupLines] of groupedLines) {
-    lines.push(`【${group}】`, ...groupLines, "");
+    lines.push(`[${group}]`, ...groupLines, "");
   }
   if (lines.at(-1) === "") lines.pop();
   const hasReadyForPickup = summaryRecords.some((record) => {
@@ -2941,7 +2746,7 @@ function buildTrackingSummaryMessage(records, today, options = {}) {
   });
   const driverTookPackagesToday = records.some((record) => wasTakenByDriverToday(record, today));
   const footer = options.addPickupSummary && driverTookPackagesToday && !hasReadyForPickup
-    ? ["", "今天没有待拿的包裹了。"]
+    ? ["", "\u4eca\u5929\u6ca1\u6709\u5f85\u62ff\u7684\u5305\u88f9\u4e86"]
     : [];
   return ["\u5305\u88f9\u72b6\u6001", today, "", ...lines, ...footer].join("\n");
 }
@@ -2953,7 +2758,7 @@ async function sendTrackingSummary(records, today, options = {}) {
   if (!message) {
     if (!options.notifyEmpty) return false;
     if (options.requireDriverPickupForEmpty && !records.some((record) => wasTakenByDriverToday(record, today))) return false;
-    await sendTelegramMessage(chatId, `包裹状态\n${today}\n\n今天没有待拿的包裹了。`);
+    await sendTelegramMessage(chatId, `\u5305\u88f9\u72b6\u6001\n${today}\n\n\u4eca\u5929\u6ca1\u6709\u5f85\u62ff\u7684\u5305\u88f9\u4e86`);
     return true;
   }
   await sendTelegramMessage(chatId, message);
@@ -3000,7 +2805,7 @@ async function checkTrackingMyRecords(targetRecordId = "", options = {}) {
         packageStatus: "\u6682\u65f6\u67e5\u4e0d\u5230",
         trackingMyLastError: result.reason,
         trackingMyDetail: result.reason === "unable_to_parse_tracking_status"
-          ? "Tracking.my 暂时没有返回这个单号的真实状态，已保留原状态。"
+          ? "Tracking.my \u6682\u65f6\u6ca1\u6709\u62ff\u5230\u771f\u5b9e\u72b6\u6001"
           : result.reason,
         trackingMyCheckedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -3114,26 +2919,26 @@ app.post("/announce", async (req, res) => {
     const message = clean(req.body?.message);
     const secret = clean(req.body?.secret);
     if (!announceSecret || secret !== announceSecret) {
-      res.status(403).json({ ok: false, message: "密码不正确" });
+      res.status(403).json({ ok: false, message: "\u516c\u544a\u5bc6\u7801\u9519\u8bef" });
       return;
     }
     if (!message) {
-      res.status(400).json({ ok: false, message: "公告不能为空" });
+      res.status(400).json({ ok: false, message: "\u516c\u544a\u5185\u5bb9\u4e0d\u80fd\u4e3a\u7a7a" });
       return;
     }
 
     const savedChatId = (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
     const targetChatId = announceChatId || savedChatId;
     if (!targetChatId) {
-      res.status(400).json({ ok: false, message: "机器人还没有记录群聊，请先在群里发一条消息" });
+      res.status(400).json({ ok: false, message: "\u8fd8\u6ca1\u6709\u8bbe\u7f6e Telegram \u7fa4 ID" });
       return;
     }
 
-    await sendTelegramMessage(targetChatId, `公告\n\n${message}`);
+    await sendTelegramMessage(targetChatId, `\u7fa4\u516c\u544a\n${message}`);
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ ok: false, message: "发送失败，请查看 Render Logs" });
+    res.status(500).json({ ok: false, message: "\u53d1\u9001\u5931\u8d25\uff0c\u8bf7\u770b Render Logs" });
   }
 });
 
@@ -3170,6 +2975,8 @@ app.get("/gmail/stock", async (_req, res) => {
       exported: stock.exported,
       todayAdded: stock.todayAdded,
       todayTaken: stock.todayTaken,
+      dealerTaken: stock.dealerTaken,
+      dealerTakenList: stock.dealerTakenList,
       imported: sync.imported || 0,
       checked: sync.checked || 0,
       gmailReady: sync.message !== "missing_gmail_imap_config",
@@ -3187,7 +2994,15 @@ app.post("/gmail/sync", async (_req, res) => {
   try {
     const sync = await syncUnreadGmailLists();
     const stock = await getGmailListStock();
-    res.json({ ok: true, ...sync, stock: stock.count, todayAdded: stock.todayAdded, todayTaken: stock.todayTaken });
+    res.json({
+      ok: true,
+      ...sync,
+      stock: stock.count,
+      todayAdded: stock.todayAdded,
+      todayTaken: stock.todayTaken,
+      dealerTaken: stock.dealerTaken,
+      dealerTakenList: stock.dealerTakenList
+    });
   } catch (error) {
     console.error(error);
     res.status(200).json({ ok: false, message: error.message || "gmail_sync_failed" });
@@ -3290,38 +3105,39 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ignored");
       return;
     }
-    if (["设置导入群", "\/setimportgroup", "\/setimportgroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
+    const lowerText = text.toLowerCase();
+    if (lowerText.startsWith("/setimportgroup")) {
       await setTelegramRoleChat("import", chatId);
-      await reply(chatId, `已设置这里为资料导入群\n只有这个群会自动导入新卡资料\n群 ID: ${chatId}`);
+      await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u5361\u53f7\u8d44\u6599\u5bfc\u5165\u7fa4\n\u7fa4 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
-    if (["设置开保群", "设置状态群", "\/setwarrantygroup", "\/setwarrantygroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
+    if (lowerText.startsWith("/setwarrantygroup")) {
       await setTelegramRoleChat("warranty", chatId);
-      await reply(chatId, `已设置这里为开保状态群\n只有这个群会处理开保、过保、弹卡、人头关、人头偷钱和炸\n群 ID: ${chatId}`);
+      await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u5f00\u4fdd/\u95ee\u9898\u72b6\u6001\u7fa4\n\u7fa4 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
-    if (["设置通知群", "\/setnotifygroup", "\/setnotifygroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
+    if (lowerText.startsWith("/setnotifygroup")) {
       await setTelegramRoleChat("tracking", chatId);
-      await reply(chatId, `已设置这里为包裹通知群\n包裹状态会发送到这里，也可在这里发送车手已签收 / 已拿\n群 ID: ${chatId}`);
+      await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u5305\u88f9\u72b6\u6001\u4e0e\u8f66\u624b\u7fa4\n\u7fa4 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
-    if (text === "查看群设置" || text.toLowerCase().startsWith("/grouprole")) {
-      const roles = await getTelegramRoleChats();
-      await reply(chatId, `这个群：${telegramRoleSummary(chatId, roles)}\n群 ID: ${chatId}`);
-      res.status(200).send("ok");
-      return;
-    }
-    if (["\u8bbe\u7f6e\u8f66\u624b\u901a\u77e5\u7fa4", "/setpickupgroup", "/setpickupgroup@"].some((command) => text.toLowerCase().startsWith(command.toLowerCase()))) {
+    if (lowerText.startsWith("/setpickupgroup")) {
       await setTelegramRoleChat("pickup", chatId);
       await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u8f66\u624b\u901a\u77e5\u7fa4\n\u8f66\u624b\u53d1 jnt1234 mbb1234 \u540e\uff0c\u4f1a\u901a\u77e5\u5230\u8fd9\u91cc\n\u7fa4 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
-    if (text.toLowerCase().startsWith("/chatid") || text === "群ID" || text === "群 ID") {
-      await reply(chatId, `这个群的 ID: ${chatId}`);
+    if (lowerText.startsWith("/grouprole")) {
+      const roles = await getTelegramRoleChats();
+      await reply(chatId, `\u5f53\u524d\u7fa4\u7528\u9014: ${telegramRoleSummary(chatId, roles)}\n\u7fa4 ID: ${chatId}`);
+      res.status(200).send("ok");
+      return;
+    }
+    if (lowerText.startsWith("/chatid")) {
+      await reply(chatId, `\u7fa4 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
@@ -3350,14 +3166,14 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ok");
       return;
     }
-    if (text === "立即发送包裹通知") {
+    if (lowerText.startsWith("/checktracking")) {
       if (!chatMatchesRole(chatId, roles.tracking)) {
         res.status(200).send("ignored");
         return;
       }
       await setTrackingNotificationChat(chatId);
       const result = await checkTrackingMyRecords("", { sendSummary: true });
-      await reply(chatId, result.summarySent ? "已发送今天的包裹通知" : "目前没有可以发送的包裹记录");
+      await reply(chatId, result.summarySent ? "\u5df2\u68c0\u67e5\u5e76\u53d1\u9001\u5305\u88f9\u72b6\u6001" : "\u5df2\u68c0\u67e5\uff0c\u6ca1\u6709\u9700\u8981\u53d1\u9001\u7684\u5305\u88f9");
       res.status(200).send("ok");
       return;
     }
@@ -3369,9 +3185,9 @@ app.post("/telegram", async (req, res) => {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
         if (commandResult.reactionOnly) {
-          const reacted = await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "✅");
+          const reacted = await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "\u2705");
           if (!reacted && !commandResult.message) {
-            await replyToTelegramMessage(chatId, message?.message_id, commandResult.reaction === "⚠️" ? "⚠️已处理，请检查找不到的卡号" : "✅已更改系统");
+            await replyToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "\u2705");
           }
           if (commandResult.message) await reply(chatId, commandResult.message);
         } else if (commandResult.message) {
@@ -3397,11 +3213,11 @@ app.post("/telegram", async (req, res) => {
     }
     const result = await saveTelegramRecord(text, senderName, message?.message_id, photoFileId);
     if (result.pending) {
-      await reply(chatId, `已保存到待匹配资料\n卡号：${result.cardNumber || "-"}\n原因：${result.reason}`);
+      await reply(chatId, `闂備浇顕у锕傦綖婢舵劖鍋ら柡鍥╁剱閸ゆ洟鏌熼幑鎰厫鐎规洖寮堕幈銊ノ熺拠宸殺闂佺顑嗛幐鎼佸煡婢跺ň鏋嶆い鎾楀倿鍋楅悗瑙勬礉濞咃絾绂掗敂鍓ч┏閻庯綆浜濋鍌炴⒒娴ｅ憡鍟炲〒姘殜瀹曘垺绺介崨濠備函闂備緡鍓欑粔鐢稿煕閹达附鐓涘璺哄绾爼宕崫銉х＝濞达綁顥撶拹浼存煕鐎ｎ亷宸ユい鏇秮椤㈡鍩€椤掑嫸缍栨繝濠傛噹缁躲倝鏌曟径鍡樻珕闁绘挻娲樻穱濠囨倷闂堟稑濮﹂梺绋款儐閹瑰洤鐣峰鈧獮鎾诲箳閸℃鈧ジ姊?{result.cardNumber || "-"}\n闂傚倸鍊风粈渚€骞夐敓鐘偓锕傚炊椤掆偓缁愭骞栫划鐟扮厬闁告繂瀚烽悡銉╂煕椤愩倕鏋戞繛?{result.reason}`);
       res.status(200).send("ok");
       return;
     }
-    const proofMessage = `已导入 ${result.dealerName || ""}`.trim();
+    const proofMessage = `闂備浇顕уù鐑藉箠閹捐绠熼梽鍥Φ閹版澘绀冩い鏇炴噺閺咁亪姊绘笟鍥у缂佸顕划?${result.dealerName || ""}`.trim();
     const proofSent = await replyToTelegramMessage(chatId, message?.message_id, proofMessage);
     if (!proofSent) {
       await reply(chatId, proofMessage);

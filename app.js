@@ -882,11 +882,30 @@ function initGmailListTest() {
   const status = document.querySelector("#gmailListStatus");
   const stockCount = document.querySelector("#gmailStockCount");
   const stockStats = document.querySelector("#gmailStockStats");
+  const dealerTakenStats = document.querySelector("#gmailDealerTakenStats");
   const lastChecked = document.querySelector("#gmailLastChecked");
   if (!form || !dealerInput || !countInput || !result) return;
 
   let latestStock = 0;
   const formatCheckTime = (date = new Date()) => date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const formatDealerTaken = (items = []) => {
+    const rows = Array.isArray(items)
+      ? items
+      : Object.entries(items || {}).map(([dealer, count]) => ({ dealer, count }));
+    const validRows = rows
+      .map((item) => ({ dealer: String(item.dealer || "").trim(), count: Number(item.count || 0) }))
+      .filter((item) => item.dealer && item.count > 0);
+    if (!validRows.length) return "?? Dealer?????";
+    return "?? Dealer?" + validRows.map((item) => item.dealer + " " + item.count + "?").join(" ? ");
+  };
+  const updateStockMeta = (body, selectedCount = 0) => {
+    latestStock = Number(body.count ?? body.remaining ?? latestStock ?? 0);
+    if (stockCount) stockCount.textContent = String(latestStock);
+    if (stockStats) {
+      stockStats.textContent = "???? " + Number(body.todayAdded || 0) + " ? ? ???? " + Number(body.todayTaken || selectedCount || 0) + " ?";
+    }
+    if (dealerTakenStats) dealerTakenStats.textContent = formatDealerTaken(body.dealerTakenList || body.dealerTaken);
+  };
   const setStockLoading = () => {
     if (status) status.textContent = "CHECKING";
     if (lastChecked) lastChecked.textContent = "Checking backend stock...";
@@ -897,13 +916,11 @@ function initGmailListTest() {
       const response = await fetch(gmailListStockEndpoint);
       const body = await response.json().catch(() => ({}));
       if (!body.ok) throw new Error(body.message || "stock_failed");
-      latestStock = Number(body.count || 0);
-      if (stockCount) stockCount.textContent = String(latestStock);
-      if (stockStats) stockStats.textContent = `今日新增 ${Number(body.todayAdded || 0)} 条 · 今日已拿 ${Number(body.todayTaken || 0)} 条`;
-      if (status) status.textContent = `STOCK ${latestStock}`;
+      updateStockMeta(body);
+      if (status) status.textContent = "STOCK " + latestStock;
       if (lastChecked) {
-        const gmailText = body.gmailReady === false ? "Gmail 未设置" : `同步 ${Number(body.imported || 0)} 条`;
-        lastChecked.textContent = `${gmailText} · Checked ${formatCheckTime()}`;
+        const gmailText = body.gmailReady === false ? "Gmail ???" : "?? " + Number(body.imported || 0) + " ?";
+        lastChecked.textContent = gmailText + " ? Checked " + formatCheckTime();
       }
       return latestStock;
     } catch (error) {
@@ -923,17 +940,14 @@ function initGmailListTest() {
     const today = new Date().toLocaleDateString("en-GB");
     if (status) status.textContent = "TAKING STOCK...";
     result.classList.remove("is-warning");
-    result.innerHTML = `
-      <strong>TAKING ${requested} - ${escapeHtml(dealer)}</strong>
-      <pre>${escapeHtml([
-        today,
-        "",
-        dealer,
-        "",
-        "Reading backend stock...",
-        "Writing export record..."
-      ].join("\n"))}</pre>
-    `;
+    result.innerHTML = "<strong>TAKING " + requested + " - " + escapeHtml(dealer) + "</strong><pre>" + escapeHtml([
+      today,
+      "",
+      dealer,
+      "",
+      "Reading backend stock...",
+      "Writing export record..."
+    ].join("\n")) + "</pre>";
     try {
       const response = await fetch(gmailListTakeEndpoint, {
         method: "POST",
@@ -943,31 +957,23 @@ function initGmailListTest() {
       const body = await response.json().catch(() => ({}));
       if (!body.ok) throw new Error(body.message || "take_list_failed");
       const selected = Array.isArray(body.phones) ? body.phones : [];
-      latestStock = Number(body.remaining || 0);
-      if (stockCount) stockCount.textContent = String(latestStock);
-      if (stockStats) stockStats.textContent = `今日新增 ${Number(body.todayAdded || 0)} 条 · 今日已拿 ${Number(body.todayTaken || selected.length)} 条`;
-      if (lastChecked) lastChecked.textContent = `Checked ${formatCheckTime()}`;
-      if (status) status.textContent = `SHEET ${body.count}`;
+      updateStockMeta({ ...body, count: body.remaining }, selected.length);
+      if (lastChecked) lastChecked.textContent = "Checked " + formatCheckTime();
+      if (status) status.textContent = "SHEET " + body.count;
       result.classList.remove("is-warning");
-      result.innerHTML = `
-        <strong>SAVED - ${escapeHtml(body.date || today)} - ${escapeHtml(dealer)} - ${selected.length}</strong>
-        <pre>${escapeHtml(selected.join("\n"))}</pre>
-      `;
+      result.innerHTML = "<strong>SAVED - " + escapeHtml(body.date || today) + " - " + escapeHtml(dealer) + " - " + selected.length + "</strong><pre>" + escapeHtml(selected.join("\n")) + "</pre>";
     } catch (error) {
       if (status) status.textContent = "SHEET FAILED";
       result.classList.add("is-warning");
-      result.innerHTML = `
-        <strong>EXPORT FAILED - ${escapeHtml(dealer)}</strong>
-        <pre>${escapeHtml([
-          error.message || "Failed to take backend stock.",
-          "",
-          "Check Render logs and Google Sheet permission.",
-          "",
-          `Dealer: ${dealer}`,
-          `Requested: ${requested}`,
-          `Current stock: ${latestStock}`
-        ].join("\n"))}</pre>
-      `;
+      result.innerHTML = "<strong>EXPORT FAILED - " + escapeHtml(dealer) + "</strong><pre>" + escapeHtml([
+        error.message || "Failed to take backend stock.",
+        "",
+        "Check Render logs and Google Sheet permission.",
+        "",
+        "Dealer: " + dealer,
+        "Requested: " + requested,
+        "Current stock: " + latestStock
+      ].join("\n")) + "</pre>";
     }
   });
 }
