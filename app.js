@@ -901,7 +901,10 @@ function initGmailListTest() {
       if (stockCount) stockCount.textContent = String(latestStock);
       if (stockStats) stockStats.textContent = `今日新增 ${Number(body.todayAdded || 0)} 条 · 今日已拿 ${Number(body.todayTaken || 0)} 条`;
       if (status) status.textContent = `STOCK ${latestStock}`;
-      if (lastChecked) lastChecked.textContent = `Checked ${formatCheckTime()}`;
+      if (lastChecked) {
+        const gmailText = body.gmailReady === false ? "Gmail 未设置" : `同步 ${Number(body.imported || 0)} 条`;
+        lastChecked.textContent = `${gmailText} · Checked ${formatCheckTime()}`;
+      }
       return latestStock;
     } catch (error) {
       if (status) status.textContent = "STOCK FAILED";

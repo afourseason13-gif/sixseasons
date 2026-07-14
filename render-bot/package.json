@@ -9,6 +9,8 @@
   "dependencies": {
     "express": "^4.19.2",
     "firebase-admin": "^12.7.0",
+    "imapflow": "^1.0.191",
+    "mailparser": "^3.7.2",
     "ws": "^8.18.0"
   },
   "engines": {

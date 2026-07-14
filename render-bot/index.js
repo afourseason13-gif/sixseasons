@@ -1,5 +1,7 @@
 const express = require("express");
 const admin = require("firebase-admin");
+const { ImapFlow } = require("imapflow");
+const { simpleParser } = require("mailparser");
 const WebSocket = require("ws");
 const https = require("https");
 const crypto = require("crypto");
@@ -24,6 +26,10 @@ const announceSecret = process.env.ANNOUNCE_SECRET || "";
 const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
 const trackingMoreApiKey = process.env.TRACKINGMORE_API_KEY || "";
 const gmailStockPath = "dealer-card-tracker/gmailListStock/phones";
+const gmailImapUser = process.env.GMAIL_IMAP_USER || "";
+const gmailImapAppPassword = process.env.GMAIL_IMAP_APP_PASSWORD || "";
+const gmailImapHost = process.env.GMAIL_IMAP_HOST || "imap.gmail.com";
+const gmailImapLimit = Math.max(1, Number(process.env.GMAIL_IMAP_LIMIT || 50));
 const gmailListSpreadsheetId = process.env.GMAIL_LIST_SPREADSHEET_ID || "1-TchpPhupL_Dxu-RAJTF1fOsrP89W9b8unoMkUKXATg";
 const gmailExportSheetName = process.env.GMAIL_LIST_SHEET_NAME || "\u5bfc\u51fa\u8bb0\u5f55";
 const gmailStockSheetName = process.env.GMAIL_STOCK_SHEET_NAME || "\u5e93\u5b58\u6392\u8868";
@@ -196,6 +202,178 @@ function extractStockLeadsFromRows(rows) {
   return leads;
 }
 
+function parseGmailLeadText(text, source = "gmail") {
+  const sourceText = String(text || "").replace(/\r/g, "\n");
+  const lines = sourceText
+    .split(/\n+/)
+    .map((line) => clean(line.replace(/\s+/g, " ")))
+    .filter(Boolean);
+  const leads = [];
+  const seen = new Set();
+
+  const addLead = (phone, name, rawText = "") => {
+    const normalizedPhone = normalizePhoneList([phone])[0];
+    if (!normalizedPhone || seen.has(normalizedPhone)) return;
+    seen.add(normalizedPhone);
+    leads.push({
+      date: todayListDate(),
+      name: clean(name) || "gmail",
+      phone: normalizedPhone,
+      source,
+      importedAt: new Date().toISOString(),
+      rawText: clean(rawText).slice(0, 500)
+    });
+  };
+
+  lines.forEach((line, index) => {
+    const phones = normalizePhoneList([line]);
+    phones.forEach((phone) => {
+      let name = "";
+      for (let back = index - 1; back >= Math.max(0, index - 3); back -= 1) {
+        const candidate = lines[back];
+        if (!normalizePhoneList([candidate])[0] && /[a-zA-Z]/.test(candidate)) {
+          name = candidate;
+          break;
+        }
+      }
+      if (!name) {
+        const beforePhone = line.split(phone.replace(/^60/, "0"))[0] || line.split(phone)[0] || "";
+        name = clean(beforePhone.replace(/[^\p{L}\s.'-]/gu, " "));
+      }
+      addLead(phone, name, line);
+    });
+  });
+
+  const inlineMatches = sourceText.match(/(?:\+?60|0)?1[\d\s-]{7,13}\d/g) || [];
+  inlineMatches.forEach((phone) => {
+    const index = sourceText.indexOf(phone);
+    const before = sourceText.slice(Math.max(0, index - 80), index);
+    const nameMatch = before.match(/([A-Za-z][A-Za-z\s.'-]{1,60})\s*$/);
+    addLead(phone, nameMatch ? nameMatch[1] : "gmail", sourceText.slice(Math.max(0, index - 120), index + 30));
+  });
+
+  return leads;
+}
+
+async function appendGmailStockRows(leads) {
+  const rows = (leads || []).map((lead) => [
+    lead.date || todayListDate(),
+    lead.name || "gmail",
+    lead.phone,
+    lead.source || "gmail",
+    lead.importedAt || new Date().toISOString(),
+    "未领取"
+  ]).filter((row) => row[2]);
+  if (!rows.length) return { appended: 0 };
+  const appendRange = `${encodeURIComponent(gmailStockSheetName)}!A:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  await googleSheetsApi(`${gmailListSpreadsheetId}/values/${appendRange}`, {
+    method: "POST",
+    body: JSON.stringify({ values: rows })
+  });
+  return { appended: rows.length };
+}
+
+async function saveGmailLeads(leads) {
+  const stockSnap = await db.ref(gmailStockPath).get();
+  const current = stockSnap.val() || {};
+  const updates = {};
+  const newLeads = [];
+  const now = new Date().toISOString();
+  (leads || []).forEach((lead) => {
+    const phone = normalizePhoneList([lead.phone])[0];
+    if (!phone) return;
+    const key = firebaseKey(phone);
+    if (current[key] || updates[`${gmailStockPath}/${key}`]) return;
+    const saved = {
+      phone,
+      name: clean(lead.name) || "gmail",
+      source: clean(lead.source) || "gmail",
+      stockDate: clean(lead.date) || todayListDate(),
+      importedAt: clean(lead.importedAt) || now,
+      syncedAt: now,
+      exportedAt: "",
+      exportedDealer: "",
+      rawText: clean(lead.rawText).slice(0, 500)
+    };
+    updates[`${gmailStockPath}/${key}`] = saved;
+    newLeads.push(saved);
+  });
+  if (Object.keys(updates).length) {
+    await db.ref().update(updates);
+    await appendGmailStockRows(newLeads);
+  }
+  return { imported: newLeads.length, leads: newLeads };
+}
+
+function gmailAccounts() {
+  if (process.env.GMAIL_IMAP_ACCOUNTS) {
+    try {
+      const parsed = JSON.parse(process.env.GMAIL_IMAP_ACCOUNTS);
+      return Array.isArray(parsed) ? parsed.filter((item) => item?.user && (item.appPassword || item.password)) : [];
+    } catch (error) {
+      console.error("Invalid GMAIL_IMAP_ACCOUNTS JSON", error);
+    }
+  }
+  if (!gmailImapUser || !gmailImapAppPassword) return [];
+  return [{ user: gmailImapUser, appPassword: gmailImapAppPassword, host: gmailImapHost }];
+}
+
+async function syncUnreadGmailLists() {
+  const accounts = gmailAccounts();
+  if (!accounts.length) {
+    return { ok: false, message: "missing_gmail_imap_config", imported: 0, checked: 0 };
+  }
+  let imported = 0;
+  let checked = 0;
+  const errors = [];
+
+  for (const account of accounts) {
+    const client = new ImapFlow({
+      host: account.host || gmailImapHost,
+      port: Number(account.port || 993),
+      secure: true,
+      auth: {
+        user: account.user,
+        pass: account.appPassword || account.password
+      },
+      logger: false
+    });
+    try {
+      await client.connect();
+      const lock = await client.getMailboxLock("INBOX");
+      try {
+        const unseen = await client.search({ seen: false });
+        const targets = unseen.slice(-gmailImapLimit);
+        for (const uid of targets) {
+          const message = await client.fetchOne(uid, { source: true, envelope: true });
+          checked += 1;
+          const parsed = await simpleParser(message.source);
+          const text = [
+            parsed.subject || message.envelope?.subject || "",
+            parsed.text || "",
+            parsed.html ? String(parsed.html).replace(/<[^>]+>/g, "\n") : ""
+          ].join("\n");
+          const leads = parseGmailLeadText(text, account.user);
+          const saved = await saveGmailLeads(leads);
+          imported += saved.imported;
+          await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
+        }
+      } finally {
+        lock.release();
+      }
+      await client.logout();
+    } catch (error) {
+      errors.push(`${account.user}:${error.message || error}`);
+      try {
+        await client.logout();
+      } catch (_) {
+        // ignore logout errors
+      }
+    }
+  }
+  return { ok: !errors.length, imported, checked, errors };
+}
+
 function singaporeDateKey(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Singapore",
@@ -296,33 +474,9 @@ async function exportGmailListToSheet({ dealer, phones }) {
 }
 
 async function getGmailListStock() {
-  const stockRange = `${encodeURIComponent(gmailStockSheetName)}!A1:AZ500`;
-  const stockRead = await googleSheetsApi(`${gmailListSpreadsheetId}/values/${stockRange}`);
-  const sheetLeads = extractStockLeadsFromRows(stockRead.values || []);
   const now = new Date().toISOString();
-  const updates = {};
   const stockSnap = await db.ref(gmailStockPath).get();
-  const current = stockSnap.val() || {};
-  sheetLeads.forEach((lead) => {
-    const key = firebaseKey(lead.phone);
-    if (current[key]) return;
-    updates[`${gmailStockPath}/${key}`] = {
-      phone: lead.phone,
-      name: lead.name,
-      source: lead.source,
-      stockDate: lead.date,
-      importedAt: lead.importedAt || now,
-      syncedAt: now,
-      exportedAt: "",
-      exportedDealer: ""
-    };
-  });
-  if (Object.keys(updates).length) {
-    await db.ref().update(updates);
-  }
-
-  const freshSnap = Object.keys(updates).length ? await db.ref(gmailStockPath).get() : stockSnap;
-  const records = Object.values(freshSnap.val() || {})
+  const records = Object.values(stockSnap.val() || {})
     .filter((item) => item && item.phone)
     .sort((a, b) => clean(a.importedAt).localeCompare(clean(b.importedAt)) || clean(a.phone).localeCompare(clean(b.phone)));
   const today = singaporeDateKey();
@@ -337,7 +491,7 @@ async function getGmailListStock() {
     count: available.length,
     todayAdded,
     todayTaken,
-    imported: Object.keys(updates).length,
+    imported: 0,
     checkedAt: now
   };
 }
@@ -2819,6 +2973,7 @@ app.post("/gmail/export-list", async (req, res) => {
 app.get("/gmail/stock", async (_req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
   try {
+    const sync = await syncUnreadGmailLists();
     const stock = await getGmailListStock();
     res.json({
       ok: true,
@@ -2827,12 +2982,27 @@ app.get("/gmail/stock", async (_req, res) => {
       exported: stock.exported,
       todayAdded: stock.todayAdded,
       todayTaken: stock.todayTaken,
-      imported: stock.imported,
+      imported: sync.imported || 0,
+      checked: sync.checked || 0,
+      gmailReady: sync.message !== "missing_gmail_imap_config",
+      syncErrors: sync.errors || [],
       checkedAt: stock.checkedAt
     });
   } catch (error) {
     console.error(error);
     res.status(200).json({ ok: false, message: error.message || "gmail_stock_failed" });
+  }
+});
+
+app.post("/gmail/sync", async (_req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  try {
+    const sync = await syncUnreadGmailLists();
+    const stock = await getGmailListStock();
+    res.json({ ok: true, ...sync, stock: stock.count, todayAdded: stock.todayAdded, todayTaken: stock.todayTaken });
+  } catch (error) {
+    console.error(error);
+    res.status(200).json({ ok: false, message: error.message || "gmail_sync_failed" });
   }
 });
 
@@ -3061,6 +3231,7 @@ app.listen(port, () => {
   ensureTelegramWebhook().catch((error) => console.error(error));
   autoExpireWarrantyRecords().catch((error) => console.error(error));
   runScheduledTrackingMyCheck().catch((error) => console.error(error));
+  syncUnreadGmailLists().catch((error) => console.error(error));
 });
 
 setInterval(() => {
@@ -3070,3 +3241,7 @@ setInterval(() => {
 setInterval(() => {
   runScheduledTrackingMyCheck().catch((error) => console.error(error));
 }, 60 * 1000);
+
+setInterval(() => {
+  syncUnreadGmailLists().catch((error) => console.error(error));
+}, 10 * 60 * 1000);
