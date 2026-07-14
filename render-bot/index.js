@@ -2,6 +2,7 @@ const express = require("express");
 const admin = require("firebase-admin");
 const WebSocket = require("ws");
 const https = require("https");
+const crypto = require("crypto");
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -22,6 +23,8 @@ const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 const announceSecret = process.env.ANNOUNCE_SECRET || "";
 const announceChatId = process.env.TELEGRAM_ANNOUNCE_CHAT_ID || "";
 const trackingMoreApiKey = process.env.TRACKINGMORE_API_KEY || "";
+const gmailListSpreadsheetId = process.env.GMAIL_LIST_SPREADSHEET_ID || "1-TchpPhupL_Dxu-RAJTF1fOsrP89W9b8unoMkUKXATg";
+const gmailListSheetName = process.env.GMAIL_LIST_SHEET_NAME || "导出记录";
 
 if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!databaseURL) throw new Error("Missing FIREBASE_DATABASE_URL");
@@ -44,6 +47,162 @@ function normalizeBankAccount(value) {
 
 function firebaseKey(value) {
   return encodeURIComponent(clean(value)).replace(/[.#$\[\]]/g, "_");
+}
+
+function base64UrlJson(value) {
+  return Buffer.from(JSON.stringify(value))
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+function base64UrlBuffer(value) {
+  return Buffer.from(value)
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+async function googleAccessToken(scope) {
+  const serviceAccount = JSON.parse(serviceAccountJson);
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", typ: "JWT" };
+  const claim = {
+    iss: serviceAccount.client_email,
+    scope,
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now
+  };
+  const unsigned = `${base64UrlJson(header)}.${base64UrlJson(claim)}`;
+  const signature = crypto
+    .createSign("RSA-SHA256")
+    .update(unsigned)
+    .sign(serviceAccount.private_key);
+  const assertion = `${unsigned}.${base64UrlBuffer(signature)}`;
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion
+    }).toString()
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || !body.access_token) {
+    throw new Error(`google_token_failed:${body.error_description || body.error || response.status}`);
+  }
+  return body.access_token;
+}
+
+async function googleSheetsApi(path, options = {}) {
+  const token = await googleAccessToken("https://www.googleapis.com/auth/spreadsheets");
+  const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`google_sheets_failed:${body?.error?.message || response.status}`);
+  }
+  return body;
+}
+
+function sheetColumnName(index) {
+  let value = index + 1;
+  let name = "";
+  while (value > 0) {
+    const mod = (value - 1) % 26;
+    name = String.fromCharCode(65 + mod) + name;
+    value = Math.floor((value - mod) / 26);
+  }
+  return name;
+}
+
+function todayListDate() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Singapore",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric"
+  }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${Number(map.day)}/${Number(map.month)}/${map.year}`;
+}
+
+function normalizePhoneList(values) {
+  const phones = Array.isArray(values) ? values : [];
+  return [...new Set(phones
+    .map((value) => String(value || "").replace(/\D/g, ""))
+    .filter((value) => value.length >= 9 && value.length <= 13))];
+}
+
+function findListExportColumn(rows, dateText) {
+  const dateRow = rows[0] || [];
+  const dealerRow = rows[1] || [];
+  const usedWidth = Math.max(dateRow.length, dealerRow.length);
+  let dateStart = dateRow.findIndex((value) => clean(value) === dateText);
+  if (dateStart < 0) {
+    return {
+      columnIndex: Math.max(usedWidth + (usedWidth ? 1 : 0), 0),
+      sequence: 1,
+      isNewDate: true
+    };
+  }
+
+  let nextDate = dateRow.length;
+  for (let index = dateStart + 1; index < dateRow.length; index += 1) {
+    if (clean(dateRow[index])) {
+      nextDate = index;
+      break;
+    }
+  }
+
+  for (let index = dateStart; index < nextDate; index += 1) {
+    if (!clean(dealerRow[index])) {
+      const usedBefore = dealerRow.slice(dateStart, index).filter((value) => clean(value)).length;
+      return { columnIndex: index, sequence: usedBefore + 1, isNewDate: false };
+    }
+  }
+
+  const usedBefore = dealerRow.slice(dateStart, nextDate).filter((value) => clean(value)).length;
+  return {
+    columnIndex: nextDate >= usedWidth ? usedWidth + 1 : nextDate,
+    sequence: usedBefore + 1,
+    isNewDate: nextDate >= usedWidth
+  };
+}
+
+async function exportGmailListToSheet({ dealer, phones }) {
+  const selected = normalizePhoneList(phones);
+  if (!clean(dealer)) throw new Error("missing_dealer");
+  if (!selected.length) throw new Error("missing_phones");
+  const dateText = todayListDate();
+  const readRange = `${encodeURIComponent(gmailListSheetName)}!A1:AZ3`;
+  const read = await googleSheetsApi(`${gmailListSpreadsheetId}/values/${readRange}`);
+  const rows = read.values || [];
+  const target = findListExportColumn(rows, dateText);
+  const column = sheetColumnName(target.columnIndex);
+  const values = [[dateText], [clean(dealer)], [String(target.sequence)], ...selected.map((phone) => [phone])];
+  const writeRange = `${encodeURIComponent(gmailListSheetName)}!${column}1:${column}${values.length}`;
+  await googleSheetsApi(`${gmailListSpreadsheetId}/values/${writeRange}?valueInputOption=USER_ENTERED`, {
+    method: "PUT",
+    body: JSON.stringify({ range: `${gmailListSheetName}!${column}1:${column}${values.length}`, majorDimension: "ROWS", values })
+  });
+  return {
+    date: dateText,
+    dealer: clean(dealer),
+    count: selected.length,
+    column,
+    sequence: target.sequence,
+    sheetUrl: `https://docs.google.com/spreadsheets/d/${gmailListSpreadsheetId}/edit#gid=333333002`
+  };
 }
 
 function pickLineValue(text, labels) {
@@ -2470,6 +2629,27 @@ app.post("/announce", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, message: "发送失败，请查看 Render Logs" });
+  }
+});
+
+app.options("/gmail/export-list", (_req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.status(204).send("");
+});
+
+app.post("/gmail/export-list", async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  try {
+    const result = await exportGmailListToSheet({
+      dealer: req.body?.dealer,
+      phones: req.body?.phones
+    });
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error(error);
+    res.status(200).json({ ok: false, message: error.message || "gmail_export_failed" });
   }
 });
 

@@ -7,6 +7,7 @@ const unknownDriverCardsKey = "dealer-card-tracker-unknown-driver-cards";
 const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
 const trackingCheckEndpoint = "https://dealer-tracker.onrender.com/check-trackingmy";
 const recordPhotoEndpoint = "https://dealer-tracker.onrender.com/record-photo";
+const gmailListExportEndpoint = "https://dealer-tracker.onrender.com/gmail/export-list";
 const defaultStatusOptions = ["未处理", "处理中", "已寄出", "已完成", "过保", "开保", "寄", "车手已签收", "弹卡", "人头关", "人头偷钱", "赔 150", "炸"];
 const defaultNewRecordStatus = "寄";
 const salaryStatuses = new Set(["过保", "开保", "赔 150"]);
@@ -894,7 +895,7 @@ function initGmailListTest() {
   updateStock();
   setInterval(updateStock, 10 * 60 * 1000);
 
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const dealer = dealerInput.value.trim() || "dealer";
     const requested = Math.max(1, Number(countInput.value || 20));
@@ -904,6 +905,14 @@ function initGmailListTest() {
     const enough = phones.length >= requested;
     if (status) status.textContent = enough ? `OK ${selected.length}/${requested}` : `STOCK ${phones.length}/${requested}`;
     result.classList.toggle("is-warning", !enough);
+    if (!selected.length) {
+      result.innerHTML = `
+        <strong>NO PHONE FOUND - ${escapeHtml(dealer)}</strong>
+        <pre>Paste Gmail content first.</pre>
+      `;
+      return;
+    }
+    if (status) status.textContent = "WRITING SHEET...";
     result.innerHTML = `
       <strong>${enough ? "READY" : "NOT ENOUGH"} - ${escapeHtml(dealer)} - ${selected.length}/${requested}</strong>
       <pre>${escapeHtml([
@@ -913,9 +922,45 @@ function initGmailListTest() {
         "1",
         ...selected,
         "",
-        enough ? "TEST: enough stock. Real version will write to Sheet and mark Gmail as exported." : `TEST: found ${phones.length} phone numbers, requested ${requested}.`
+        "Writing to Google Sheet..."
       ].join("\n"))}</pre>
     `;
+    try {
+      const response = await fetch(gmailListExportEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dealer, phones: selected })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!body.ok) throw new Error(body.message || "sheet_write_failed");
+      if (status) status.textContent = `SHEET ${body.count}`;
+      result.classList.remove("is-warning");
+      result.innerHTML = `
+        <strong>SAVED - ${escapeHtml(body.date || today)} - ${escapeHtml(dealer)} - ${selected.length}</strong>
+        <pre>${escapeHtml([
+          `Sheet: ${body.column || "-"} column`,
+          "",
+          dealer,
+          String(body.sequence || 1),
+          ...selected
+        ].join("\n"))}</pre>
+      `;
+    } catch (error) {
+      if (status) status.textContent = "SHEET FAILED";
+      result.classList.add("is-warning");
+      result.innerHTML = `
+        <strong>SHEET FAILED - ${escapeHtml(dealer)} - ${selected.length}</strong>
+        <pre>${escapeHtml([
+          error.message || "Failed to write Google Sheet.",
+          "",
+          "Check Render logs and make sure the Sheet is shared with the Firebase service account.",
+          "",
+          dealer,
+          "1",
+          ...selected
+        ].join("\n"))}</pre>
+      `;
+    }
   });
 }
 
