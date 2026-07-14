@@ -305,6 +305,172 @@ async function saveGmailLeads(leads) {
   return { imported: newLeads.length, leads: newLeads };
 }
 
+function parseGmailLeadTextV2(text, source = "gmail") {
+  const sourceText = String(text || "").replace(/\r/g, "\n");
+  const lines = sourceText
+    .split(/\n+/)
+    .map((line) => clean(line.replace(/\s+/g, " ")))
+    .filter(Boolean);
+  const leads = [];
+  const seen = new Set();
+
+  const labelValue = (labels) => {
+    for (const line of lines) {
+      const match = line.match(/^([^:：]+)[:：]\s*(.+)$/);
+      if (!match) continue;
+      const label = match[1].trim().toLowerCase();
+      if (labels.some((item) => label.includes(item))) return clean(match[2]);
+    }
+    return "";
+  };
+
+  const labeled = {
+    name: labelValue(["nama", "name", "名字"]),
+    phone: labelValue(["no.hubungi", "no hubungi", "telefon", "phone", "whatsapp", "手机", "电话号码"]),
+    amount: labelValue(["jumlah pinjaman", "pinjaman", "amount", "金额"]),
+    location: labelValue(["lokasi", "location", "地区"]),
+    job: labelValue(["pekerjaan", "occupation", "kerja", "职业"])
+  };
+
+  const addLead = (phone, data = {}, rawText = "") => {
+    const normalizedPhone = normalizePhoneList([phone])[0];
+    if (!normalizedPhone || seen.has(normalizedPhone)) return;
+    seen.add(normalizedPhone);
+    leads.push({
+      date: todayListDate(),
+      name: clean(data.name) || "gmail",
+      phone: normalizedPhone,
+      amount: clean(data.amount),
+      location: clean(data.location),
+      job: clean(data.job),
+      source,
+      importedAt: new Date().toISOString(),
+      rawText: clean(rawText || sourceText).slice(0, 500)
+    });
+  };
+
+  if (labeled.phone) addLead(labeled.phone, labeled, sourceText);
+
+  lines.forEach((line, index) => {
+    const phones = normalizePhoneList([line]);
+    phones.forEach((phone) => {
+      let name = "";
+      for (let back = index - 1; back >= Math.max(0, index - 3); back -= 1) {
+        const candidate = lines[back];
+        if (!normalizePhoneList([candidate])[0] && /[a-zA-Z]/.test(candidate)) {
+          name = candidate;
+          break;
+        }
+      }
+      if (!name) {
+        const localPhone = phone.replace(/^60/, "0");
+        const beforePhone = line.split(localPhone)[0] || line.split(phone)[0] || "";
+        name = clean(beforePhone.replace(/[^\p{L}\s.'-]/gu, " "));
+      }
+      const nextLines = lines.slice(index + 1, index + 5);
+      const amount = labeled.amount || nextLines.find((item) => /\b\d+\s*k\b/i.test(item) || /^\d{3,6}$/.test(item)) || "";
+      const location = labeled.location || nextLines.find((item) => !normalizePhoneList([item])[0] && /[a-zA-Z]/.test(item) && item !== amount) || "";
+      const job = labeled.job || nextLines.find((item) => !normalizePhoneList([item])[0] && /[a-zA-Z]/.test(item) && item !== amount && item !== location) || "";
+      addLead(phone, { name: labeled.name || name, amount, location, job }, line);
+    });
+  });
+
+  const inlineMatches = sourceText.match(/(?:\+?60|0)?1[\d\s-]{7,13}\d/g) || [];
+  inlineMatches.forEach((phone) => {
+    const index = sourceText.indexOf(phone);
+    const before = sourceText.slice(Math.max(0, index - 90), index);
+    const nameMatch = before.match(/([A-Za-z][A-Za-z\s.'-]{1,70})\s*$/);
+    addLead(phone, { ...labeled, name: labeled.name || (nameMatch ? nameMatch[1] : "gmail") }, sourceText.slice(Math.max(0, index - 120), index + 140));
+  });
+
+  return leads;
+}
+
+async function appendGmailStockRowsV2(leads) {
+  const rows = (leads || []).map((lead) => [
+    lead.date || todayListDate(),
+    lead.name || "gmail",
+    lead.phone,
+    lead.amount || "",
+    lead.location || "",
+    lead.job || "",
+    lead.source || "gmail",
+    lead.importedAt || new Date().toISOString(),
+    "未领取",
+    "",
+    ""
+  ]).filter((row) => row[2]);
+  if (!rows.length) return { appended: 0 };
+  const appendRange = `${encodeURIComponent(gmailStockSheetName)}!A:K:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  await googleSheetsApi(`${gmailListSpreadsheetId}/values/${appendRange}`, {
+    method: "POST",
+    body: JSON.stringify({ values: rows })
+  });
+  return { appended: rows.length };
+}
+
+async function saveGmailLeadsV2(leads) {
+  const stockSnap = await db.ref(gmailStockPath).get();
+  const current = stockSnap.val() || {};
+  const updates = {};
+  const newLeads = [];
+  const now = new Date().toISOString();
+  (leads || []).forEach((lead) => {
+    const phone = normalizePhoneList([lead.phone])[0];
+    if (!phone) return;
+    const key = firebaseKey(phone);
+    if (current[key] || updates[`${gmailStockPath}/${key}`]) return;
+    const saved = {
+      phone,
+      name: clean(lead.name) || "gmail",
+      amount: clean(lead.amount),
+      location: clean(lead.location),
+      job: clean(lead.job),
+      source: clean(lead.source) || "gmail",
+      stockDate: clean(lead.date) || todayListDate(),
+      importedAt: clean(lead.importedAt) || now,
+      syncedAt: now,
+      exportedAt: "",
+      exportedDealer: "",
+      rawText: clean(lead.rawText).slice(0, 500)
+    };
+    updates[`${gmailStockPath}/${key}`] = saved;
+    newLeads.push(saved);
+  });
+  if (Object.keys(updates).length) {
+    await db.ref().update(updates);
+    await appendGmailStockRowsV2(newLeads);
+  }
+  return { imported: newLeads.length, leads: newLeads };
+}
+
+async function markGmailStockRowsClaimed(phones, dealer) {
+  const selected = new Set(normalizePhoneList(phones));
+  if (!selected.size) return { marked: 0 };
+  const readRange = `${encodeURIComponent(gmailStockSheetName)}!A1:K1000`;
+  const read = await googleSheetsApi(`${gmailListSpreadsheetId}/values/${readRange}`);
+  const rows = read.values || [];
+  let marked = 0;
+  for (let index = 1; index < rows.length; index += 1) {
+    const phone = normalizePhoneList([(rows[index] || [])[2]])[0];
+    if (!phone || !selected.has(phone)) continue;
+    const status = clean((rows[index] || [])[8]);
+    if (status === "已拿") continue;
+    const rowNumber = index + 1;
+    const writeRange = `${encodeURIComponent(gmailStockSheetName)}!I${rowNumber}:K${rowNumber}`;
+    await googleSheetsApi(`${gmailListSpreadsheetId}/values/${writeRange}?valueInputOption=USER_ENTERED`, {
+      method: "PUT",
+      body: JSON.stringify({
+        range: `${gmailStockSheetName}!I${rowNumber}:K${rowNumber}`,
+        majorDimension: "ROWS",
+        values: [["已拿", clean(dealer), new Date().toISOString()]]
+      })
+    });
+    marked += 1;
+  }
+  return { marked };
+}
+
 function gmailAccounts() {
   if (process.env.GMAIL_IMAP_ACCOUNTS) {
     try {
@@ -353,8 +519,8 @@ async function syncUnreadGmailLists() {
             parsed.text || "",
             parsed.html ? String(parsed.html).replace(/<[^>]+>/g, "\n") : ""
           ].join("\n");
-          const leads = parseGmailLeadText(text, account.user);
-          const saved = await saveGmailLeads(leads);
+          const leads = parseGmailLeadTextV2(text, account.user);
+          const saved = await saveGmailLeadsV2(leads);
           imported += saved.imported;
           await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
         }
@@ -511,6 +677,7 @@ async function takeGmailListStock({ dealer, count }) {
     updates[`${gmailStockPath}/${firebaseKey(phone)}/exportDate`] = todayListDate();
   });
   await db.ref().update(updates);
+  await markGmailStockRowsClaimed(selected, dealer);
   return {
     ...exported,
     requested,
