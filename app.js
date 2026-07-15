@@ -874,7 +874,61 @@ function extractGmailPhones(text) {
   return [...new Set(candidates.map(normalizeMalaysiaPhone).filter(Boolean))];
 }
 
+function initGmailPinLock() {
+  const panel = document.querySelector("#mobileGmailList");
+  const pad = document.querySelector("#gmailPinPad");
+  const dots = [...document.querySelectorAll("#gmailPinDots span")];
+  const error = document.querySelector("#gmailPinError");
+  if (!panel || !pad || !dots.length) return;
+
+  const passcode = "8888";
+  let entry = "";
+
+  const render = () => {
+    dots.forEach((dot, index) => dot.classList.toggle("filled", index < entry.length));
+    if (error && entry.length < passcode.length) error.textContent = "";
+  };
+
+  const unlock = () => {
+    panel.classList.add("is-unlocked");
+    entry = "";
+    render();
+  };
+
+  const reject = () => {
+    entry = "";
+    render();
+    if (error) error.textContent = "密码错误";
+    panel.classList.remove("pin-shake");
+    requestAnimationFrame(() => panel.classList.add("pin-shake"));
+  };
+
+  pad.addEventListener("click", (event) => {
+    const keyButton = event.target.closest("[data-pin-key]");
+    if (keyButton) {
+      entry = (entry + keyButton.dataset.pinKey).slice(0, passcode.length);
+      render();
+      if (entry.length === passcode.length) {
+        window.setTimeout(() => (entry === passcode ? unlock() : reject()), 90);
+      }
+      return;
+    }
+    if (event.target.closest("[data-pin-back]")) {
+      entry = entry.slice(0, -1);
+      render();
+      return;
+    }
+    if (event.target.closest("[data-pin-clear]")) {
+      entry = "";
+      render();
+    }
+  });
+
+  render();
+}
+
 function initGmailListTest() {
+  initGmailPinLock();
   const form = document.querySelector("#gmailListForm");
   const dealerInput = document.querySelector("#gmailDealerName");
   const countInput = document.querySelector("#gmailExportCount");

@@ -17188,3 +17188,148 @@ body.index-page .gmail-list-panel {
     padding: 8px 5px !important;
   }
 }
+
+/* 2026-07-15 mobile List PIN lock. */
+body.index-page .gmail-pin-lock {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  body.index-page .gmail-list-panel {
+    position: relative;
+    overflow: hidden;
+    min-height: 640px;
+  }
+
+  body.index-page .gmail-list-panel:not(.is-unlocked) .gmail-list-content {
+    pointer-events: none;
+    user-select: none;
+    filter: blur(10px);
+    opacity: 0.2;
+  }
+
+  body.index-page .gmail-list-panel:not(.is-unlocked) .gmail-pin-lock {
+    display: flex;
+  }
+
+  body.index-page .gmail-list-panel.is-unlocked .gmail-pin-lock {
+    display: none !important;
+  }
+
+  body.index-page .gmail-pin-lock {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(45, 212, 191, 0.28), transparent 28%),
+      radial-gradient(circle at 92% 88%, rgba(212, 170, 85, 0.22), transparent 30%),
+      rgba(239, 250, 247, 0.88);
+    backdrop-filter: blur(18px);
+  }
+
+  body.index-page .gmail-pin-card {
+    width: min(100%, 360px);
+    padding: 22px 18px 18px;
+    border: 1px solid rgba(15, 118, 110, 0.18);
+    border-radius: 34px;
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(236, 253, 245, 0.92));
+    box-shadow:
+      0 24px 50px rgba(15, 23, 42, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    text-align: center;
+  }
+
+  body.index-page .gmail-pin-card h2 {
+    margin: 6px 0 8px;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 950;
+  }
+
+  body.index-page .gmail-pin-card p:not(.eyebrow) {
+    margin: 0 auto 18px;
+    max-width: 270px;
+    color: #475569 !important;
+    -webkit-text-fill-color: #475569 !important;
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 800;
+  }
+
+  body.index-page .gmail-pin-dots {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 14px 0 8px;
+  }
+
+  body.index-page .gmail-pin-dots span {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(15, 118, 110, 0.35);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    transition: background 0.16s ease, transform 0.16s ease;
+  }
+
+  body.index-page .gmail-pin-dots span.filled {
+    background: #0f766e;
+    transform: scale(1.08);
+  }
+
+  body.index-page .gmail-pin-error {
+    min-height: 18px;
+    margin-bottom: 8px;
+    color: #dc2626 !important;
+    -webkit-text-fill-color: #dc2626 !important;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  body.index-page .gmail-pin-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  body.index-page .gmail-pin-pad button {
+    min-height: 54px;
+    border: 1px solid rgba(15, 118, 110, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.82);
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+    font-size: 22px;
+    font-weight: 950;
+  }
+
+  body.index-page .gmail-pin-pad button[data-pin-clear],
+  body.index-page .gmail-pin-pad button[data-pin-back] {
+    font-size: 13px;
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+  }
+
+  body.index-page .gmail-pin-pad button:active {
+    transform: translateY(1px) scale(0.98);
+  }
+
+  body.index-page .gmail-list-panel.pin-shake .gmail-pin-card {
+    animation: gmailPinShake 0.28s ease both;
+  }
+}
+
+@keyframes gmailPinShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}

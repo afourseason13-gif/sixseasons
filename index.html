@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260714-gmail-stock-firebase2" />
+    <link rel="stylesheet" href="./styles.css?v=20260715-list-pin-lock" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -171,6 +171,32 @@
       
 
       <section class="gmail-list-panel" id="mobileGmailList" aria-label="Gmail list test">
+        <div class="gmail-pin-lock" id="gmailPinLock" aria-label="List lock screen">
+          <div class="gmail-pin-card">
+            <p class="eyebrow">SECURE LIST</p>
+            <h2>输入密码</h2>
+            <p>请输入 4 位密码才能查看 List 库存和领取号码。</p>
+            <div class="gmail-pin-dots" id="gmailPinDots" aria-label="PIN progress">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="gmail-pin-error" id="gmailPinError" aria-live="polite"></div>
+            <div class="gmail-pin-pad" id="gmailPinPad">
+              <button type="button" data-pin-key="1">1</button>
+              <button type="button" data-pin-key="2">2</button>
+              <button type="button" data-pin-key="3">3</button>
+              <button type="button" data-pin-key="4">4</button>
+              <button type="button" data-pin-key="5">5</button>
+              <button type="button" data-pin-key="6">6</button>
+              <button type="button" data-pin-key="7">7</button>
+              <button type="button" data-pin-key="8">8</button>
+              <button type="button" data-pin-key="9">9</button>
+              <button type="button" data-pin-clear>清除</button>
+              <button type="button" data-pin-key="0">0</button>
+              <button type="button" data-pin-back>退格</button>
+            </div>
+          </div>
+        </div>
+        <div class="gmail-list-content">
         <div class="gmail-list-head">
           <div>
             <p class="eyebrow">GMAIL LIST STOCK</p>
@@ -205,6 +231,7 @@
         <div class="gmail-list-result" id="gmailListResult">
           <strong>&#31561;&#24453;&#25805;&#20316;</strong>
           <pre>&#36755;&#20837; Dealer &#21644;&#25968;&#37327;&#21518;&#65292;&#20250;&#20174;&#21518;&#21488;&#24211;&#23384;&#21462;&#21495;&#24182;&#20889;&#20837;&#23548;&#20986;&#35760;&#24405;&#12290;</pre>
+        </div>
         </div>
       </section>
 
@@ -312,6 +339,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260714-gmail-stock-firebase2"></script>
+    <script src="./app.js?v=20260715-list-pin-lock"></script>
   </body>
 </html>
