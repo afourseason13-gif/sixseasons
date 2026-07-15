@@ -1410,7 +1410,7 @@ async function rememberUnknownDriverCard(command) {
     id,
     parcelToken,
     cardToken,
-    reason: "driver_card_not_found",
+    reason: command.reason || "card_not_found",
     count: Number(existing.count || 0) + 1,
     createdAt: existing.createdAt || new Date().toISOString(),
     lastSeenAt: new Date().toISOString(),
@@ -1454,7 +1454,9 @@ async function applyRecordCommand(command) {
   if (command.action === "deleteDriverSigned" && command.parcelToken) record = await findLatestRecordByParcelToken(command.parcelToken);
   if (!record) record = await findLatestRecordByCard(command.cardToken);
   if (!record) {
-    if (command.action === "deleteDriverSigned") await rememberUnknownDriverCard(command);
+    if (command.action !== "delete" && command.action !== "deleteReplyImport" && command.action !== "deleteLatestImport") {
+      await rememberUnknownDriverCard({ ...command, reason: command.action === "deleteDriverSigned" ? "driver_card_not_found" : "warranty_card_not_found" });
+    }
     return { ok: false, cardToken: command.cardToken, message: "record_not_found:" + command.cardToken };
   }
 
@@ -3273,6 +3275,14 @@ app.post("/telegram", async (req, res) => {
     if (commandRoleAllowed) {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
+        if (!isDriverSignedCommand && chatMatchesRole(chatId, roles.warranty)) {
+          const noticeText = commandResult.message
+            ? `开保群已处理：${clean(text).slice(0, 120)} · ${commandResult.message}`
+            : `开保群已处理：${clean(text).slice(0, 120)}`;
+          await writeBotNotice(noticeText);
+          res.status(200).send("ok");
+          return;
+        }
         if (commandResult.reactionOnly) {
           await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "✅");
           await writeBotNotice(`状态已更新：${clean(text).slice(0, 120)}`);
