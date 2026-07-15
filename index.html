@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260715-list-pin-lock" />
+    <link rel="stylesheet" href="./styles.css?v=20260715-list-stock-cards" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -206,12 +206,29 @@
           <span id="gmailListStatus">TEST</span>
         </div>
         <div class="gmail-stock-card">
-          <span>&#24403;&#21069;&#21487;&#39046;&#24211;&#23384;</span>
-          <strong id="gmailStockCount">0</strong>
-          <small id="gmailStockStats">&#20170;&#26085;&#26032;&#22686; 0 &#26465; &#183; &#20170;&#26085;&#24050;&#25343; 0 &#26465;</small>
-          <small id="gmailDealerTakenStats">&#20170;&#26085; Dealer&#65306;&#26242;&#26080;&#39046;&#21462;</small>
-          <small id="gmailBackendSheetStats">&#21518;&#21488;&#24211;&#23384;&#34920;&#65306;&#31561;&#24453;&#21516;&#27493;</small>
-          <em id="gmailLastChecked">&#31561;&#24453;&#26816;&#27979;</em>
+          <div class="gmail-stock-tile is-primary">
+            <span>&#24403;&#21069;&#21487;&#39046;&#24211;&#23384;</span>
+            <strong id="gmailStockCount">0</strong>
+            <small>&#21487;&#30452;&#25509;&#39046;&#21462;</small>
+          </div>
+          <div class="gmail-stock-tile">
+            <span>&#20170;&#26085;&#24635;&#24211;&#23384;</span>
+            <strong id="gmailTodayTotalCount">0</strong>
+            <small>&#24403;&#21069; + &#20170;&#26085;&#24050;&#25343;</small>
+          </div>
+          <div class="gmail-stock-tile">
+            <span>&#24050;&#23548;&#20986;</span>
+            <strong id="gmailExportedCount">0</strong>
+            <small>&#24050;&#20889;&#20837;&#23548;&#20986;&#35760;&#24405;</small>
+          </div>
+          <div class="gmail-stock-tile">
+            <span>&#20170;&#26085;&#24050;&#25343;</span>
+            <strong id="gmailTodayTakenCount">0</strong>
+            <small id="gmailDealerTakenStats">&#20170;&#26085; Dealer&#65306;&#26242;&#26080;&#39046;&#21462;</small>
+          </div>
+          <small id="gmailStockStats" class="gmail-stock-meta">&#20170;&#26085;&#26032;&#22686; 0 &#26465; &#183; &#20170;&#26085;&#24050;&#25343; 0 &#26465;</small>
+          <small id="gmailBackendSheetStats" class="gmail-stock-meta">&#21518;&#21488;&#24211;&#23384;&#34920;&#65306;&#31561;&#24453;&#21516;&#27493;</small>
+          <em id="gmailLastChecked" class="gmail-stock-meta">&#31561;&#24453;&#26816;&#27979;</em>
         </div>
         <form class="gmail-list-form" id="gmailListForm" autocomplete="off">
           <label>
@@ -339,6 +356,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260715-list-pin-lock"></script>
+    <script src="./app.js?v=20260715-list-stock-cards"></script>
   </body>
 </html>

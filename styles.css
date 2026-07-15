@@ -17333,3 +17333,83 @@ body.index-page .gmail-pin-lock {
   60% { transform: translateX(-5px); }
   80% { transform: translateX(5px); }
 }
+
+/* 2026-07-15 mobile List stock tiles. */
+@media (max-width: 760px) {
+  body.index-page .gmail-stock-card {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body.index-page .gmail-stock-tile {
+    min-height: 118px;
+    padding: 14px;
+    border: 1px solid rgba(15, 118, 110, 0.16);
+    border-radius: 20px;
+    background:
+      radial-gradient(circle at 96% 8%, rgba(94, 234, 212, 0.22), transparent 34%),
+      linear-gradient(145deg, #ffffff, #eefbf7);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  body.index-page .gmail-stock-tile.is-primary {
+    border-color: rgba(212, 170, 85, 0.36);
+    background:
+      radial-gradient(circle at 92% 8%, rgba(45, 212, 191, 0.24), transparent 34%),
+      linear-gradient(145deg, #fffdf4, #e8fff8);
+  }
+
+  body.index-page .gmail-stock-tile span {
+    display: block;
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+    font-size: 11px !important;
+    font-weight: 950 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: none !important;
+  }
+
+  body.index-page .gmail-stock-tile strong {
+    display: block;
+    margin: 8px 0 6px;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    font-size: 38px !important;
+    line-height: 0.95 !important;
+    font-weight: 1000 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body.index-page .gmail-stock-tile small {
+    display: block;
+    color: #475569 !important;
+    -webkit-text-fill-color: #475569 !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    font-weight: 850 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  body.index-page .gmail-stock-meta {
+    grid-column: 1 / -1;
+    display: block;
+    padding: 10px 12px;
+    border: 1px solid rgba(15, 118, 110, 0.12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #334155 !important;
+    -webkit-text-fill-color: #334155 !important;
+    font-size: 11px !important;
+    font-style: normal !important;
+    font-weight: 850 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+}

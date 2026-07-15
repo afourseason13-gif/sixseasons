@@ -935,6 +935,9 @@ function initGmailListTest() {
   const result = document.querySelector("#gmailListResult");
   const status = document.querySelector("#gmailListStatus");
   const stockCount = document.querySelector("#gmailStockCount");
+  const todayTotalCount = document.querySelector("#gmailTodayTotalCount");
+  const exportedCount = document.querySelector("#gmailExportedCount");
+  const todayTakenCount = document.querySelector("#gmailTodayTakenCount");
   const stockStats = document.querySelector("#gmailStockStats");
   const dealerTakenStats = document.querySelector("#gmailDealerTakenStats");
   const backendSheetStats = document.querySelector("#gmailBackendSheetStats");
@@ -950,14 +953,20 @@ function initGmailListTest() {
     const validRows = rows
       .map((item) => ({ dealer: String(item.dealer || "").trim(), count: Number(item.count || 0) }))
       .filter((item) => item.dealer && item.count > 0);
-    if (!validRows.length) return "?? Dealer?????";
-    return "?? Dealer?" + validRows.map((item) => item.dealer + " " + item.count + "?").join(" ? ");
+    if (!validRows.length) return "今日 Dealer：暂无领取";
+    return "今日 Dealer：" + validRows.map((item) => item.dealer + " " + item.count + "条").join(" · ");
   };
   const updateStockMeta = (body, selectedCount = 0) => {
     latestStock = Number(body.count ?? body.remaining ?? latestStock ?? 0);
+    const todayTaken = Number(body.todayTaken || selectedCount || 0);
+    const todayTotal = latestStock + todayTaken;
+    const exported = Number(body.exported || todayTaken || 0);
     if (stockCount) stockCount.textContent = String(latestStock);
+    if (todayTotalCount) todayTotalCount.textContent = String(todayTotal);
+    if (exportedCount) exportedCount.textContent = String(exported);
+    if (todayTakenCount) todayTakenCount.textContent = String(todayTaken);
     if (stockStats) {
-      stockStats.textContent = "???? " + Number(body.todayAdded || 0) + " ? ? ???? " + Number(body.todayTaken || selectedCount || 0) + " ?";
+      stockStats.textContent = "今日新增 " + Number(body.todayAdded || 0) + " 条 · 今日已拿 " + todayTaken + " 条";
     }
     if (dealerTakenStats) dealerTakenStats.textContent = formatDealerTaken(body.dealerTakenList || body.dealerTaken);
     if (backendSheetStats) {
