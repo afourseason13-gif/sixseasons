@@ -3203,7 +3203,8 @@ app.post("/telegram", async (req, res) => {
 
     const roles = await getTelegramRoleChats();
     const looksLikeImport = isImportMessage(text, senderName) || isPotentialImportMessage(text);
-    const importRoleAllowed = chatMatchesRole(chatId, roles.import) || (!roles.import && !chatMatchesAnyRole(chatId, roles, ["warranty", "tracking", "pickup"]) && looksLikeImport);
+    const importRoleAllowed = chatMatchesRole(chatId, roles.import)
+      || (!chatMatchesAnyRole(chatId, roles, ["warranty", "tracking", "pickup"]) && looksLikeImport);
 
     if (/^(导入|補导入|补导入|import)$/i.test(clean(text)) && replyText && chatMatchesRole(chatId, roles.import)) {
       if (!isImportMessage(replyText, senderName) && !isPotentialImportMessage(replyText)) {
