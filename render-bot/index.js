@@ -961,6 +961,22 @@ async function findExistingDealerName(name) {
   return existing?.name || "";
 }
 
+async function ensureDealer(name) {
+  const dealerName = clean(name) || "Telegram";
+  const key = firebaseKey(dealerName);
+  const ref = db.ref(`dealer-card-tracker/dealers/${key}`);
+  const snapshot = await ref.get();
+  const existing = snapshot.val() || {};
+  await ref.update({
+    ...existing,
+    name: existing.name || dealerName,
+    rate: Number(existing.rate || 500),
+    createdAt: existing.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+  return key;
+}
+
 
 function parseCardNumber(text) {
   return pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]);
