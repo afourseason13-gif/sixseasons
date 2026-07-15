@@ -2759,10 +2759,16 @@ function trackingLocationGroup(location) {
   if (source.includes("IPOH") || source.includes("KINTA")) return "IPOH / KINTA";
   if (source.includes("JOHOR BAHRU") || source.includes("JHR")) return "JOHOR BAHRU";
   if (source.includes("KAMPAR")) return "KAMPAR";
+  if (source.includes("SHAH ALAM")) return "SHAH ALAM";
+  if (source.includes("KUALA LANGAT")) return "KUALA LANGAT";
   if (source.includes("PERAK") || source.includes("PRK")) return "PERAK";
   if (source.includes("SELANGOR") || source.includes("SGR")) return "SELANGOR";
-  if (source.includes("KUALA LUMPUR") || source.includes("KUL")) return "KUALA LUMPUR";
+  if (source.includes("KUALA LUMPUR") || source.includes("WANGSA MAJU") || source.includes("BANDAR TUN RAZAK") || source.includes("KUL")) return "KUALA LUMPUR";
   if (source.includes("PENANG") || source.includes("PULAU PINANG") || source.includes("PEN")) return "PENANG";
+  if (source.includes("SERIAN")) return "SERIAN";
+  if (source.includes("BAGAN SERAI")) return "BAGAN SERAI";
+  if (source.includes("LAYANG-LAYANG")) return "LAYANG-LAYANG";
+  if (source.includes("KOTA TINGGI")) return "KOTA TINGGI";
   if (source.includes("JOHOR")) return "JOHOR";
   return source.replace(/\s+/g, " ").slice(0, 42);
 }
@@ -2784,7 +2790,7 @@ function buildTrackingSummaryMessage(records, today, options = {}) {
     const group = trackingLocationGroup(location);
     const parcelLabel = `${trackingCarrierCode(record)}${trackingTail(record)}`;
     const statusText = packageStatusText(record, today);
-    const line = `${parcelLabel} | ${clean(record.cardNumber || "-")} ${statusText}${location ? " ? " + location : ""}`;
+    const line = `${parcelLabel} | ${clean(record.cardNumber || "-")} ${statusText}`;
     if (!groupedLines.has(group)) groupedLines.set(group, []);
     groupedLines.get(group).push(line);
   }
