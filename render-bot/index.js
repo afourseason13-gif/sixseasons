@@ -1573,10 +1573,7 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
   if (signedCommands.length) {
     const results = [];
     for (const command of signedCommands) results.push(await applyRecordCommand(command));
-    const stopped = results.filter((result) => result.ok);
-    const missing = results.filter((result) => !result.ok).map((result) => result.cardToken);
-    const missingText = missing.length ? "\n\u627e\u4e0d\u5230\u8d44\u6599: " + missing.join(", ") : "";
-    return { handled: true, message: "\u8f66\u624b\u5df2\u7b7e\u6536\uff0c\u5df2\u505c\u6b62\u67e5\u8be2 " + stopped.length + " \u6761" + missingText, pickupNotice: formatDriverPickupNotice(stopped, missing) };
+    return { handled: true, message: "" };
   }
   if (cardFillResult.filled || cardFillResult.ambiguous) return { handled: true, message: "\u5df2\u8865\u5361\u53f7 " + cardFillResult.filled + " \u6761" };
   const bulkCommands = [
