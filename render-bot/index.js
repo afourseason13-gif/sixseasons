@@ -1118,7 +1118,7 @@ function problemStatusFromText(text) {
   if (source.includes("\u4eba\u5934\u5077\u94b1")) return "\u4eba\u5934\u5077\u94b1";
   if (source.includes("\u8d54150") || source.includes("\u8d54 150")) return "\u8d54 150";
   if (source.includes("\u4eba\u5934\u5173") || source.includes("\u516c\u6237")) return "\u4eba\u5934\u5173";
-  if (source.includes("\u5f39\u5361") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898")) return "\u5f39\u5361";
+  if (source.includes("\u5f39\u5361") || source.includes("\u5f39") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898")) return "\u5f39\u5361";
   if (source.includes("\u70b8") || hasRejectedMark(source)) return "\u70b8";
   return "";
 }
@@ -1195,7 +1195,7 @@ function statusFromCommandLine(line) {
   if (source.includes("\u8d54150") || source.includes("\u8d54 150")) return "\u8d54 150";
   if (source.includes("\u4eba\u5934\u5077\u94b1")) return "\u4eba\u5934\u5077\u94b1";
   if (source.includes("\u4eba\u5934\u5173") || source.includes("\u516c\u6237")) return "\u4eba\u5934\u5173";
-  if (source.includes("\u5f39\u5361") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898")) return "\u5f39\u5361";
+  if (source.includes("\u5f39\u5361") || source.includes("\u5f39") || source.includes("\u5077\u94b1") || source.includes("\u6709\u95ee\u9898") || source.includes("\u95ee\u9898")) return "\u5f39\u5361";
   if (source.includes("\u70b8") || hasRejectedMark(source)) return "\u70b8";
   if (source.includes("\u8fc7\u4fdd")) return "\u8fc7\u4fdd";
   if (source.includes("\u5f00\u4fdd")) return "\u5f00\u4fdd";
