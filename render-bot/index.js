@@ -62,6 +62,10 @@ function stripUndefined(value) {
   return Object.fromEntries(Object.entries(value || {}).filter(([, item]) => item !== undefined));
 }
 
+function firstClean(...values) {
+  return values.map(clean).find(Boolean) || "";
+}
+
 function base64UrlJson(value) {
   return Buffer.from(JSON.stringify(value))
     .toString("base64")
@@ -1690,16 +1694,27 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
   }
 
   const dealerId = await ensureDealer(dealerName);
+  const mergedCardNumber = existingRecord ? firstClean(cardNumber === "XXXX" ? "" : cardNumber, existingRecord.cardNumber) : cardNumber;
+  const mergedCarrier = existingRecord ? firstClean(shipment.carrier, existingRecord.carrier) : shipment.carrier;
+  const mergedTrackingTail = existingRecord ? firstClean(shipment.tailNumber, existingRecord.trackingTail, existingRecord.tailNumber) : shipment.tailNumber;
+  const mergedTrackingNumber = existingRecord ? firstClean(shipment.trackingNumber, existingRecord.trackingNumber) : shipment.trackingNumber;
+  const mergedFormattedDetails = existingRecord ? buildTelegramFormattedDetails({
+    name: firstClean(pickLineValue(text, ["NAMA", "NAME"]), recordDetailValue(existingRecord, "customerName", ["NAMA", "NAME"])),
+    ic: firstClean(pickLineValue(text, ["IC NO", "IC"]), recordDetailValue(existingRecord, "icNumber", ["IC NO", "IC"])),
+    bank: firstClean(rawBankName || bankName, recordDetailValue(existingRecord, "bankName", ["BANK", "NAMA BANK"])),
+    account: firstClean(bankAccount, recordDetailValue(existingRecord, "bankAccount", ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"])),
+    card: firstClean(rawCardNumber || mergedCardNumber, pickLineValue(clean(existingRecord.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]), existingRecord.cardNumber),
+    pin: firstClean(atmPin, recordDetailValue(existingRecord, "atmPin", ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"]))
+  }) : formattedDetails;
   const baseUpdate = stripUndefined({
     dealerId,
     dealerName,
-    cardNumber,
-    carrier: shipment.carrier,
-    trackingTail: shipment.tailNumber,
-    trackingNumber: shipment.trackingNumber,
-    status: "\u5bc4",
+    cardNumber: mergedCardNumber,
+    carrier: mergedCarrier,
+    trackingTail: mergedTrackingTail,
+    trackingNumber: mergedTrackingNumber,
     note: "Telegram \u81ea\u52a8\u5bfc\u5165",
-    formattedDetails,
+    formattedDetails: mergedFormattedDetails,
     telegramMessageId,
     telegramSenderName: senderName,
     importedFromTelegram: true,
@@ -1708,12 +1723,13 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
 
   if (existingRecord) {
     await db.ref("dealer-card-tracker/records/" + existingRecord.id).update(baseUpdate);
-    return { ok: true, updated: true, recordId: existingRecord.id, dealerName, cardNumber };
+    return { ok: true, updated: true, recordId: existingRecord.id, dealerName, cardNumber: mergedCardNumber };
   }
 
   const recordRef = db.ref("dealer-card-tracker/records").push();
   await recordRef.set({
     ...baseUpdate,
+    status: "\u5bc4",
     createdAt: Date.now()
   });
   return { ok: true, created: true, recordId: recordRef.key, dealerName, cardNumber };
@@ -3246,10 +3262,10 @@ app.post("/telegram", async (req, res) => {
         await replyToTelegramMessage(chatId, message?.message_id, `已放入待处理\n卡号: ${importResult.cardNumber || "-"}\n原因: ${importResult.reason || "-"}`);
         await writeBotNotice(`补导入待处理：${importResult.cardNumber || "-"} · ${importResult.reason || "-"}`);
       } else {
-        const proof = `已导入 ${importResult.dealerName || ""}`.trim();
+        const proof = `${importResult.updated ? "已更新" : "已导入"} ${importResult.dealerName || ""}`.trim();
         const sent = await replyToTelegramMessage(chatId, message?.message_id, proof);
         if (!sent) await reply(chatId, proof);
-        await writeBotNotice(`补导入成功：${importResult.dealerName || ""} · ${importResult.cardNumber || "-"}`);
+        await writeBotNotice(`${importResult.updated ? "补导入已更新" : "补导入成功"}：${importResult.dealerName || ""} · ${importResult.cardNumber || "-"}`);
       }
       res.status(200).send("ok");
       return;
@@ -3334,10 +3350,10 @@ app.post("/telegram", async (req, res) => {
       return;
     }
 
-    const importProof = `已导入 ${result.dealerName || ""}`.trim();
+    const importProof = `${result.updated ? "已更新" : "已导入"} ${result.dealerName || ""}`.trim();
     const importProofSent = await replyToTelegramMessage(chatId, message?.message_id, importProof);
     if (!importProofSent) await reply(chatId, importProof);
-    await writeBotNotice(`导入成功：${result.dealerName || ""} · ${result.cardNumber || "-"}`);
+    await writeBotNotice(`${result.updated ? "导入已更新" : "导入成功"}：${result.dealerName || ""} · ${result.cardNumber || "-"}`);
     res.status(200).send("ok");
   } catch (error) {
     console.error(error);
