@@ -1544,12 +1544,14 @@ async function handleRecordCommand(text, defaultWarrantyDate = "", replyMessageI
     for (const command of bulkCommands) results.push(await applyRecordCommand(command));
     const ok = results.filter((result) => result.ok);
     const failed = results.filter((result) => !result.ok);
-    return { handled: true, message: "\u5df2\u66f4\u65b0 " + ok.length + " \u6761" + (failed.length ? "\n\u5931\u8d25 " + failed.length + " \u6761" : "") };
+    if (!failed.length) return { handled: true, reactionOnly: true, reaction: "\u2705", message: "" };
+    return { handled: true, message: "\u5df2\u66f4\u65b0 " + ok.length + " \u6761" + "\n\u5931\u8d25 " + failed.length + " \u6761" };
   }
   const command = parseRecordCommand(text, defaultWarrantyDate, replyMessageId);
   if (!command) return { handled: false, message: "" };
   const result = await applyRecordCommand(command);
-  return { handled: true, message: result.ok ? "\u5df2\u66f4\u65b0 " + (result.cardNumber || command.cardToken) + ": " + result.status : result.message };
+  if (result.ok) return { handled: true, reactionOnly: true, reaction: "\u2705", message: "" };
+  return { handled: true, message: result.message };
 }
 
 function detectCarrier(text, carrierCode = "") {
