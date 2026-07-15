@@ -3204,14 +3204,19 @@ app.post("/telegram", async (req, res) => {
     if (/^(\u5bfc\u5165|\u88dc\u5bfc\u5165|\u8865\u5bfc\u5165|import)$/i.test(clean(text)) && replyText && chatMatchesRole(chatId, roles.import)) {
       if (!isImportMessage(replyText, senderName) && !isPotentialImportMessage(replyText)) {
         await writeBotNotice("补导入失败：回复内容不像卡资料");
+        await replyToTelegramMessage(chatId, message?.message_id, "这条回复内容不像卡资料，没导入。");
         res.status(200).send("ok");
         return;
       }
       const replyPhotoFileId = telegramLargestPhotoFileId(message?.reply_to_message);
       const importResult = await saveTelegramRecord(replyText, senderName, replyMessageId || message?.message_id, replyPhotoFileId);
       if (importResult.pending) {
+        await replyToTelegramMessage(chatId, message?.message_id, `已放入待处理\n卡号: ${importResult.cardNumber || "-"}\n原因: ${importResult.reason || "-"}`);
         await writeBotNotice(`补导入待处理：${importResult.cardNumber || "-"} · ${importResult.reason || "-"}`);
       } else {
+        const proof = `已导入 ${importResult.dealerName || ""}`.trim();
+        const sent = await replyToTelegramMessage(chatId, message?.message_id, proof);
+        if (!sent) await reply(chatId, proof);
         await writeBotNotice(`补导入成功：${importResult.dealerName || ""} · ${importResult.cardNumber || "-"}`);
       }
       res.status(200).send("ok");
@@ -3243,8 +3248,8 @@ app.post("/telegram", async (req, res) => {
         return;
       }
       await setTrackingNotificationChat(chatId);
-      const result = await checkTrackingMyRecords("", { sendSummary: true });
-      await reply(chatId, result.summarySent ? "\u5df2\u68c0\u67e5\u5e76\u53d1\u9001\u5305\u88f9\u72b6\u6001" : "\u5df2\u68c0\u67e5\uff0c\u6ca1\u6709\u9700\u8981\u53d1\u9001\u7684\u5305\u88f9");
+      const checkResult = await checkTrackingMyRecords("", { sendSummary: true });
+      await reply(chatId, checkResult.summarySent ? "\u5df2\u68c0\u67e5\u5e76\u53d1\u9001\u5305\u88f9\u72b6\u6001" : "\u5df2\u68c0\u67e5\uff0c\u6ca1\u6709\u9700\u8981\u53d1\u9001\u7684\u5305\u88f9");
       res.status(200).send("ok");
       return;
     }
@@ -3275,12 +3280,16 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ignored");
       return;
     }
-    const result = await saveTelegramRecord(text, senderName, message?.message_id, photoFileId);
+    const result = await saveTelegramRecord(text, senderName, message?.message_id, senderName);
     if (result.pending) {
+      await reply(chatId, `已放入待处理\n卡号: ${result.cardNumber || "-"}\n原因: ${result.reason || "-"}`);
       await writeBotNotice(`导入待处理：${result.cardNumber || "-"} · ${result.reason || "-"}`);
       res.status(200).send("ok");
       return;
     }
+    const importProof = `已导入 ${result.dealerName || ""}`.trim();
+    const importProofSent = await replyToTelegramMessage(chatId, message?.message_id, importProof);
+    if (!importProofSent) await reply(chatId, importProof);
     await writeBotNotice(`导入成功：${result.dealerName || ""} · ${result.cardNumber || "-"}`);
     res.status(200).send("ok");
   } catch (error) {
