@@ -3211,10 +3211,9 @@ app.post("/telegram", async (req, res) => {
 
     const roles = await getTelegramRoleChats();
     const looksLikeImport = isImportMessage(text, senderName) || isPotentialImportMessage(text);
-    const importRoleAllowed = chatMatchesRole(chatId, roles.import)
-      || (!chatMatchesAnyRole(chatId, roles, ["warranty", "tracking", "pickup"]) && looksLikeImport);
+    const importRoleAllowed = looksLikeImport || chatMatchesRole(chatId, roles.import);
 
-    if (/^(导入|補导入|补导入|import)$/i.test(clean(text)) && replyText && chatMatchesRole(chatId, roles.import)) {
+    if (/^(\u5bfc\u5165|\u88dc\u5bfc\u5165|\u8865\u5bfc\u5165|import)$/i.test(clean(text)) && replyText) {
       if (!isImportMessage(replyText, senderName) && !isPotentialImportMessage(replyText)) {
         await writeBotNotice("补导入失败：回复内容不像卡资料");
         await replyToTelegramMessage(chatId, message?.message_id, "这条回复内容不像卡资料，没导入。");
@@ -3236,7 +3235,7 @@ app.post("/telegram", async (req, res) => {
       return;
     }
 
-    if (undoWordsFromText(text) && chatMatchesRole(chatId, roles.import)) {
+    if (undoWordsFromText(text) && (chatMatchesRole(chatId, roles.import) || !chatMatchesAnyRole(chatId, roles, ["warranty", "tracking", "pickup"]))) {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
         if (commandResult.message) await writeBotNotice(commandResult.message);
