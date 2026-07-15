@@ -1059,6 +1059,9 @@ function parseCommandDate(text) {
   const localMatch = text.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})\b/);
   if (localMatch) return formatDateParts(localMatch[3], localMatch[2], localMatch[1]);
 
+  const shortLocalMatch = text.match(/\b(\d{1,2})[-/.](\d{1,2})(?![-/.]\d)\b/);
+  if (shortLocalMatch) return formatDateParts(new Date().getFullYear(), shortLocalMatch[2], shortLocalMatch[1]);
+
   return "";
 }
 
@@ -1125,7 +1128,10 @@ function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
   const source = String(text || "");
   const warrantyDate = parseCommandDate(source) || defaultWarrantyDate;
   const warrantyDays = parseWarrantyDays(source);
-  if (!warrantyDate || !/(\u5f00\u4fdd|\u4fdd\d*|\d+\s*\u5929)/.test(source)) return [];
+  if (!warrantyDate) return [];
+  const hasWarrantyMarker = /(\u5f00\u4fdd|\u4fdd\d*|\d+\s*\u5929)/.test(source);
+  const hasCardList = /[A-Z]{2,12}\s*[-_.]?\s*\d{4}/i.test(source);
+  if (!hasWarrantyMarker && !hasCardList) return [];
   const commands = [];
   const seen = new Set();
   for (const line of source.split(/\r?\n/)) {
@@ -1138,6 +1144,49 @@ function parseBulkRecordCommands(text, defaultWarrantyDate = "") {
     }
   }
   return commands;
+}
+
+function displayWarrantyNoticeDate(dateText) {
+  const [year, month, day] = String(dateText || "").split("-").map(Number);
+  if (!year || !month || !day) return "";
+  return `${day}/${month}`;
+}
+
+function buildWarrantyGroupNotification(text, defaultWarrantyDate = "") {
+  const source = String(text || "");
+  const warrantyDate = parseCommandDate(source) || defaultWarrantyDate;
+  if (!warrantyDate) return "";
+
+  const warrantyDays = parseWarrantyDays(source);
+  const rows = [];
+  const statusSet = new Set();
+  let sectionStatus = source.match(/(\u5f00\u4fdd|\u4fdd\d*|\d+\s*\u5929)/) || parseCommandDate(source) ? "\u5f00\u4fdd" : "";
+  const seen = new Set();
+
+  for (const line of source.split(/\r?\n/)) {
+    const compact = line.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const cardTokens = compact.match(/[A-Z]{2,12}\d{4}/g) || [];
+    const inlineStatus = statusFromCommandLine(line);
+    if (!cardTokens.length) {
+      if (inlineStatus) sectionStatus = inlineStatus;
+      else if (line.includes("\u5f00\u4fdd") || parseWarrantyDays(line) || parseCommandDate(line)) sectionStatus = "\u5f00\u4fdd";
+      continue;
+    }
+
+    const status = inlineStatus || sectionStatus || "\u5f00\u4fdd";
+    for (const cardToken of cardTokens) {
+      if (seen.has(cardToken)) continue;
+      seen.add(cardToken);
+      if (status) statusSet.add(status);
+      rows.push(status === "\u5f00\u4fdd" ? cardToken : `${cardToken} ${status}`);
+    }
+  }
+
+  if (!rows.length) return "";
+  const statuses = Array.from(statusSet);
+  const titleStatuses = statuses.length ? statuses.join(" ") : "\u5f00\u4fdd";
+  const dateLine = `${displayWarrantyNoticeDate(warrantyDate)}${warrantyDays ? ` \u4fdd${warrantyDays}` : ""}`;
+  return `\u5df2\u66f4\u65b0 ${titleStatuses}\n\u8bf7\u901a\u77e5\u5220\u9664online app \uff01\uff01\uff01\n\n${dateLine}\n${rows.join("\n")}`;
 }
 
 
@@ -3328,6 +3377,10 @@ app.post("/telegram", async (req, res) => {
             ? `开保群已处理：${clean(text).slice(0, 120)} · ${commandResult.message}`
             : `开保群已处理：${clean(text).slice(0, 120)}`;
           await writeBotNotice(noticeText);
+          const warrantyNotice = buildWarrantyGroupNotification(text, defaultWarrantyDate);
+          if (warrantyNotice && roles.tracking && String(roles.tracking) !== String(chatId)) {
+            await sendTelegramMessage(roles.tracking, warrantyNotice);
+          }
           res.status(200).send("ok");
           return;
         }
