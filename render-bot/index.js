@@ -3180,6 +3180,27 @@ app.post("/telegram", async (req, res) => {
       return;
     }
     const roles = await getTelegramRoleChats();
+    if (/^(导入|補导入|补导入|import)$/i.test(clean(text)) && replyText && chatMatchesRole(chatId, roles.import)) {
+      if (!isImportMessage(replyText, senderName) && !isPotentialImportMessage(replyText)) {
+        await replyToTelegramMessage(chatId, message?.message_id, "这条回复内容不像卡资料，没导入。");
+        res.status(200).send("ok");
+        return;
+      }
+      const replyPhotoFileId = telegramLargestPhotoFileId(message?.reply_to_message);
+      const importResult = await saveTelegramRecord(
+        replyText,
+        senderName,
+        replyMessageId || message?.message_id,
+        replyPhotoFileId
+      );
+      if (importResult.pending) {
+        await replyToTelegramMessage(chatId, message?.message_id, `已放入待处理\n卡号: ${importResult.cardNumber || "-"}\n原因: ${importResult.reason || "-"}`);
+      } else {
+        await replyToTelegramMessage(chatId, message?.message_id, `已导入 ${importResult.dealerName || ""}`.trim());
+      }
+      res.status(200).send("ok");
+      return;
+    }
     if (undoWordsFromText(text) && chatMatchesRole(chatId, roles.import)) {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
