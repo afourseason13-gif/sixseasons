@@ -58,6 +58,10 @@ function firebaseKey(value) {
   return encodeURIComponent(clean(value)).replace(/[.#$\[\]]/g, "_");
 }
 
+function stripUndefined(value) {
+  return Object.fromEntries(Object.entries(value || {}).filter(([, item]) => item !== undefined));
+}
+
 function base64UrlJson(value) {
   return Buffer.from(JSON.stringify(value))
     .toString("base64")
@@ -1664,7 +1668,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
       return { ok: false, pending: true, duplicate: true, reason: pendingReason, dealerName, cardNumber };
     }
     const pendingRef = db.ref("dealer-card-tracker/pendingImports").push();
-    await pendingRef.set({
+    await pendingRef.set(stripUndefined({
       type: pendingType,
       reason: pendingReason,
       missingFields,
@@ -1678,20 +1682,20 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
       bankAccount,
       trackingNumber: shipment.trackingNumber,
       carrier: shipment.carrier,
-      trackingTail: shipment.tail,
+      trackingTail: shipment.tailNumber,
       telegramMessageId,
       createdAt: new Date().toISOString()
-    });
+    }));
     return { ok: false, pending: true, reason: pendingReason, dealerName, cardNumber };
   }
 
   const dealerId = await ensureDealer(dealerName);
-  const baseUpdate = {
+  const baseUpdate = stripUndefined({
     dealerId,
     dealerName,
     cardNumber,
     carrier: shipment.carrier,
-    trackingTail: shipment.tail,
+    trackingTail: shipment.tailNumber,
     trackingNumber: shipment.trackingNumber,
     status: "\u5bc4",
     note: "Telegram \u81ea\u52a8\u5bfc\u5165",
@@ -1700,7 +1704,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
     telegramSenderName: senderName,
     importedFromTelegram: true,
     updatedAt: Date.now()
-  };
+  });
 
   if (existingRecord) {
     await db.ref("dealer-card-tracker/records/" + existingRecord.id).update(baseUpdate);
