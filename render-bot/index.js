@@ -1864,6 +1864,23 @@ function chatMatchesRole(chatId, roleChatId) {
   return !roleChatId || String(chatId) === String(roleChatId);
 }
 
+function chatMatchesAnyRole(chatId, roles = {}, names = []) {
+  return names.some((name) => roles[name] && String(chatId) === String(roles[name]));
+}
+
+async function writeBotNotice(message) {
+  const text = clean(message);
+  if (!text) return;
+  await db.ref("dealer-card-tracker/botNotice").set({
+    message: text,
+    updatedAt: new Date().toISOString()
+  });
+  await db.ref("dealer-card-tracker/notice").set({
+    message: text,
+    updatedAt: new Date().toISOString()
+  });
+}
+
 function telegramRoleSummary(chatId, roles) {
   const current = String(chatId);
   const assigned = [];
@@ -3182,23 +3199,20 @@ app.post("/telegram", async (req, res) => {
       return;
     }
     const roles = await getTelegramRoleChats();
-    if (/^(导入|補导入|补导入|import)$/i.test(clean(text)) && replyText && chatMatchesRole(chatId, roles.import)) {
+    const looksLikeImport = isImportMessage(text, senderName) || isPotentialImportMessage(text);
+    const importRoleAllowed = chatMatchesRole(chatId, roles.import) || (!chatMatchesAnyRole(chatId, roles, ["warranty", "tracking", "pickup"]) && looksLikeImport);
+    if (/^(\u5bfc\u5165|\u88dc\u5bfc\u5165|\u8865\u5bfc\u5165|import)$/i.test(clean(text)) && replyText && chatMatchesRole(chatId, roles.import)) {
       if (!isImportMessage(replyText, senderName) && !isPotentialImportMessage(replyText)) {
-        await replyToTelegramMessage(chatId, message?.message_id, "这条回复内容不像卡资料，没导入。");
+        await writeBotNotice("补导入失败：回复内容不像卡资料");
         res.status(200).send("ok");
         return;
       }
       const replyPhotoFileId = telegramLargestPhotoFileId(message?.reply_to_message);
-      const importResult = await saveTelegramRecord(
-        replyText,
-        senderName,
-        replyMessageId || message?.message_id,
-        replyPhotoFileId
-      );
+      const importResult = await saveTelegramRecord(replyText, senderName, replyMessageId || message?.message_id, replyPhotoFileId);
       if (importResult.pending) {
-        await replyToTelegramMessage(chatId, message?.message_id, `已放入待处理\n卡号: ${importResult.cardNumber || "-"}\n原因: ${importResult.reason || "-"}`);
+        await writeBotNotice(`补导入待处理：${importResult.cardNumber || "-"} · ${importResult.reason || "-"}`);
       } else {
-        await replyToTelegramMessage(chatId, message?.message_id, `已导入 ${importResult.dealerName || ""}`.trim());
+        await writeBotNotice(`补导入成功：${importResult.dealerName || ""} · ${importResult.cardNumber || "-"}`);
       }
       res.status(200).send("ok");
       return;
@@ -3206,7 +3220,7 @@ app.post("/telegram", async (req, res) => {
     if (undoWordsFromText(text) && chatMatchesRole(chatId, roles.import)) {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
-        await reply(chatId, commandResult.message);
+        if (commandResult.message) await writeBotNotice(commandResult.message);
         res.status(200).send("ok");
         return;
       }
@@ -3218,12 +3232,8 @@ app.post("/telegram", async (req, res) => {
         res.status(200).send("ok");
         return;
       }
-      for (const detail of detailResult.details) {
-        await reply(chatId, detail);
-      }
-      if (detailResult.missing.length) {
-        await reply(chatId, `\u627e\u4e0d\u5230\uff1a${detailResult.missing.join(", ")}`);
-      }
+      for (const detail of detailResult.details) await reply(chatId, detail);
+      if (detailResult.missing.length) await reply(chatId, `\u627e\u4e0d\u5230\uff1a${detailResult.missing.join(", ")}`);
       res.status(200).send("ok");
       return;
     }
@@ -3239,50 +3249,39 @@ app.post("/telegram", async (req, res) => {
       return;
     }
     const isDriverSignedCommand = parseDriverSignedCommands(text).length > 0;
-    const commandRoleAllowed = isDriverSignedCommand
-      ? chatMatchesRole(chatId, roles.tracking)
-      : chatMatchesRole(chatId, roles.warranty);
+    const commandRoleAllowed = isDriverSignedCommand ? chatMatchesRole(chatId, roles.tracking) : chatMatchesRole(chatId, roles.warranty);
     if (commandRoleAllowed) {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
         if (commandResult.reactionOnly) {
-          const reacted = await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "\u2705");
-          if (!reacted && !commandResult.message) {
-            await replyToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "\u2705");
-          }
+          await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "\u2705");
+          await writeBotNotice(`状态已更新：${clean(text).slice(0, 120)}`);
           if (commandResult.message) await reply(chatId, commandResult.message);
         } else if (commandResult.message) {
           await reply(chatId, commandResult.message);
         }
-        for (const message of commandResult.messages || []) {
-          await reply(chatId, message);
-        }
-        if (isDriverSignedCommand && commandResult.pickupNotice && roles.pickup && String(roles.pickup) !== String(chatId)) {
-          await sendTelegramMessage(roles.pickup, commandResult.pickupNotice);
-        }
+        for (const item of commandResult.messages || []) await reply(chatId, item);
+        if (isDriverSignedCommand && commandResult.pickupNotice && roles.pickup && String(roles.pickup) !== String(chatId)) await sendTelegramMessage(roles.pickup, commandResult.pickupNotice);
         res.status(200).send("ok");
         return;
       }
     }
-    if (!chatMatchesRole(chatId, roles.import)) {
+    if (!importRoleAllowed) {
+      if (looksLikeImport) await writeBotNotice(`导入被忽略：这个群不是导入群。群ID ${chatId}`);
       res.status(200).send("ignored");
       return;
     }
-    if (!isImportMessage(text, senderName) && !isPotentialImportMessage(text)) {
+    if (!looksLikeImport) {
       res.status(200).send("ignored");
       return;
     }
     const result = await saveTelegramRecord(text, senderName, message?.message_id, photoFileId);
     if (result.pending) {
-      await reply(chatId, `已放入待处理\n卡号: ${result.cardNumber || "-"}\n原因: ${result.reason || "-"}`);
+      await writeBotNotice(`导入待处理：${result.cardNumber || "-"} · ${result.reason || "-"}`);
       res.status(200).send("ok");
       return;
     }
-    const proofMessage = `已导入 ${result.dealerName || ""}`.trim();
-    const proofSent = await replyToTelegramMessage(chatId, message?.message_id, proofMessage);
-    if (!proofSent) {
-      await reply(chatId, proofMessage);
-    }
+    await writeBotNotice(`导入成功：${result.dealerName || ""} · ${result.cardNumber || "-"}`);
     res.status(200).send("ok");
   } catch (error) {
     console.error(error);
