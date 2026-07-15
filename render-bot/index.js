@@ -737,7 +737,7 @@ function isImportMessage(text, fallbackName = "") {
     ic: pickLineValue(text, ["IC NO", "IC"]),
     bank: pickLineValue(text, ["BANK", "NAMA BANK"]),
     account: pickLineValue(text, ["NO AKAUN", "ACC. NUMBER", "ACC NUMBER", "ACCOUNT NUMBER", "AKAUN", "ACCOUNT"]),
-        card: pickLineValue(clean(updatedRecord.formattedDetails), ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]) || updatedRecord.cardNumber,
+    card: pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]),
     pin: pickLineValue(text, ["PIN KAD ATM", "ATM PIN", "PIN ATM", "PIN"])
   };
   const filledCount = Object.values(fields).filter(Boolean).length;
@@ -3251,11 +3251,11 @@ app.post("/telegram", async (req, res) => {
     }
     const result = await saveTelegramRecord(text, senderName, message?.message_id, photoFileId);
     if (result.pending) {
-      await reply(chatId, `闂備浇顕у锕傦綖婢舵劖鍋ら柡鍥╁剱閸ゆ洟鏌熼幑鎰厫鐎规洖寮堕幈銊ノ熺拠宸殺闂佺顑嗛幐鎼佸煡婢跺ň鏋嶆い鎾楀倿鍋楅悗瑙勬礉濞咃絾绂掗敂鍓ч┏閻庯綆浜濋鍌炴⒒娴ｅ憡鍟炲〒姘殜瀹曘垺绺介崨濠備函闂備緡鍓欑粔鐢稿煕閹达附鐓涘璺哄绾爼宕崫銉х＝濞达綁顥撶拹浼存煕鐎ｎ亷宸ユい鏇秮椤㈡鍩€椤掑嫸缍栨繝濠傛噹缁躲倝鏌曟径鍡樻珕闁绘挻娲樻穱濠囨倷闂堟稑濮﹂梺绋款儐閹瑰洤鐣峰鈧獮鎾诲箳閸℃鈧ジ姊?{result.cardNumber || "-"}\n闂傚倸鍊风粈渚€骞夐敓鐘偓锕傚炊椤掆偓缁愭骞栫划鐟扮厬闁告繂瀚烽悡銉╂煕椤愩倕鏋戞繛?{result.reason}`);
+      await reply(chatId, `已放入待处理\n卡号: ${result.cardNumber || "-"}\n原因: ${result.reason || "-"}`);
       res.status(200).send("ok");
       return;
     }
-    const proofMessage = `闂備浇顕уù鐑藉箠閹捐绠熼梽鍥Φ閹版澘绀冩い鏇炴噺閺咁亪姊绘笟鍥у缂佸顕划?${result.dealerName || ""}`.trim();
+    const proofMessage = `已导入 ${result.dealerName || ""}`.trim();
     const proofSent = await replyToTelegramMessage(chatId, message?.message_id, proofMessage);
     if (!proofSent) {
       await reply(chatId, proofMessage);
@@ -3287,3 +3287,4 @@ setInterval(() => {
 setInterval(() => {
   syncUnreadGmailLists().catch((error) => console.error(error));
 }, 10 * 60 * 1000);
+
