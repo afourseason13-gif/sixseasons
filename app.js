@@ -945,6 +945,7 @@ function initGmailListTest() {
   if (!form || !dealerInput || !countInput || !result) return;
 
   let latestStock = 0;
+  let latestTakenPhones = [];
   const formatCheckTime = (date = new Date()) => date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   const formatDealerTaken = (items = []) => {
     const rows = Array.isArray(items)
@@ -1003,12 +1004,29 @@ function initGmailListTest() {
   loadStock();
   setInterval(loadStock, 10 * 60 * 1000);
 
+  result.addEventListener("click", async (event) => {
+    const copyButton = event.target.closest("[data-gmail-copy-list]");
+    if (!copyButton) return;
+    const text = latestTakenPhones.join("\n");
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      copyButton.textContent = "已复制全部号码";
+      setTimeout(() => {
+        copyButton.textContent = "复制全部号码";
+      }, 1400);
+    } catch {
+      prompt("复制全部号码", text);
+    }
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const dealer = dealerInput.value.trim() || "dealer";
     const requested = Math.max(1, Number(countInput.value || 20));
     const today = new Date().toLocaleDateString("en-GB");
     if (status) status.textContent = "TAKING STOCK...";
+    latestTakenPhones = [];
     result.classList.remove("is-warning");
     result.innerHTML = "<strong>TAKING " + requested + " - " + escapeHtml(dealer) + "</strong><pre>" + escapeHtml([
       today,
@@ -1031,9 +1049,11 @@ function initGmailListTest() {
       if (lastChecked) lastChecked.textContent = "Checked " + formatCheckTime();
       if (status) status.textContent = "SHEET " + body.count;
       result.classList.remove("is-warning");
-      result.innerHTML = "<strong>SAVED - " + escapeHtml(body.date || today) + " - " + escapeHtml(dealer) + " - " + selected.length + "</strong><pre>" + escapeHtml(selected.join("\n")) + "</pre>";
+      latestTakenPhones = selected.map((phone) => String(phone || "").trim()).filter(Boolean);
+      result.innerHTML = "<strong>SAVED - " + escapeHtml(body.date || today) + " - " + escapeHtml(dealer) + " - " + selected.length + "</strong><pre>" + escapeHtml(latestTakenPhones.join("\n")) + "</pre><button class=\"gmail-copy-list-button\" type=\"button\" data-gmail-copy-list>复制全部号码</button>";
     } catch (error) {
       if (status) status.textContent = "SHEET FAILED";
+      latestTakenPhones = [];
       result.classList.add("is-warning");
       result.innerHTML = "<strong>EXPORT FAILED - " + escapeHtml(dealer) + "</strong><pre>" + escapeHtml([
         error.message || "Failed to take backend stock.",
