@@ -751,7 +751,9 @@ function isPotentialImportMessage(text) {
   ];
   const matchedFields = structuredLabels.filter((label) => pickLineValue(text, [label])).length;
   const hasCardOrShipment = Boolean(parseCardNumber(text) || parseShipmentCode(text).trackingNumber);
-  return matchedFields >= 1 && hasCardOrShipment;
+  const upper = String(text || "").toUpperCase();
+  const hasImportWords = /\b(NAMA|NAME|IC|BANK|AKAUN|ACCOUNT|ACC\.?\s*NUMBER|NO\s*KAD|CARD\s*16|PIN\s*KAD|ATM\s*PIN)\b/.test(upper);
+  return matchedFields >= 2 || (matchedFields >= 1 && hasCardOrShipment) || (hasImportWords && matchedFields >= 1);
 }
 
 function parseShipmentCode(text) {
@@ -1861,7 +1863,7 @@ async function getTelegramRoleChats() {
 }
 
 function chatMatchesRole(chatId, roleChatId) {
-  return !roleChatId || String(chatId) === String(roleChatId);
+  return Boolean(roleChatId) && String(chatId) === String(roleChatId);
 }
 
 function chatMatchesAnyRole(chatId, roles = {}, names = []) {
@@ -3156,60 +3158,62 @@ app.post("/telegram", async (req, res) => {
 
   try {
     await rememberTelegramChat(chatId);
-    const photoFileId = telegramLargestPhotoFileId(message);
     const text = messageText;
     if (!text) {
       res.status(200).send("ignored");
       return;
     }
+
     const lowerText = text.toLowerCase();
     if (lowerText.startsWith("/setimportgroup")) {
       await setTelegramRoleChat("import", chatId);
-      await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u5361\u53f7\u8d44\u6599\u5bfc\u5165\u7fa4\n\u7fa4 ID: ${chatId}`);
+      await reply(chatId, `已设置这里为卡号资料导入群\n群 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
     if (lowerText.startsWith("/setwarrantygroup")) {
       await setTelegramRoleChat("warranty", chatId);
-      await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u5f00\u4fdd/\u95ee\u9898\u72b6\u6001\u7fa4\n\u7fa4 ID: ${chatId}`);
+      await reply(chatId, `已设置这里为开保/问题状态群\n群 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
     if (lowerText.startsWith("/setnotifygroup")) {
       await setTelegramRoleChat("tracking", chatId);
-      await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u5305\u88f9\u72b6\u6001\u4e0e\u8f66\u624b\u7fa4\n\u7fa4 ID: ${chatId}`);
+      await reply(chatId, `已设置这里为包裹状态与车手群\n群 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
     if (lowerText.startsWith("/setpickupgroup")) {
       await setTelegramRoleChat("pickup", chatId);
-      await reply(chatId, `\u5df2\u8bbe\u7f6e\u8fd9\u91cc\u4e3a\u8f66\u624b\u901a\u77e5\u7fa4\n\u8f66\u624b\u53d1 jnt1234 mbb1234 \u540e\uff0c\u4f1a\u901a\u77e5\u5230\u8fd9\u91cc\n\u7fa4 ID: ${chatId}`);
+      await reply(chatId, `已设置这里为车手通知群\n车手发 jnt1234 mbb1234 后，会通知到这里\n群 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
     if (lowerText.startsWith("/grouprole")) {
       const roles = await getTelegramRoleChats();
-      await reply(chatId, `\u5f53\u524d\u7fa4\u7528\u9014: ${telegramRoleSummary(chatId, roles)}\n\u7fa4 ID: ${chatId}`);
+      await reply(chatId, `当前群用途: ${telegramRoleSummary(chatId, roles)}\n群 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
     if (lowerText.startsWith("/chatid")) {
-      await reply(chatId, `\u7fa4 ID: ${chatId}`);
+      await reply(chatId, `群 ID: ${chatId}`);
       res.status(200).send("ok");
       return;
     }
+
     const roles = await getTelegramRoleChats();
     const looksLikeImport = isImportMessage(text, senderName) || isPotentialImportMessage(text);
-    const importRoleAllowed = chatMatchesRole(chatId, roles.import) || (!chatMatchesAnyRole(chatId, roles, ["warranty", "tracking", "pickup"]) && looksLikeImport);
-    if (/^(\u5bfc\u5165|\u88dc\u5bfc\u5165|\u8865\u5bfc\u5165|import)$/i.test(clean(text)) && replyText && chatMatchesRole(chatId, roles.import)) {
+    const importRoleAllowed = chatMatchesRole(chatId, roles.import) || (!roles.import && !chatMatchesAnyRole(chatId, roles, ["warranty", "tracking", "pickup"]) && looksLikeImport);
+
+    if (/^(导入|補导入|补导入|import)$/i.test(clean(text)) && replyText && chatMatchesRole(chatId, roles.import)) {
       if (!isImportMessage(replyText, senderName) && !isPotentialImportMessage(replyText)) {
         await writeBotNotice("补导入失败：回复内容不像卡资料");
         await replyToTelegramMessage(chatId, message?.message_id, "这条回复内容不像卡资料，没导入。");
         res.status(200).send("ok");
         return;
       }
-      const replyPhotoFileId = telegramLargestPhotoFileId(message?.reply_to_message);
-      const importResult = await saveTelegramRecord(replyText, senderName, replyMessageId || message?.message_id, replyPhotoFileId);
+
+      const importResult = await saveTelegramRecord(replyText, senderName, replyMessageId || message?.message_id, senderName);
       if (importResult.pending) {
         await replyToTelegramMessage(chatId, message?.message_id, `已放入待处理\n卡号: ${importResult.cardNumber || "-"}\n原因: ${importResult.reason || "-"}`);
         await writeBotNotice(`补导入待处理：${importResult.cardNumber || "-"} · ${importResult.reason || "-"}`);
@@ -3222,6 +3226,7 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ok");
       return;
     }
+
     if (undoWordsFromText(text) && chatMatchesRole(chatId, roles.import)) {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
@@ -3230,18 +3235,20 @@ app.post("/telegram", async (req, res) => {
         return;
       }
     }
-    if (clean(text) === "\u8d44\u6599" && replyText && chatMatchesRole(chatId, roles.tracking)) {
+
+    if (clean(text) === "资料" && replyText && chatMatchesRole(chatId, roles.tracking)) {
       const detailResult = await getDriverSignedDetailsFromText(replyText);
       if (!detailResult.details.length) {
-        await reply(chatId, detailResult.missing.length ? `\u627e\u4e0d\u5230\uff1a${detailResult.missing.join(", ")}` : "\u627e\u4e0d\u5230\u8fd9\u6761\u8f66\u624b\u8bb0\u5f55\u7684\u8d44\u6599");
+        await reply(chatId, detailResult.missing.length ? `找不到：${detailResult.missing.join(", ")}` : "找不到这条车手记录的资料");
         res.status(200).send("ok");
         return;
       }
       for (const detail of detailResult.details) await reply(chatId, detail);
-      if (detailResult.missing.length) await reply(chatId, `\u627e\u4e0d\u5230\uff1a${detailResult.missing.join(", ")}`);
+      if (detailResult.missing.length) await reply(chatId, `找不到：${detailResult.missing.join(", ")}`);
       res.status(200).send("ok");
       return;
     }
+
     if (lowerText.startsWith("/checktracking")) {
       if (!chatMatchesRole(chatId, roles.tracking)) {
         res.status(200).send("ignored");
@@ -3249,17 +3256,18 @@ app.post("/telegram", async (req, res) => {
       }
       await setTrackingNotificationChat(chatId);
       const checkResult = await checkTrackingMyRecords("", { sendSummary: true });
-      await reply(chatId, checkResult.summarySent ? "\u5df2\u68c0\u67e5\u5e76\u53d1\u9001\u5305\u88f9\u72b6\u6001" : "\u5df2\u68c0\u67e5\uff0c\u6ca1\u6709\u9700\u8981\u53d1\u9001\u7684\u5305\u88f9");
+      await reply(chatId, checkResult.summarySent ? "已检查并发送包裹状态" : "已检查，没有需要发送的包裹");
       res.status(200).send("ok");
       return;
     }
+
     const isDriverSignedCommand = parseDriverSignedCommands(text).length > 0;
     const commandRoleAllowed = isDriverSignedCommand ? chatMatchesRole(chatId, roles.tracking) : chatMatchesRole(chatId, roles.warranty);
     if (commandRoleAllowed) {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
         if (commandResult.reactionOnly) {
-          await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "\u2705");
+          await reactToTelegramMessage(chatId, message?.message_id, commandResult.reaction || "✅");
           await writeBotNotice(`状态已更新：${clean(text).slice(0, 120)}`);
           if (commandResult.message) await reply(chatId, commandResult.message);
         } else if (commandResult.message) {
@@ -3271,6 +3279,7 @@ app.post("/telegram", async (req, res) => {
         return;
       }
     }
+
     if (!importRoleAllowed) {
       if (looksLikeImport) await writeBotNotice(`导入被忽略：这个群不是导入群。群ID ${chatId}`);
       res.status(200).send("ignored");
@@ -3280,6 +3289,7 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ignored");
       return;
     }
+
     const result = await saveTelegramRecord(text, senderName, message?.message_id, senderName);
     if (result.pending) {
       await reply(chatId, `已放入待处理\n卡号: ${result.cardNumber || "-"}\n原因: ${result.reason || "-"}`);
@@ -3287,6 +3297,7 @@ app.post("/telegram", async (req, res) => {
       res.status(200).send("ok");
       return;
     }
+
     const importProof = `已导入 ${result.dealerName || ""}`.trim();
     const importProofSent = await replyToTelegramMessage(chatId, message?.message_id, importProof);
     if (!importProofSent) await reply(chatId, importProof);
@@ -3294,6 +3305,7 @@ app.post("/telegram", async (req, res) => {
     res.status(200).send("ok");
   } catch (error) {
     console.error(error);
+    await writeBotNotice(`机器人错误：${error.message || error}`);
     res.status(200).send("error handled");
   }
 });
