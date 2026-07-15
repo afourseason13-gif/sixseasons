@@ -386,11 +386,20 @@ async function appendGmailStockRowsV2(leads) {
   return { appended: rows.length };
 }
 
+async function readGmailStockSheetPhones() {
+  const readRange = encodeURIComponent(gmailStockSheetName) + "!A1:K2000";
+  const read = await googleSheetsApi(gmailListSpreadsheetId + "/values/" + readRange);
+  const rows = read.values || [];
+  return new Set(rows.slice(1).map((row) => normalizeLeadPhone((row || [])[2])).filter(Boolean));
+}
+
 async function saveGmailLeadsV2(leads) {
   const stockSnap = await db.ref(gmailStockPath).get();
   const current = stockSnap.val() || {};
+  const existingSheetPhones = await readGmailStockSheetPhones().catch(() => new Set());
   const updates = {};
   const newLeads = [];
+  const appendLeads = [];
   const now = new Date().toISOString();
   (leads || []).forEach((lead) => {
     const phone = normalizeLeadPhone(lead.phone);
@@ -400,8 +409,15 @@ async function saveGmailLeadsV2(leads) {
     const saved = { phone, name: clean(lead.name) || "gmail", amount: clean(lead.amount), location: clean(lead.location), job: clean(lead.job), source: clean(lead.source) || "gmail", stockDate: clean(lead.date) || todayListDate(), importedAt: clean(lead.importedAt) || now, syncedAt: now, exportedAt: "", exportedDealer: "", rawText: clean(lead.rawText).slice(0, 500) };
     updates[gmailStockPath + "/" + key] = saved;
     newLeads.push(saved);
+    if (!existingSheetPhones.has(phone)) {
+      existingSheetPhones.add(phone);
+      appendLeads.push(saved);
+    }
   });
-  if (Object.keys(updates).length) { await db.ref().update(updates); await appendGmailStockRowsV2(newLeads); }
+  if (Object.keys(updates).length) {
+    await db.ref().update(updates);
+    await appendGmailStockRowsV2(appendLeads);
+  }
   return { imported: newLeads.length, leads: newLeads };
 }
 
