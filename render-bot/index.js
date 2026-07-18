@@ -1970,6 +1970,11 @@ function chatMatchesAnyRole(chatId, roles = {}, names = []) {
   return names.some((name) => roles[name] && String(chatId) === String(roles[name]));
 }
 
+function chatMatchesDataGroup(chatId, roles = {}) {
+  if (roles.import) return chatMatchesRole(chatId, roles.import);
+  return chatMatchesRole(chatId, roles.tracking);
+}
+
 async function writeBotNotice(message) {
   const text = clean(message);
   if (!text) return;
@@ -2783,8 +2788,9 @@ async function fetchTrackingMyStatus(record) {
 }
 
 async function getTrackingChatId() {
-  const selectedChatId = (await db.ref("dealer-card-tracker/settings/trackingNotificationChatId").get()).val();
-  return selectedChatId || announceChatId || (await db.ref("dealer-card-tracker/settings/telegramChatId").get()).val();
+  const snapshot = await db.ref("dealer-card-tracker/settings").get();
+  const settings = snapshot.val() || {};
+  return settings.importChatId || settings.trackingNotificationChatId || announceChatId || settings.telegramChatId;
 }
 
 function trackingCarrierCode(record) {
@@ -3342,7 +3348,7 @@ app.post("/telegram", async (req, res) => {
       }
     }
 
-    if (clean(text) === "资料" && replyText && chatMatchesRole(chatId, roles.tracking)) {
+    if (clean(text) === "资料" && replyText && chatMatchesDataGroup(chatId, roles)) {
       const detailResult = await getDriverSignedDetailsFromText(replyText);
       if (!detailResult.details.length) {
         await reply(chatId, detailResult.missing.length ? `找不到：${detailResult.missing.join(", ")}` : "找不到这条车手记录的资料");
@@ -3356,11 +3362,10 @@ app.post("/telegram", async (req, res) => {
     }
 
     if (lowerText.startsWith("/checktracking")) {
-      if (!chatMatchesRole(chatId, roles.tracking)) {
+      if (!chatMatchesDataGroup(chatId, roles)) {
         res.status(200).send("ignored");
         return;
       }
-      await setTrackingNotificationChat(chatId);
       const checkResult = await checkTrackingMyRecords("", { sendSummary: true });
       await reply(chatId, checkResult.summarySent ? "已检查并发送包裹状态" : "已检查，没有需要发送的包裹");
       res.status(200).send("ok");
@@ -3368,7 +3373,7 @@ app.post("/telegram", async (req, res) => {
     }
 
     const isDriverSignedCommand = parseDriverSignedCommands(text).length > 0;
-    const commandRoleAllowed = isDriverSignedCommand ? chatMatchesRole(chatId, roles.tracking) : chatMatchesRole(chatId, roles.warranty);
+    const commandRoleAllowed = isDriverSignedCommand ? chatMatchesDataGroup(chatId, roles) : chatMatchesRole(chatId, roles.warranty);
     if (commandRoleAllowed) {
       const commandResult = await handleRecordCommand(text, defaultWarrantyDate, replyMessageId);
       if (commandResult.handled) {
