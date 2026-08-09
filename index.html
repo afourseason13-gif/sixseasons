@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260715-list-stock-cards" />
+    <link rel="stylesheet" href="./styles.css?v=20260809-daily-package-status" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -96,6 +96,29 @@
         </div>
         <div class="home-transit-list" id="homeTransitList"></div>
       </section>
+      </section>
+
+      <section class="daily-package-status-panel" aria-label="每日包裹状态">
+        <div class="daily-package-status-head">
+          <div>
+            <p class="eyebrow">DAILY PACKAGE STATUS</p>
+            <h2>每日包裹状态</h2>
+            <p class="section-copy">手动整理每天包裹状态，可以随时编辑或删除。</p>
+          </div>
+          <span id="dailyPackageStatusCount">0 条</span>
+        </div>
+        <form id="dailyPackageStatusForm" class="daily-package-status-form" autocomplete="off">
+          <label>
+            <span>日期</span>
+            <input id="dailyPackageStatusDate" type="date" />
+          </label>
+          <label class="wide">
+            <span>包裹状态内容</span>
+            <textarea id="dailyPackageStatusMessage" rows="5" placeholder="例如：JNT1234 | MBB6863 派送中 · IPOH"></textarea>
+          </label>
+          <button class="primary" type="submit">新增状态</button>
+        </form>
+        <div class="daily-package-status-list" id="dailyPackageStatusList"></div>
       </section>
 
       <section class="pending-center" id="pendingCenter" hidden aria-label="待匹配资料中心">
@@ -356,6 +379,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260715-list-stock-cards"></script>
+    <script src="./app.js?v=20260809-daily-package-status"></script>
   </body>
 </html>

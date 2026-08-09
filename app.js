@@ -4,6 +4,7 @@ const statusOptionsKey = "dealer-card-tracker-status-options";
 const noticeKey = "dealer-card-tracker-notice";
 const pendingImportsKey = "dealer-card-tracker-pending-imports";
 const unknownDriverCardsKey = "dealer-card-tracker-unknown-driver-cards";
+const dailyPackageStatusKey = "dealer-card-tracker-daily-package-status";
 const announceEndpoint = "https://dealer-tracker.onrender.com/announce";
 const trackingCheckEndpoint = "https://dealer-tracker.onrender.com/check-trackingmy";
 const recordPhotoEndpoint = "https://dealer-tracker.onrender.com/record-photo";
@@ -65,6 +66,7 @@ let statusOptions = [...defaultStatusOptions];
 let noticeText = "";
 let pendingImports = [];
 let unknownDriverCards = [];
+let dailyPackageStatuses = [];
 let saveRecord;
 let deleteRecord;
 let saveDealer;
@@ -76,6 +78,8 @@ let saveDealerBlastDeduct;
 let saveStatusOption;
 let deleteStatusOption;
 let saveNotice;
+let saveDailyPackageStatus;
+let deleteDailyPackageStatus;
 let resolvePendingImport;
 let deletePendingImport;
 let deleteUnknownDriverCard;
@@ -580,6 +584,9 @@ function initIndexPage() {
   const announceStatus = document.querySelector("#announceStatus");
   const cardFinderInput = document.querySelector("#cardFinderInput");
   const cardFinderButton = document.querySelector("#cardFinderButton");
+  const dailyPackageForm = document.querySelector("#dailyPackageStatusForm");
+  const dailyPackageDate = document.querySelector("#dailyPackageStatusDate");
+  const dailyPackageMessage = document.querySelector("#dailyPackageStatusMessage");
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -649,6 +656,59 @@ function initIndexPage() {
     }
   });
   cardFinderButton.addEventListener("click", renderCardDealerFinder);
+  dailyPackageDate.value = malaysiaDateString();
+  dailyPackageForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = dailyPackageMessage.value.trim();
+    if (!message) {
+      alert("请先填写包裹状态内容");
+      return;
+    }
+    await saveDailyPackageStatus({
+      id: createId(),
+      date: dailyPackageDate.value || malaysiaDateString(),
+      message,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    dailyPackageMessage.value = "";
+    dailyPackageDate.value = malaysiaDateString();
+  });
+  document.querySelector("#dailyPackageStatusList")?.addEventListener("click", async (event) => {
+    const item = event.target.closest(".daily-package-status-item");
+    if (!item) return;
+    const id = item.dataset.id;
+    const current = dailyPackageStatuses.find((entry) => entry.id === id);
+    if (!current) return;
+    if (event.target.closest(".daily-package-delete")) {
+      if (confirm("删除这条每日包裹状态？")) await deleteDailyPackageStatus(id);
+      return;
+    }
+    if (event.target.closest(".daily-package-edit")) {
+      item.classList.add("is-editing");
+      item.querySelector(".daily-package-edit-date").value = current.date || malaysiaDateString();
+      item.querySelector(".daily-package-edit-message").value = current.message || "";
+      return;
+    }
+    if (event.target.closest(".daily-package-cancel")) {
+      item.classList.remove("is-editing");
+      return;
+    }
+    if (event.target.closest(".daily-package-save")) {
+      const date = item.querySelector(".daily-package-edit-date").value || malaysiaDateString();
+      const message = item.querySelector(".daily-package-edit-message").value.trim();
+      if (!message) {
+        alert("内容不能为空");
+        return;
+      }
+      await saveDailyPackageStatus({
+        ...current,
+        date,
+        message,
+        updatedAt: new Date().toISOString()
+      });
+    }
+  });
   const pendingList = document.querySelector("#pendingList");
   pendingList?.addEventListener("click", async (event) => {
     const card = event.target.closest(".pending-item");
@@ -851,6 +911,54 @@ function renderHomeTransitBoard() {
       <strong>${escapeHtml(record.cardNumber || "-")}</strong>
       <span>${escapeHtml(record.dealerName || "\u672a\u77e5 Dealer")} · ${escapeHtml(parcelReference(record))}</span>
       <em>${escapeHtml(record.packageStatus || "\u672a\u68c0\u67e5")}</em>
+    `;
+    list.append(item);
+  }
+}
+
+function renderDailyPackageStatusPanel() {
+  const list = document.querySelector("#dailyPackageStatusList");
+  const count = document.querySelector("#dailyPackageStatusCount");
+  if (!list || !count) return;
+
+  const items = dailyPackageStatuses
+    .slice()
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+
+  list.textContent = "";
+  count.textContent = `${items.length} 条`;
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "daily-package-status-empty";
+    empty.textContent = "还没有手动包裹状态，新增后会显示在这里。";
+    list.append(empty);
+    return;
+  }
+
+  for (const entry of items) {
+    const item = document.createElement("article");
+    item.className = "daily-package-status-item";
+    item.dataset.id = entry.id;
+    item.innerHTML = `
+      <div class="daily-package-read">
+        <div>
+          <time>${escapeHtml(entry.date || "-")}</time>
+          <pre>${escapeHtml(entry.message || "")}</pre>
+          <span>更新：${escapeHtml(formatTime(entry.updatedAt || entry.createdAt))}</span>
+        </div>
+        <div class="daily-package-actions">
+          <button class="ghost daily-package-edit" type="button">编辑</button>
+          <button class="ghost daily-package-delete" type="button">删除</button>
+        </div>
+      </div>
+      <div class="daily-package-editor">
+        <input class="daily-package-edit-date" type="date" />
+        <textarea class="daily-package-edit-message" rows="5"></textarea>
+        <div class="daily-package-actions">
+          <button class="primary daily-package-save" type="button">保存</button>
+          <button class="ghost daily-package-cancel" type="button">取消</button>
+        </div>
+      </div>
     `;
     list.append(item);
   }
@@ -1136,6 +1244,7 @@ function renderIndexPage() {
   }
   renderCardDealerFinder();
   renderHomeTransitBoard();
+  renderDailyPackageStatusPanel();
   renderDealerAnalytics(records);
   renderPendingCenter();
 }
@@ -2006,6 +2115,7 @@ async function initLocalMode() {
   dealers = readJson(dealerListKey);
   pendingImports = readJson(pendingImportsKey);
   unknownDriverCards = readJson(unknownDriverCardsKey);
+  dailyPackageStatuses = readJson(dailyPackageStatusKey);
   statusOptions = normalizeStatusOptions(readJson(statusOptionsKey, defaultStatusOptions));
   noticeText = localStorage.getItem(noticeKey) || "";
 
@@ -2074,6 +2184,18 @@ async function initLocalMode() {
     localStorage.setItem(noticeKey, message);
     renderCurrentPage();
   };
+  saveDailyPackageStatus = async (entry) => {
+    const index = dailyPackageStatuses.findIndex((item) => item.id === entry.id);
+    if (index >= 0) dailyPackageStatuses[index] = entry;
+    else dailyPackageStatuses.push(entry);
+    writeJson(dailyPackageStatusKey, dailyPackageStatuses);
+    renderCurrentPage();
+  };
+  deleteDailyPackageStatus = async (id) => {
+    dailyPackageStatuses = dailyPackageStatuses.filter((entry) => entry.id !== id);
+    writeJson(dailyPackageStatusKey, dailyPackageStatuses);
+    renderCurrentPage();
+  };
   saveRecord = async (record) => {
     const index = records.findIndex((item) => item.id === record.id);
     if (index >= 0) records[index] = record;
@@ -2137,6 +2259,7 @@ async function initFirebaseMode() {
     const noticeRef = ref(db, "dealer-card-tracker/notice");
     const pendingImportsRef = ref(db, "dealer-card-tracker/pendingImports");
     const unknownDriverCardsRef = ref(db, "dealer-card-tracker/unknownDriverCards");
+    const dailyPackageStatusesRef = ref(db, "dealer-card-tracker/dailyPackageStatuses");
     let isAutoExpiring = false;
 
     saveDealer = async (name) => {
@@ -2195,6 +2318,8 @@ async function initFirebaseMode() {
       await set(ref(db, `dealer-card-tracker/records/${record.id}`), record);
     };
     deleteRecord = async (id) => remove(ref(db, `dealer-card-tracker/records/${id}`));
+    saveDailyPackageStatus = async (entry) => set(ref(db, `dealer-card-tracker/dailyPackageStatuses/${entry.id}`), entry);
+    deleteDailyPackageStatus = async (id) => remove(ref(db, `dealer-card-tracker/dailyPackageStatuses/${id}`));
     resolvePendingImport = async (id, values) => {
       const pending = pendingImports.find((item) => item.id === id);
       if (!pending) return;
@@ -2266,6 +2391,11 @@ async function initFirebaseMode() {
     });
     onValue(unknownDriverCardsRef, (snapshot) => {
       unknownDriverCards = Object.entries(snapshot.val() || {}).map(([id, item]) => ({ id, ...item }));
+      setSyncStatus("online", "多人实时同步已开启");
+      renderCurrentPage();
+    });
+    onValue(dailyPackageStatusesRef, (snapshot) => {
+      dailyPackageStatuses = Object.entries(snapshot.val() || {}).map(([id, item]) => ({ id, ...item }));
       setSyncStatus("online", "多人实时同步已开启");
       renderCurrentPage();
     });

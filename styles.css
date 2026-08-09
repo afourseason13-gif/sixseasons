@@ -17431,3 +17431,176 @@ body.index-page .gmail-pin-lock {
     text-transform: none !important;
   }
 }
+/* Daily package status editor */
+.daily-package-status-panel {
+  width: min(100%, var(--content-max, 1540px));
+  margin: 18px auto;
+  padding: 24px;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(235, 252, 247, 0.92));
+  box-shadow: 0 22px 55px rgba(8, 34, 31, 0.12);
+  color: #0f172a;
+}
+
+.daily-package-status-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.daily-package-status-head h2 {
+  margin: 4px 0 4px;
+  color: #0f172a;
+  font-size: clamp(24px, 3vw, 42px);
+  letter-spacing: 0;
+}
+
+.daily-package-status-head > span {
+  flex: 0 0 auto;
+  min-width: 64px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e8fff7, #f8e8a8);
+  color: #065f56;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(6, 95, 86, 0.12);
+}
+
+.daily-package-status-form {
+  display: grid;
+  grid-template-columns: 180px minmax(280px, 1fr) 150px;
+  gap: 14px;
+  align-items: end;
+  margin-top: 18px;
+}
+
+.daily-package-status-form label,
+.daily-package-editor {
+  display: grid;
+  gap: 7px;
+}
+
+.daily-package-status-form span,
+.daily-package-status-item time {
+  color: #04736a;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.daily-package-status-form input,
+.daily-package-status-form textarea,
+.daily-package-editor input,
+.daily-package-editor textarea {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #0f172a;
+  font-weight: 800;
+  padding: 13px 15px;
+  outline: none;
+}
+
+.daily-package-status-form textarea,
+.daily-package-editor textarea {
+  min-height: 94px;
+  resize: vertical;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.daily-package-status-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.daily-package-status-empty,
+.daily-package-status-item {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-left: 5px solid #14b8a6;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.daily-package-status-empty {
+  padding: 18px;
+  color: #64748b;
+  font-weight: 800;
+}
+
+.daily-package-read {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+}
+
+.daily-package-read pre {
+  margin: 8px 0;
+  color: #0f172a;
+  font: 800 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+.daily-package-read span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.daily-package-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
+}
+
+.daily-package-actions button {
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 12px;
+}
+
+.daily-package-editor {
+  display: none;
+  padding: 16px;
+}
+
+.daily-package-status-item.is-editing .daily-package-read {
+  display: none;
+}
+
+.daily-package-status-item.is-editing .daily-package-editor {
+  display: grid;
+}
+
+@media (max-width: 760px) {
+  .daily-package-status-panel {
+    margin: 14px auto;
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .daily-package-status-head,
+  .daily-package-read {
+    display: grid;
+  }
+
+  .daily-package-status-form {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-package-status-list {
+    grid-template-columns: 1fr;
+  }
+}
