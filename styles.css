@@ -17626,3 +17626,72 @@ body.index-page .gmail-pin-lock {
     grid-template-columns: 1fr;
   }
 }
+
+/* High contrast pass for daily package records. */
+.daily-package-status-panel {
+  background: linear-gradient(135deg, #ffffff 0%, #eefdf8 100%) !important;
+  border-color: rgba(13, 148, 136, 0.32) !important;
+  color: #0f172a !important;
+}
+
+.daily-package-status-panel .eyebrow,
+.daily-package-status-head .section-copy,
+.daily-package-status-head h2,
+.daily-package-status-list,
+.daily-package-status-panel span,
+.daily-package-status-panel strong,
+.daily-package-status-panel label {
+  color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+.daily-package-status-panel .eyebrow {
+  color: #0f766e !important;
+}
+
+.daily-package-record,
+.daily-package-status-empty {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1) !important;
+}
+
+.daily-package-read strong {
+  color: #020617 !important;
+}
+
+.daily-package-read span {
+  color: #334155 !important;
+}
+
+.daily-package-editor label span {
+  color: #0f766e !important;
+}
+
+.daily-package-editor input,
+.daily-package-editor select,
+.daily-package-editor textarea {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+}
+
+.daily-package-actions .daily-package-open,
+.daily-package-actions .daily-package-edit,
+.daily-package-actions .daily-package-cancel {
+  background: #ecfeff !important;
+  color: #0f766e !important;
+  border: 1px solid rgba(13, 148, 136, 0.35) !important;
+}
+
+.daily-package-actions .daily-package-save {
+  background: linear-gradient(135deg, #0f766e, #14b8a6) !important;
+  color: #ffffff !important;
+  border: 0 !important;
+}
+
+.daily-package-actions .daily-package-delete {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+}
