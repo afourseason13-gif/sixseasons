@@ -584,9 +584,6 @@ function initIndexPage() {
   const announceStatus = document.querySelector("#announceStatus");
   const cardFinderInput = document.querySelector("#cardFinderInput");
   const cardFinderButton = document.querySelector("#cardFinderButton");
-  const dailyPackageForm = document.querySelector("#dailyPackageStatusForm");
-  const dailyPackageDate = document.querySelector("#dailyPackageStatusDate");
-  const dailyPackageMessage = document.querySelector("#dailyPackageStatusMessage");
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -656,38 +653,20 @@ function initIndexPage() {
     }
   });
   cardFinderButton.addEventListener("click", renderCardDealerFinder);
-  dailyPackageDate.value = malaysiaDateString();
-  dailyPackageForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const message = dailyPackageMessage.value.trim();
-    if (!message) {
-      alert("请先填写包裹状态内容");
-      return;
-    }
-    await saveDailyPackageStatus({
-      id: createId(),
-      date: dailyPackageDate.value || malaysiaDateString(),
-      message,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
-    dailyPackageMessage.value = "";
-    dailyPackageDate.value = malaysiaDateString();
-  });
   document.querySelector("#dailyPackageStatusList")?.addEventListener("click", async (event) => {
-    const item = event.target.closest(".daily-package-status-item");
+    const item = event.target.closest(".daily-package-record");
     if (!item) return;
     const id = item.dataset.id;
-    const current = dailyPackageStatuses.find((entry) => entry.id === id);
+    const current = records.find((record) => record.id === id);
     if (!current) return;
     if (event.target.closest(".daily-package-delete")) {
-      if (confirm("删除这条每日包裹状态？")) await deleteDailyPackageStatus(id);
+      if (confirm("从每日包裹状态隐藏这条？不会删除 Dealer 资料。")) {
+        await saveRecord({ ...current, dailyPackageHidden: true, updatedAt: new Date().toISOString() });
+      }
       return;
     }
     if (event.target.closest(".daily-package-edit")) {
       item.classList.add("is-editing");
-      item.querySelector(".daily-package-edit-date").value = current.date || malaysiaDateString();
-      item.querySelector(".daily-package-edit-message").value = current.message || "";
       return;
     }
     if (event.target.closest(".daily-package-cancel")) {
@@ -695,16 +674,18 @@ function initIndexPage() {
       return;
     }
     if (event.target.closest(".daily-package-save")) {
-      const date = item.querySelector(".daily-package-edit-date").value || malaysiaDateString();
-      const message = item.querySelector(".daily-package-edit-message").value.trim();
-      if (!message) {
-        alert("内容不能为空");
-        return;
-      }
-      await saveDailyPackageStatus({
+      const carrier = item.querySelector(".daily-package-carrier").value;
+      const trackingNumber = item.querySelector(".daily-package-tracking").value.trim();
+      const tailNumber = item.querySelector(".daily-package-tail").value.trim();
+      const cardNumber = item.querySelector(".daily-package-card").value.trim();
+      const packageStatus = item.querySelector(".daily-package-package-status").value.trim();
+      await saveRecord({
         ...current,
-        date,
-        message,
+        carrier,
+        trackingNumber,
+        tailNumber,
+        cardNumber,
+        packageStatus,
         updatedAt: new Date().toISOString()
       });
     }
@@ -921,39 +902,50 @@ function renderDailyPackageStatusPanel() {
   const count = document.querySelector("#dailyPackageStatusCount");
   if (!list || !count) return;
 
-  const items = dailyPackageStatuses
-    .slice()
-    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+  const items = records
+    .filter((record) => {
+      const trackingNumber = normalizeCardLookup(record.trackingNumber);
+      return record.status === "\u5bc4" && (trackingNumber.length >= 4 || record.tailNumber || record.cardNumber);
+    })
+    .filter((record) => !record.dailyPackageHidden)
+    .sort((a, b) => parcelReference(a).localeCompare(parcelReference(b)) || String(a.cardNumber || "").localeCompare(String(b.cardNumber || "")));
 
   list.textContent = "";
   count.textContent = `${items.length} 条`;
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "daily-package-status-empty";
-    empty.textContent = "还没有手动包裹状态，新增后会显示在这里。";
+    empty.textContent = "现在没有正在追踪的包裹。";
     list.append(empty);
     return;
   }
 
-  for (const entry of items) {
+  for (const record of items) {
     const item = document.createElement("article");
-    item.className = "daily-package-status-item";
-    item.dataset.id = entry.id;
+    item.className = "daily-package-record";
+    item.dataset.id = record.id;
+    const carrierOptions = malaysiaCouriers.map((courier) => (
+      `<option value="${escapeHtml(courier)}" ${courier === record.carrier ? "selected" : ""}>${escapeHtml(courier)}</option>`
+    )).join("");
+    const packageStatus = record.packageStatus || "未检查";
     item.innerHTML = `
       <div class="daily-package-read">
         <div>
-          <time>${escapeHtml(entry.date || "-")}</time>
-          <pre>${escapeHtml(entry.message || "")}</pre>
-          <span>更新：${escapeHtml(formatTime(entry.updatedAt || entry.createdAt))}</span>
+          <strong>${escapeHtml(parcelReference(record))} | ${escapeHtml(record.cardNumber || "-")}</strong>
+          <span>${escapeHtml(record.dealerName || "未知 Dealer")} · ${escapeHtml(packageStatus)}</span>
         </div>
         <div class="daily-package-actions">
-          <button class="ghost daily-package-edit" type="button">编辑</button>
+          <a class="ghost daily-package-open" href="${dealerUrl(record.dealerName || "")}">进入档案</a>
+          <button class="ghost daily-package-edit" type="button">修改</button>
           <button class="ghost daily-package-delete" type="button">删除</button>
         </div>
       </div>
       <div class="daily-package-editor">
-        <input class="daily-package-edit-date" type="date" />
-        <textarea class="daily-package-edit-message" rows="5"></textarea>
+        <label><span>卡号</span><input class="daily-package-card" value="${escapeHtml(record.cardNumber || "")}" /></label>
+        <label><span>包裹公司</span><select class="daily-package-carrier">${carrierOptions}</select></label>
+        <label><span>尾号码</span><input class="daily-package-tail" value="${escapeHtml(record.tailNumber || "")}" /></label>
+        <label><span>完整单号</span><input class="daily-package-tracking" value="${escapeHtml(record.trackingNumber || "")}" /></label>
+        <label class="wide"><span>包裹状态</span><input class="daily-package-package-status" value="${escapeHtml(packageStatus)}" placeholder="运输中 / 派送中 / 已送达 / 异常" /></label>
         <div class="daily-package-actions">
           <button class="primary daily-package-save" type="button">保存</button>
           <button class="ghost daily-package-cancel" type="button">取消</button>

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260809-daily-package-status" />
+    <link rel="stylesheet" href="./styles.css?v=20260809-package-record-list" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -103,21 +103,10 @@
           <div>
             <p class="eyebrow">DAILY PACKAGE STATUS</p>
             <h2>每日包裹状态</h2>
-            <p class="section-copy">手动整理每天包裹状态，可以随时编辑或删除。</p>
+            <p class="section-copy">自动显示现在正在追踪的包裹，可以直接修改或删除。</p>
           </div>
           <span id="dailyPackageStatusCount">0 条</span>
         </div>
-        <form id="dailyPackageStatusForm" class="daily-package-status-form" autocomplete="off">
-          <label>
-            <span>日期</span>
-            <input id="dailyPackageStatusDate" type="date" />
-          </label>
-          <label class="wide">
-            <span>包裹状态内容</span>
-            <textarea id="dailyPackageStatusMessage" rows="5" placeholder="例如：JNT1234 | MBB6863 派送中 · IPOH"></textarea>
-          </label>
-          <button class="primary" type="submit">新增状态</button>
-        </form>
         <div class="daily-package-status-list" id="dailyPackageStatusList"></div>
       </section>
 
@@ -379,6 +368,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260809-daily-package-status"></script>
+    <script src="./app.js?v=20260809-package-record-list"></script>
   </body>
 </html>
