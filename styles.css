@@ -17870,3 +17870,52 @@ body.index-page .gmail-pin-lock {
 .daily-package-actions a {
   flex: 0 0 auto !important;
 }
+
+/* Smaller daily package cards for dense desktop viewing. */
+.daily-package-status-list {
+  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.daily-package-record {
+  min-height: 62px !important;
+  border-radius: 12px !important;
+  border-left-width: 3px !important;
+}
+
+.daily-package-read {
+  gap: 6px !important;
+  padding: 9px 10px !important;
+}
+
+.daily-package-read strong {
+  margin-bottom: 3px !important;
+  font-size: 13px !important;
+  line-height: 1.18 !important;
+}
+
+.daily-package-read span {
+  margin-top: 2px !important;
+  font-size: 10.5px !important;
+  line-height: 1.25 !important;
+}
+
+.daily-package-status-select {
+  height: 26px !important;
+  max-width: 118px !important;
+  padding: 0 7px !important;
+  border-radius: 8px !important;
+  font-size: 10.5px !important;
+}
+
+.daily-package-actions {
+  gap: 5px !important;
+}
+
+.daily-package-actions button,
+.daily-package-actions a {
+  min-height: 25px !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+  font-size: 10.5px !important;
+}
