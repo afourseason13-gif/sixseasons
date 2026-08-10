@@ -17818,3 +17818,55 @@ body.index-page .gmail-pin-lock {
     justify-content: flex-start !important;
   }
 }
+
+/* Prevent compact package cards from squeezing text into vertical letters. */
+.daily-package-status-list {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+  align-items: stretch !important;
+}
+
+.daily-package-record {
+  min-width: 0 !important;
+}
+
+.daily-package-read {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: space-between !important;
+  gap: 9px !important;
+}
+
+.daily-package-read > div:first-child {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.daily-package-read strong {
+  display: block !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+.daily-package-read span {
+  display: block !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+.daily-package-status-select {
+  width: 100% !important;
+  max-width: 150px !important;
+}
+
+.daily-package-actions {
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
+
+.daily-package-actions button,
+.daily-package-actions a {
+  flex: 0 0 auto !important;
+}
