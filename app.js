@@ -665,30 +665,18 @@ function initIndexPage() {
       }
       return;
     }
-    if (event.target.closest(".daily-package-edit")) {
-      item.classList.add("is-editing");
-      return;
-    }
-    if (event.target.closest(".daily-package-cancel")) {
-      item.classList.remove("is-editing");
-      return;
-    }
-    if (event.target.closest(".daily-package-save")) {
-      const carrier = item.querySelector(".daily-package-carrier").value;
-      const trackingNumber = item.querySelector(".daily-package-tracking").value.trim();
-      const tailNumber = item.querySelector(".daily-package-tail").value.trim();
-      const cardNumber = item.querySelector(".daily-package-card").value.trim();
-      const packageStatus = item.querySelector(".daily-package-package-status").value.trim();
-      await saveRecord({
-        ...current,
-        carrier,
-        trackingNumber,
-        tailNumber,
-        cardNumber,
-        packageStatus,
-        updatedAt: new Date().toISOString()
-      });
-    }
+  });
+  document.querySelector("#dailyPackageStatusList")?.addEventListener("change", async (event) => {
+    const statusSelect = event.target.closest(".daily-package-status-select");
+    if (!statusSelect) return;
+    const item = statusSelect.closest(".daily-package-record");
+    const current = records.find((record) => record.id === item?.dataset.id);
+    if (!current) return;
+    await saveRecord({
+      ...current,
+      status: statusSelect.value,
+      updatedAt: new Date().toISOString()
+    });
   });
   const pendingList = document.querySelector("#pendingList");
   pendingList?.addEventListener("click", async (event) => {
@@ -924,9 +912,10 @@ function renderDailyPackageStatusPanel() {
     const item = document.createElement("article");
     item.className = "daily-package-record";
     item.dataset.id = record.id;
-    const carrierOptions = malaysiaCouriers.map((courier) => (
-      `<option value="${escapeHtml(courier)}" ${courier === record.carrier ? "selected" : ""}>${escapeHtml(courier)}</option>`
-    )).join("");
+    const recordStatus = record.status || statusOptions[0] || "";
+    const recordStatusOptions = normalizeStatusOptions(recordStatus ? [...statusOptions, recordStatus] : statusOptions)
+      .map((status) => `<option value="${escapeHtml(status)}" ${status === recordStatus ? "selected" : ""}>${escapeHtml(status)}</option>`)
+      .join("");
     const packageStatus = record.packageStatus || "未检查";
     item.innerHTML = `
       <div class="daily-package-read">
@@ -934,21 +923,10 @@ function renderDailyPackageStatusPanel() {
           <strong>${escapeHtml(parcelReference(record))} | ${escapeHtml(record.cardNumber || "-")}</strong>
           <span>${escapeHtml(record.dealerName || "未知 Dealer")} · ${escapeHtml(packageStatus)}</span>
         </div>
+        <select class="daily-package-status-select" aria-label="Change card status">${recordStatusOptions}</select>
         <div class="daily-package-actions">
           <a class="ghost daily-package-open" href="${dealerUrl(record.dealerName || "")}">进入档案</a>
-          <button class="ghost daily-package-edit" type="button">修改</button>
           <button class="ghost daily-package-delete" type="button">删除</button>
-        </div>
-      </div>
-      <div class="daily-package-editor">
-        <label><span>卡号</span><input class="daily-package-card" value="${escapeHtml(record.cardNumber || "")}" /></label>
-        <label><span>包裹公司</span><select class="daily-package-carrier">${carrierOptions}</select></label>
-        <label><span>尾号码</span><input class="daily-package-tail" value="${escapeHtml(record.tailNumber || "")}" /></label>
-        <label><span>完整单号</span><input class="daily-package-tracking" value="${escapeHtml(record.trackingNumber || "")}" /></label>
-        <label class="wide"><span>包裹状态</span><input class="daily-package-package-status" value="${escapeHtml(packageStatus)}" placeholder="运输中 / 派送中 / 已送达 / 异常" /></label>
-        <div class="daily-package-actions">
-          <button class="primary daily-package-save" type="button">保存</button>
-          <button class="ghost daily-package-cancel" type="button">取消</button>
         </div>
       </div>
     `;

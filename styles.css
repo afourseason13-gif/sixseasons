@@ -17695,3 +17695,126 @@ body.index-page .gmail-pin-lock {
   color: #b91c1c !important;
   border: 1px solid #fecaca !important;
 }
+
+/* Compact readable daily package panel. */
+.daily-package-status-panel {
+  padding: 16px 18px !important;
+  margin: 14px auto !important;
+  border-radius: 18px !important;
+}
+
+.daily-package-status-head {
+  padding-bottom: 10px !important;
+  gap: 10px !important;
+}
+
+.daily-package-status-head h2 {
+  font-size: clamp(24px, 2.2vw, 34px) !important;
+  line-height: 1.05 !important;
+  margin: 0 !important;
+}
+
+.daily-package-status-head .section-copy {
+  font-size: 12px !important;
+  color: #475569 !important;
+}
+
+.daily-package-status-head > span {
+  padding: 7px 12px !important;
+  min-width: auto !important;
+  font-size: 13px !important;
+  color: #064e3b !important;
+}
+
+.daily-package-status-list {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 12px !important;
+}
+
+.daily-package-record {
+  min-height: 74px !important;
+  border-radius: 14px !important;
+  border-left-width: 4px !important;
+}
+
+.daily-package-read {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 104px auto !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 11px 12px !important;
+}
+
+.daily-package-read strong {
+  font-size: 15px !important;
+  line-height: 1.22 !important;
+  color: #020617 !important;
+  word-break: break-word !important;
+}
+
+.daily-package-read span {
+  margin-top: 4px !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  color: #1e293b !important;
+}
+
+.daily-package-status-select {
+  width: 104px !important;
+  height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(13, 148, 136, 0.42) !important;
+  background: #f8fffc !important;
+  color: #052e2b !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+.daily-package-actions {
+  gap: 6px !important;
+  justify-content: flex-end !important;
+}
+
+.daily-package-actions button,
+.daily-package-actions a {
+  min-height: 30px !important;
+  padding: 6px 10px !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.daily-package-actions .daily-package-open,
+.daily-package-actions .daily-package-cancel {
+  background: #ccfbf1 !important;
+  color: #064e3b !important;
+  border-color: #5eead4 !important;
+}
+
+.daily-package-actions .daily-package-delete {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
+}
+
+@media (max-width: 760px) {
+  .daily-package-status-panel {
+    padding: 14px !important;
+  }
+
+  .daily-package-status-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  .daily-package-read {
+    grid-template-columns: minmax(0, 1fr) 96px !important;
+  }
+
+  .daily-package-actions {
+    grid-column: 1 / -1 !important;
+    justify-content: flex-start !important;
+  }
+}
