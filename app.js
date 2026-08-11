@@ -1707,7 +1707,7 @@ function analyticsLocationText(record) {
 
 function analyticsLocationGroup(record) {
   const text = analyticsLocationText(record);
-  if (/\b(JOHOR|JOHOR BAHRU|JHR|JB)\b/.test(text)) return "johor";
+  if (/\b(JOHOR|JOHOR BAHRU|JHR|JB|KOTA TINGGI|SKUDAI|PASIR GUDANG|KULAI|KLUANG|BATU PAHAT|MUAR|SEGAMAT|MERSING|PONTIAN|TANGKAK|NUSAJAYA|ISKANDAR|SENAI|JOHOR JAYA|MASAI|ULU TIRAM|YONG PENG|SIMPANG RENGGAM|AYER HITAM|LABIS)\b/.test(text)) return "johor";
   if (/\b(IPOH|KINTA)\b/.test(text)) return "ipoh";
   return "other";
 }
@@ -1729,6 +1729,10 @@ function renderDealerAnalytics(dealerRecords) {
   const shippingRecords = dealerRecords.filter(isShippingAnalyticsRecord);
   const activeRecords = dealerRecords.filter((record) => recordStatusGroup(record) === "active");
   const problemRecords = dealerRecords.filter((record) => recordStatusGroup(record) === "problem");
+  const otherStatusRecords = dealerRecords.filter((record) => {
+    const group = recordStatusGroup(record);
+    return group !== "active" && group !== "problem";
+  });
   const total = Math.max(1, dealerRecords.length);
   const locationCounts = { johor: 0, ipoh: 0, other: 0 };
   for (const record of shippingRecords) locationCounts[analyticsLocationGroup(record)] += 1;
@@ -1749,10 +1753,10 @@ function renderDealerAnalytics(dealerRecords) {
   setText("#analyticsCardTotal", dealerRecords.length);
   setText("#analyticsActive", activeRecords.length);
   setText("#analyticsProblem", problemRecords.length);
-  setText("#analyticsShipping", shippingRecords.length);
+  setText("#analyticsShipping", otherStatusRecords.length);
   setBar("#analyticsActiveBar", activeRecords.length);
   setBar("#analyticsProblemBar", problemRecords.length);
-  setBar("#analyticsShippingBar", shippingRecords.length);
+  setBar("#analyticsShippingBar", otherStatusRecords.length);
 
   const score = Math.max(0, Math.round(((activeRecords.length + shippingRecords.length) / total) * 100) - (problemRecords.length * 8));
   setText("#analyticsScore", `${Math.min(100, score)}%`);
