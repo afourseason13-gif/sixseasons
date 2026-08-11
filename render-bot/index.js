@@ -3013,7 +3013,7 @@ async function runScheduledTrackingMyCheck() {
   const today = formatDateInMalaysia(now);
   const time = `${String(malaysia.getUTCHours()).padStart(2, "0")}:${String(malaysia.getUTCMinutes()).padStart(2, "0")}`;
   const slots = [
-    { time: "13:00", action: "checkAndSummary" }
+    { time: "16:00", action: "checkAndSummary" }
   ];
 
   for (const slot of slots) {
