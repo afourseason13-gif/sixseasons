@@ -3315,9 +3315,14 @@ app.post("/telegram", async (req, res) => {
 
     const roles = await getTelegramRoleChats();
     const looksLikeImport = isImportMessage(text, senderName) || isPotentialImportMessage(text);
-    const importRoleAllowed = looksLikeImport || chatMatchesRole(chatId, roles.import);
+    const importRoleAllowed = chatMatchesRole(chatId, roles.import);
 
     if (/^(\u5bfc\u5165|\u88dc\u5bfc\u5165|\u8865\u5bfc\u5165|import)$/i.test(clean(text)) && replyText) {
+      if (!importRoleAllowed) {
+        await writeBotNotice(`\u8865\u5bfc\u5165\u88ab\u5ffd\u7565\uff1a\u8fd9\u4e2a\u7fa4\u4e0d\u662f\u5bfc\u5165\u7fa4\u3002\u7fa4ID ${chatId}`);
+        res.status(200).send("ignored");
+        return;
+      }
       if (!isImportMessage(replyText, senderName) && !isPotentialImportMessage(replyText)) {
         await writeBotNotice("补导入失败：回复内容不像卡资料");
         await replyToTelegramMessage(chatId, message?.message_id, "这条回复内容不像卡资料，没导入。");
