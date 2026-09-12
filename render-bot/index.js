@@ -2790,7 +2790,7 @@ async function fetchTrackingMyStatus(record) {
 async function getTrackingChatId() {
   const snapshot = await db.ref("dealer-card-tracker/settings").get();
   const settings = snapshot.val() || {};
-  return settings.importChatId || settings.trackingNotificationChatId || announceChatId || settings.telegramChatId;
+  return settings.trackingNotificationChatId || "";
 }
 
 function trackingCarrierCode(record) {
