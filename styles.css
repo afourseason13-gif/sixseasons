@@ -18071,3 +18071,43 @@ body.index-page .dealer-merge {
     font-size: 0 !important;
   }
 }
+
+/* Keep long Dealer names readable beside the compact merge controls. */
+body.index-page .dealer-actions {
+  display: grid !important;
+  gap: 5px !important;
+}
+
+body.index-page .dealer-name,
+body.index-page .dealer-card .dealer-name {
+  font-size: 17px !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+body.index-page .dealer-title-line {
+  align-items: flex-start !important;
+}
+
+@media (max-width: 760px) {
+  body.index-page .dealer-name,
+  body.index-page .dealer-card .dealer-name,
+  body.index-page[data-mobile-view="dealers"] .dealer-card .dealer-name {
+    font-size: 14px !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  body.index-page .dealer-card,
+  body.index-page[data-mobile-view="dealers"] .dealer-card {
+    min-height: 92px !important;
+  }
+}
