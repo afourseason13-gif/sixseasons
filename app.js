@@ -70,6 +70,7 @@ let dailyPackageStatuses = [];
 let saveRecord;
 let deleteRecord;
 let saveDealer;
+let renameDealer;
 let deleteDealer;
 let saveDealerRate;
 let saveDealerExpense;
@@ -1222,6 +1223,9 @@ function renderIndexPage() {
 function initDealerPage() {
   const dealerName = getDealerNameFromUrl();
   const dealerTitle = document.querySelector("#dealerTitle");
+  const dealerNameForm = document.querySelector("#dealerNameForm");
+  const dealerDisplayName = document.querySelector("#dealerDisplayName");
+  const dealerTelegramIdentity = document.querySelector("#dealerTelegramIdentity");
   const dealerRate = document.querySelector("#dealerRate");
   const dealerExpense = document.querySelector("#dealerExpense");
   const dealerExtraPay = document.querySelector("#dealerExtraPay");
@@ -1256,6 +1260,21 @@ function initDealerPage() {
 
   dealerTitle.textContent = dealerName;
   saveDealer(dealerName);
+  dealerDisplayName.value = dealerName;
+  const dealerIdentity = getDealerInfo(dealerName);
+  if (dealerIdentity.telegramUserId) {
+    dealerTelegramIdentity.hidden = false;
+    dealerTelegramIdentity.textContent = `Telegram ID: ${dealerIdentity.telegramUserId}`;
+  }
+  dealerNameForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const nextName = dealerDisplayName.value.trim();
+    if (!nextName || nextName === dealerName) return;
+    const existingTarget = dealers.find((dealer) => dealer.name === nextName);
+    if (existingTarget && !confirm(`“${nextName}”已经存在。要把这两个 Dealer 的资料合并吗？`)) return;
+    await renameDealer(dealerName, nextName);
+    location.replace(dealerUrl(nextName));
+  });
   dealerRate.value = String(getDealerRate(dealerName));
   dealerExpense.value = String(getDealerExpense(dealerName) || "");
   dealerExtraPay.value = String(getDealerExtraPay(dealerName) || "");
@@ -2100,6 +2119,31 @@ async function initLocalMode() {
     }
     renderCurrentPage();
   };
+  renameDealer = async (oldName, newName) => {
+    const sourceKey = firebaseKey(oldName);
+    const targetKey = firebaseKey(newName);
+    const sourceIndex = dealers.findIndex((dealer) => dealer.name === oldName);
+    const targetIndex = dealers.findIndex((dealer) => dealer.name === newName);
+    const source = sourceIndex >= 0 ? dealers[sourceIndex] : { name: oldName, rate: 500 };
+    const target = targetIndex >= 0 ? dealers[targetIndex] : {};
+    const updatedAt = new Date().toISOString();
+    const nextDealer = {
+      ...source,
+      ...target,
+      name: newName,
+      telegramUserId: source.telegramUserId || target.telegramUserId || "",
+      updatedAt
+    };
+    dealers = dealers.filter((dealer) => dealer.name !== oldName && dealer.name !== newName);
+    dealers.push(nextDealer);
+    records = records.map((record) => (
+      record.dealerName === oldName || record.dealerId === sourceKey
+        ? { ...record, dealerId: targetKey, dealerName: newName, updatedAt }
+        : record
+    ));
+    writeJson(dealerListKey, dealers);
+    writeJson(localKey, records);
+  };
   saveDealerRate = async (name, rate) => {
     const existing = getDealerInfo(name);
     const index = dealers.findIndex((dealer) => dealer.name === name);
@@ -2241,6 +2285,30 @@ async function initFirebaseMode() {
         name,
         createdAt: getDealerInfo(name).createdAt || new Date().toISOString()
       });
+    };
+    renameDealer = async (oldName, newName) => {
+      const sourceKey = firebaseKey(oldName);
+      const targetKey = firebaseKey(newName);
+      const source = getDealerInfo(oldName);
+      const target = dealers.find((dealer) => dealer.name === newName) || {};
+      const updatedAt = new Date().toISOString();
+      const updates = {};
+      updates[`dealer-card-tracker/dealers/${targetKey}`] = {
+        ...source,
+        ...target,
+        name: newName,
+        telegramUserId: source.telegramUserId || target.telegramUserId || "",
+        updatedAt
+      };
+      if (sourceKey !== targetKey) updates[`dealer-card-tracker/dealers/${sourceKey}`] = null;
+      records
+        .filter((record) => record.dealerName === oldName || record.dealerId === sourceKey)
+        .forEach((record) => {
+          updates[`dealer-card-tracker/records/${record.id}/dealerId`] = targetKey;
+          updates[`dealer-card-tracker/records/${record.id}/dealerName`] = newName;
+          updates[`dealer-card-tracker/records/${record.id}/updatedAt`] = updatedAt;
+        });
+      await update(ref(db), updates);
     };
     saveDealerRate = async (name, rate) => {
       await update(ref(db, `dealer-card-tracker/dealers/${firebaseKey(name)}`), {

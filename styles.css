@@ -17919,3 +17919,45 @@ body.index-page .gmail-pin-lock {
   border-radius: 8px !important;
   font-size: 10.5px !important;
 }
+.dealer-name-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dealer-name-editor input {
+  width: min(260px, 58vw);
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dealer-name-editor button {
+  min-height: 34px;
+  padding: 7px 11px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.dealer-name-editor span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .dealer-name-editor {
+    width: 100%;
+  }
+
+  .dealer-name-editor input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+}

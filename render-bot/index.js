@@ -742,6 +742,10 @@ function telegramSenderName(message) {
   return clean(fullName || from.username || message?.sender_chat?.title || message?.chat?.title || "");
 }
 
+function telegramSenderId(message) {
+  return clean(message?.from?.id || message?.sender_chat?.id || "");
+}
+
 
 function parseDealer(text, fallbackName = "") {
   const value = pickLineValue(text, ["DEALER", "DEALER NAME"]);
@@ -999,6 +1003,45 @@ async function ensureDealer(name) {
     updatedAt: new Date().toISOString()
   });
   return key;
+}
+
+async function resolveTelegramDealer(telegramUserId, suggestedName) {
+  const userId = clean(telegramUserId);
+  const fallbackName = clean(suggestedName) || "Telegram";
+  const snapshot = await db.ref("dealer-card-tracker/dealers").get();
+  const entries = Object.entries(snapshot.val() || {});
+  const byUserId = userId
+    ? entries.find(([, dealer]) => clean(dealer.telegramUserId) === userId)
+    : null;
+
+  if (byUserId) {
+    const [dealerId, dealer] = byUserId;
+    await db.ref(`dealer-card-tracker/dealers/${dealerId}`).update({
+      telegramUserId: userId,
+      telegramLastSeenName: fallbackName,
+      updatedAt: new Date().toISOString()
+    });
+    return { dealerId, dealerName: clean(dealer.name) || fallbackName };
+  }
+
+  const byName = entries.find(([, dealer]) => clean(dealer.name).toLowerCase() === fallbackName.toLowerCase());
+  if (byName) {
+    const [dealerId, dealer] = byName;
+    await db.ref(`dealer-card-tracker/dealers/${dealerId}`).update({
+      telegramUserId: userId || clean(dealer.telegramUserId),
+      telegramLastSeenName: fallbackName,
+      updatedAt: new Date().toISOString()
+    });
+    return { dealerId, dealerName: clean(dealer.name) || fallbackName };
+  }
+
+  const dealerId = await ensureDealer(fallbackName);
+  await db.ref(`dealer-card-tracker/dealers/${dealerId}`).update({
+    telegramUserId: userId,
+    telegramLastSeenName: fallbackName,
+    updatedAt: new Date().toISOString()
+  });
+  return { dealerId, dealerName: fallbackName };
 }
 
 
@@ -1671,9 +1714,9 @@ function detectCarrier(text, carrierCode = "") {
   return "\u5176\u4ed6";
 }
 
-async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegramMessageId = "", senderName = "") {
+async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegramMessageId = "", senderName = "", telegramUserId = "") {
   const requestedDealerName = parseDealer(text, fallbackDealerName);
-  const existingDealerName = await findExistingDealerName(requestedDealerName);
+  const telegramDealer = await resolveTelegramDealer(telegramUserId, requestedDealerName);
   const rawCardNumber = parseCardNumber(text);
   const rawBankName = pickLineValue(text, ["BANK", "NAMA BANK"]);
   const bankName = detectBank((rawBankName || "") + "\n" + text);
@@ -1716,7 +1759,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
     "NO KAD": rawCardNumber
   };
   const missingFields = Object.entries(requiredFields).filter(([, value]) => !clean(value)).map(([label]) => label);
-  const dealerName = existingDealerName || requestedDealerName || fallbackDealerName || "Telegram";
+  const dealerName = telegramDealer.dealerName;
 
   if (!dealerName) {
     pendingReason = "Dealer not found: " + (requestedDealerName || "unknown");
@@ -1739,7 +1782,9 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
       reason: pendingReason,
       missingFields,
       dealerName,
+      dealerId: telegramDealer.dealerId,
       senderName,
+      telegramUserId,
       text,
       formattedDetails,
       cardNumber,
@@ -1755,7 +1800,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
     return { ok: false, pending: true, reason: pendingReason, dealerName, cardNumber };
   }
 
-  const dealerId = await ensureDealer(dealerName);
+  const dealerId = telegramDealer.dealerId;
   const mergedCardNumber = existingRecord ? firstClean(cardNumber === "XXXX" ? "" : cardNumber, existingRecord.cardNumber) : cardNumber;
   const mergedCarrier = existingRecord ? firstClean(shipment.carrier, existingRecord.carrier) : shipment.carrier;
   const mergedTrackingTail = existingRecord ? firstClean(shipment.tailNumber, existingRecord.trackingTail, existingRecord.tailNumber) : shipment.tailNumber;
@@ -1778,6 +1823,7 @@ async function saveTelegramRecord(text, fallbackDealerName = "Telegram", telegra
     note: "Telegram \u81ea\u52a8\u5bfc\u5165",
     formattedDetails: mergedFormattedDetails,
     telegramMessageId,
+    telegramUserId,
     telegramSenderName: senderName,
     importedFromTelegram: true,
     updatedAt: Date.now()
@@ -3259,9 +3305,12 @@ app.post("/telegram", async (req, res) => {
   const messageText = message?.text || message?.caption || "";
   const chatId = message?.chat?.id;
   const senderName = telegramSenderName(message);
+  const senderId = telegramSenderId(message);
   const defaultWarrantyDate = telegramMessageDate(message);
   const replyMessageId = message?.reply_to_message?.message_id ? String(message.reply_to_message.message_id) : "";
   const replyText = message?.reply_to_message?.text || message?.reply_to_message?.caption || "";
+  const replySenderName = telegramSenderName(message?.reply_to_message) || senderName;
+  const replySenderId = telegramSenderId(message?.reply_to_message) || senderId;
 
   if (!chatId) {
     res.status(200).send("ignored");
@@ -3330,7 +3379,7 @@ app.post("/telegram", async (req, res) => {
         return;
       }
 
-      const importResult = await saveTelegramRecord(replyText, senderName, replyMessageId || message?.message_id, senderName);
+      const importResult = await saveTelegramRecord(replyText, replySenderName, replyMessageId || message?.message_id, replySenderName, replySenderId);
       if (importResult.pending) {
         await replyToTelegramMessage(chatId, message?.message_id, `已放入待处理\n卡号: ${importResult.cardNumber || "-"}\n原因: ${importResult.reason || "-"}`);
         await writeBotNotice(`补导入待处理：${importResult.cardNumber || "-"} · ${importResult.reason || "-"}`);
@@ -3418,7 +3467,7 @@ app.post("/telegram", async (req, res) => {
       return;
     }
 
-    const result = await saveTelegramRecord(text, senderName, message?.message_id, senderName);
+    const result = await saveTelegramRecord(text, senderName, message?.message_id, senderName, senderId);
     if (result.pending) {
       await reply(chatId, `已放入待处理\n卡号: ${result.cardNumber || "-"}\n原因: ${result.reason || "-"}`);
       await writeBotNotice(`导入待处理：${result.cardNumber || "-"} · ${result.reason || "-"}`);

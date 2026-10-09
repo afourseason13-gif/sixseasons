@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dealer 资料</title>
-    <link rel="stylesheet" href="./styles.css?v=20260713-gmail-stock-auto1" />
+    <link rel="stylesheet" href="./styles.css?v=20261010-telegram-dealer-id" />
   </head>
   <body class="dealer-page">
     <main class="app-shell">
@@ -12,6 +12,11 @@
         <div>
           <p class="eyebrow"><a class="back-link" href="./index.html">← 返回管理中心</a></p>
           <h1 id="dealerTitle">Dealer 资料</h1>
+          <form class="dealer-name-editor" id="dealerNameForm" autocomplete="off">
+            <input id="dealerDisplayName" aria-label="自定义 Dealer 名称" placeholder="自定义 Dealer 名称" />
+            <button class="ghost" type="submit">保存名称</button>
+            <span id="dealerTelegramIdentity" hidden></span>
+          </form>
         </div>
         <div class="sync-card" id="syncStatus">
           <span class="dot"></span>
@@ -244,6 +249,6 @@
     </div>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20260714-gmail-sheet-export1"></script>
+    <script src="./app.js?v=20261010-telegram-dealer-id"></script>
   </body>
 </html>
