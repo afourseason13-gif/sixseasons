@@ -2131,6 +2131,7 @@ async function initLocalMode() {
       ...source,
       ...target,
       name: newName,
+      customName: true,
       telegramUserId: source.telegramUserId || target.telegramUserId || "",
       updatedAt
     };
@@ -2297,6 +2298,7 @@ async function initFirebaseMode() {
         ...source,
         ...target,
         name: newName,
+        customName: true,
         telegramUserId: source.telegramUserId || target.telegramUserId || "",
         updatedAt
       };

@@ -1044,6 +1044,102 @@ async function resolveTelegramDealer(telegramUserId, suggestedName) {
   return { dealerId, dealerName: fallbackName };
 }
 
+async function mergeTelegramDealerIdentities() {
+  const [dealersSnapshot, recordsSnapshot] = await Promise.all([
+    db.ref("dealer-card-tracker/dealers").get(),
+    db.ref("dealer-card-tracker/records").get()
+  ]);
+  const dealersById = dealersSnapshot.val() || {};
+  const recordsById = recordsSnapshot.val() || {};
+  const dealerKeyByName = new Map(
+    Object.entries(dealersById).map(([key, dealer]) => [clean(dealer.name).toLowerCase(), key])
+  );
+  const groups = new Map();
+  const getGroup = (telegramUserId) => {
+    const userId = clean(telegramUserId);
+    if (!userId) return null;
+    if (!groups.has(userId)) groups.set(userId, { dealerKeys: new Set(), recordIds: new Set() });
+    return groups.get(userId);
+  };
+
+  for (const [dealerKey, dealer] of Object.entries(dealersById)) {
+    getGroup(dealer.telegramUserId)?.dealerKeys.add(dealerKey);
+  }
+  for (const [recordId, record] of Object.entries(recordsById)) {
+    const group = getGroup(record.telegramUserId);
+    if (!group) continue;
+    group.recordIds.add(recordId);
+    const dealerKey = clean(record.dealerId)
+      || dealerKeyByName.get(clean(record.dealerName).toLowerCase())
+      || firebaseKey(record.dealerName);
+    if (dealerKey) group.dealerKeys.add(dealerKey);
+  }
+
+  const updates = {};
+  let mergedDealers = 0;
+  let movedRecords = 0;
+  for (const [telegramUserId, group] of groups.entries()) {
+    const candidates = [...group.dealerKeys]
+      .map((key) => ({ key, dealer: dealersById[key] }))
+      .filter((item) => item.dealer);
+    if (!candidates.length) continue;
+
+    const recordCount = (candidate) => Object.values(recordsById).filter((record) => (
+      clean(record.dealerId) === candidate.key
+      || clean(record.dealerName).toLowerCase() === clean(candidate.dealer.name).toLowerCase()
+    )).length;
+    candidates.sort((a, b) => {
+      const score = (candidate) => (
+        (candidate.dealer.customName ? 1000000 : 0)
+        + (clean(candidate.dealer.name) !== clean(candidate.dealer.telegramLastSeenName) ? 100000 : 0)
+        + recordCount(candidate)
+      );
+      return score(b) - score(a);
+    });
+
+    const canonical = candidates[0];
+    const canonicalName = clean(canonical.dealer.name) || "Telegram";
+    const mergedDealer = { ...canonical.dealer };
+    for (const candidate of candidates.slice(1)) {
+      for (const [key, value] of Object.entries(candidate.dealer)) {
+        if (!clean(mergedDealer[key]) && clean(value)) mergedDealer[key] = value;
+      }
+      updates[`dealer-card-tracker/dealers/${candidate.key}`] = null;
+      mergedDealers += 1;
+    }
+    updates[`dealer-card-tracker/dealers/${canonical.key}`] = stripUndefined({
+      ...mergedDealer,
+      name: canonicalName,
+      telegramUserId,
+      updatedAt: new Date().toISOString()
+    });
+
+    const mergedKeys = new Set(candidates.map((candidate) => candidate.key));
+    const mergedNames = new Set(candidates.map((candidate) => clean(candidate.dealer.name).toLowerCase()));
+    for (const [recordId, record] of Object.entries(recordsById)) {
+      const belongsToIdentity = clean(record.telegramUserId) === telegramUserId
+        || mergedKeys.has(clean(record.dealerId))
+        || mergedNames.has(clean(record.dealerName).toLowerCase());
+      if (!belongsToIdentity) continue;
+      if (clean(record.dealerId) === canonical.key && clean(record.dealerName) === canonicalName && clean(record.telegramUserId) === telegramUserId) continue;
+      updates[`dealer-card-tracker/records/${recordId}/dealerId`] = canonical.key;
+      updates[`dealer-card-tracker/records/${recordId}/dealerName`] = canonicalName;
+      updates[`dealer-card-tracker/records/${recordId}/telegramUserId`] = telegramUserId;
+      updates[`dealer-card-tracker/records/${recordId}/updatedAt`] = Date.now();
+      movedRecords += 1;
+    }
+  }
+
+  updates["dealer-card-tracker/settings/telegramDealerMerge"] = {
+    mergedDealers,
+    movedRecords,
+    ranAt: new Date().toISOString()
+  };
+  await db.ref().update(updates);
+  console.log(`Telegram dealer merge complete: ${mergedDealers} dealers, ${movedRecords} records`);
+  return { mergedDealers, movedRecords };
+}
+
 
 function parseCardNumber(text) {
   return pickLineValue(text, ["NO KAD", "BANK CARD 16 DIGIT", "CARD 16 DIGIT", "CARD", "KAD"]);
@@ -3491,6 +3587,7 @@ const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`Telegram bot listening on ${port}`);
   ensureTelegramWebhook().catch((error) => console.error(error));
+  mergeTelegramDealerIdentities().catch((error) => console.error(error));
   autoExpireWarrantyRecords().catch((error) => console.error(error));
   runScheduledTrackingMyCheck().catch((error) => console.error(error));
   syncUnreadGmailLists().catch((error) => console.error(error));
