@@ -17961,3 +17961,113 @@ body.index-page .gmail-pin-lock {
     min-width: 0;
   }
 }
+
+body.index-page .dealer-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+body.index-page .dealer-merge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 58px !important;
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  border: 1px solid rgba(13, 148, 136, 0.25) !important;
+  border-radius: 999px !important;
+  background: #dcfce7 !important;
+  color: #047857 !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+}
+
+.merge-dealer-dialog {
+  width: min(440px, calc(100vw - 28px));
+  padding: 0;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 28px 80px rgba(2, 20, 18, 0.3);
+}
+
+.merge-dealer-dialog::backdrop {
+  background: rgba(2, 20, 18, 0.66);
+  backdrop-filter: blur(5px);
+}
+
+.merge-dealer-dialog form {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.merge-dealer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.merge-dealer-head h2,
+.merge-dealer-source,
+.merge-dealer-note {
+  margin: 0;
+}
+
+.merge-dealer-dialog label {
+  display: grid;
+  gap: 7px;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.merge-dealer-dialog select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #b9d8d2;
+  border-radius: 9px;
+  background: #f8fffd;
+  color: #0f172a;
+  font-weight: 850;
+}
+
+.merge-dealer-note {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  body.index-page .dealer-card,
+  body.index-page[data-mobile-view="dealers"] .dealer-card {
+    grid-template-columns: 54px minmax(0, 1fr) 38px !important;
+  }
+
+  body.index-page .dealer-actions,
+  body.index-page[data-mobile-view="dealers"] .dealer-actions {
+    grid-column: 3 !important;
+    display: grid !important;
+    gap: 5px !important;
+  }
+
+  body.index-page .dealer-merge,
+  body.index-page[data-mobile-view="dealers"] .dealer-merge,
+  body.index-page .dealer-delete,
+  body.index-page[data-mobile-view="dealers"] .dealer-delete {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+  }
+
+  body.index-page .dealer-delete,
+  body.index-page[data-mobile-view="dealers"] .dealer-delete {
+    font-size: 0 !important;
+  }
+}

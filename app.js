@@ -585,6 +585,40 @@ function initIndexPage() {
   const announceStatus = document.querySelector("#announceStatus");
   const cardFinderInput = document.querySelector("#cardFinderInput");
   const cardFinderButton = document.querySelector("#cardFinderButton");
+  const mergeDealerDialog = document.querySelector("#mergeDealerDialog");
+  const mergeDealerForm = document.querySelector("#mergeDealerForm");
+  const mergeDealerSource = document.querySelector("#mergeDealerSource");
+  const mergeDealerTarget = document.querySelector("#mergeDealerTarget");
+  const cancelDealerMerge = document.querySelector("#cancelDealerMerge");
+  let mergeSourceName = "";
+
+  window.openDealerMerge = (sourceName) => {
+    mergeSourceName = sourceName;
+    mergeDealerSource.textContent = `把“${sourceName}”的全部资料合并到：`;
+    mergeDealerTarget.textContent = "";
+    for (const name of uniqueDealers().filter((dealerName) => dealerName !== sourceName)) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      mergeDealerTarget.append(option);
+    }
+    if (!mergeDealerTarget.options.length) {
+      alert("目前没有其他 Dealer 可以合并。");
+      return;
+    }
+    mergeDealerDialog.showModal();
+  };
+
+  cancelDealerMerge.addEventListener("click", () => mergeDealerDialog.close());
+  mergeDealerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const targetName = mergeDealerTarget.value;
+    if (!mergeSourceName || !targetName) return;
+    if (!confirm(`确认把“${mergeSourceName}”全部合并到“${targetName}”？`)) return;
+    await renameDealer(mergeSourceName, targetName);
+    mergeDealerDialog.close();
+    mergeSourceName = "";
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1200,6 +1234,15 @@ function renderIndexPage() {
       </a>
     `;
 
+    const actions = document.createElement("div");
+    actions.className = "dealer-actions";
+
+    const mergeButton = document.createElement("button");
+    mergeButton.type = "button";
+    mergeButton.className = "dealer-merge";
+    mergeButton.textContent = "合并";
+    mergeButton.addEventListener("click", () => window.openDealerMerge(name));
+
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "dealer-delete";
@@ -1210,7 +1253,8 @@ function renderIndexPage() {
       }
     });
 
-    card.append(removeButton);
+    actions.append(mergeButton, removeButton);
+    card.append(actions);
     dealerList.append(card);
   }
   renderCardDealerFinder();

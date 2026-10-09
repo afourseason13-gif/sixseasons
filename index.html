@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20260810-package-card-mini" />
+    <link rel="stylesheet" href="./styles.css?v=20261010-dealer-merge-button" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -359,6 +359,25 @@
 
     </main>
 
+    <dialog class="merge-dealer-dialog" id="mergeDealerDialog">
+      <form method="dialog" id="mergeDealerForm">
+        <div class="merge-dealer-head">
+          <div>
+            <p class="eyebrow">MERGE DEALER</p>
+            <h2>合并 Dealer 资料</h2>
+          </div>
+          <button class="ghost" type="button" id="cancelDealerMerge">关闭</button>
+        </div>
+        <p class="merge-dealer-source" id="mergeDealerSource"></p>
+        <label>
+          <span>合并到</span>
+          <select id="mergeDealerTarget" required></select>
+        </label>
+        <p class="merge-dealer-note">原 Dealer 的全部卡资料和 Telegram ID 会移到目标 Dealer。</p>
+        <button class="primary" type="submit">确认合并</button>
+      </form>
+    </dialog>
+
     <nav class="mobile-tabbar" aria-label="手机导航">
       <a href="#mobileHome" data-mobile-view="home" class="active"><span>⌂</span><strong>首页</strong></a>
       <a href="#mobilePackages" data-mobile-view="packages"><span>▣</span><strong>包裹</strong></a>
@@ -368,6 +387,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20261010-telegram-dealer-merge"></script>
+    <script src="./app.js?v=20261010-dealer-merge-button"></script>
   </body>
 </html>
