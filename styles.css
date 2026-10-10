@@ -2921,6 +2921,104 @@ tbody tr:hover {
   }
 }
 
+.all-card-buyer-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.buyer-card-group {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.buyer-card-group.is-unassigned {
+  border-style: dashed;
+  background: rgba(241, 245, 249, 0.9);
+}
+
+.buyer-card-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.buyer-card-group-head strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.buyer-card-group-head span {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #ccfbf1;
+  color: #0f766e;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.buyer-card-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 5px;
+}
+
+.buyer-card-chip {
+  min-width: 0;
+  min-height: 27px;
+  padding: 4px 6px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 6px;
+  background: #f8fffd;
+  color: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.buyer-card-chip:hover,
+.buyer-card-chip:focus-visible {
+  border-color: #14b8a6;
+  background: #ccfbf1;
+  color: #115e59;
+}
+
+@media (max-width: 760px) {
+  .all-card-buyer-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .buyer-card-group {
+    padding: 9px;
+  }
+
+  .buyer-card-chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .buyer-card-chip {
+    font-size: 9px;
+  }
+}
+
 .all-card-buyer-panel {
   margin-top: 18px;
   padding: 18px;
@@ -18249,5 +18347,26 @@ body.index-page .dealer-title-line {
   body.index-page .dealer-card,
   body.index-page[data-mobile-view="dealers"] .dealer-card {
     min-height: 92px !important;
+  }
+}
+
+/* Final Buyer grouping layout overrides. */
+.all-card-buyer-list {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.buyer-card-chip {
+  text-align: center;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .all-card-buyer-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }

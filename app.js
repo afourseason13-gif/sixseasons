@@ -689,19 +689,14 @@ function initIndexPage() {
     }
   });
   cardFinderButton.addEventListener("click", renderCardDealerFinder);
-  document.querySelector("#allCardBuyerList")?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && event.target.matches(".all-card-buyer-input")) {
-      event.preventDefault();
-      event.target.blur();
-    }
-  });
-  document.querySelector("#allCardBuyerList")?.addEventListener("change", async (event) => {
-    const input = event.target.closest(".all-card-buyer-input");
-    if (!input) return;
-    const row = input.closest(".all-card-buyer-row");
-    const record = records.find((item) => item.id === row?.dataset.id);
+  document.querySelector("#allCardBuyerList")?.addEventListener("click", async (event) => {
+    const chip = event.target.closest(".buyer-card-chip");
+    if (!chip) return;
+    const record = records.find((item) => item.id === chip.dataset.id);
     if (!record) return;
-    const buyerName = input.value.trim();
+    const nextBuyer = prompt(`设置 ${record.cardNumber} 的 Buyer\n留空可以移回“未分配 Buyer”`, record.buyerName || "");
+    if (nextBuyer === null) return;
+    const buyerName = nextBuyer.trim();
     if (buyerName === String(record.buyerName || "").trim()) return;
     await saveRecord({
       ...record,
@@ -1205,28 +1200,41 @@ function initGmailListTest() {
 function renderAllCardBuyerPanel() {
   const list = document.querySelector("#allCardBuyerList");
   const count = document.querySelector("#allCardBuyerCount");
-  const buyerOptions = document.querySelector("#buyerNameOptions");
-  if (!list || !count || !buyerOptions) return;
+  if (!list || !count) return;
 
   const cardRecords = records
     .filter((record) => String(record.cardNumber || "").trim())
     .sort((a, b) => String(a.cardNumber).localeCompare(String(b.cardNumber), "en", { numeric: true }));
-  const buyers = [...new Set(cardRecords.map((record) => String(record.buyerName || "").trim()).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, "zh-CN"));
+  const groups = new Map();
+  for (const record of cardRecords) {
+    const buyerName = String(record.buyerName || "").trim();
+    const key = buyerName ? buyerName.toLocaleLowerCase() : "__unassigned__";
+    if (!groups.has(key)) groups.set(key, { name: buyerName || "未分配 Buyer", records: [] });
+    groups.get(key).records.push(record);
+  }
+  const buyerGroups = [...groups.entries()]
+    .sort(([keyA, groupA], [keyB, groupB]) => {
+      if (keyA === "__unassigned__") return 1;
+      if (keyB === "__unassigned__") return -1;
+      return groupA.name.localeCompare(groupB.name, "zh-CN");
+    })
+    .map(([, group]) => group);
 
   count.textContent = `${cardRecords.length} 张`;
-  buyerOptions.innerHTML = buyers.map((buyer) => `<option value="${escapeHtml(buyer)}"></option>`).join("");
-  list.innerHTML = cardRecords.length ? cardRecords.map((record) => `
-    <div class="all-card-buyer-row" data-id="${escapeHtml(record.id)}">
-      <div class="all-card-buyer-info">
-        <strong>${escapeHtml(record.cardNumber)}</strong>
-        <span>${escapeHtml(record.dealerName || "未知 Dealer")} · ${escapeHtml(record.status || "未设置")}</span>
+  list.innerHTML = buyerGroups.length ? buyerGroups.map((group) => `
+    <section class="buyer-card-group${group.name === "未分配 Buyer" ? " is-unassigned" : ""}">
+      <div class="buyer-card-group-head">
+        <strong>${escapeHtml(group.name)}</strong>
+        <span>${group.records.length} 张</span>
       </div>
-      <label>
-        <span>Buyer</span>
-        <input class="all-card-buyer-input" list="buyerNameOptions" value="${escapeHtml(record.buyerName || "")}" placeholder="输入 Buyer 名称" />
-      </label>
-    </div>
+      <div class="buyer-card-chips">
+        ${group.records.map((record) => `
+          <button class="buyer-card-chip" type="button" data-id="${escapeHtml(record.id)}" title="${escapeHtml(record.dealerName || "未知 Dealer")} · ${escapeHtml(record.status || "未设置")} · 点击修改 Buyer">
+            ${escapeHtml(record.cardNumber)}
+          </button>
+        `).join("")}
+      </div>
+    </section>
   `).join("") : `<p class="all-card-buyer-empty">目前没有卡号资料</p>`;
 }
 
