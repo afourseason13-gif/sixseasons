@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20261010-buyer-select" />
+    <link rel="stylesheet" href="./styles.css?v=20261010-buyer-dialog-clean" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -394,10 +394,11 @@
         <div class="merge-dealer-head">
           <div>
             <p class="eyebrow">ASSIGN BUYER</p>
-            <h2 id="buyerAssignCard">设置 Buyer</h2>
+            <h2>设置 Buyer</h2>
           </div>
           <button class="ghost" type="button" id="cancelBuyerAssign">关闭</button>
         </div>
+        <p class="buyer-assign-card" id="buyerAssignCard">卡号 · Dealer</p>
         <label>
           <span>选择 Buyer</span>
           <select id="buyerAssignSelect" required></select>
@@ -419,6 +420,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20261010-buyer-select"></script>
+    <script src="./app.js?v=20261010-buyer-dialog-clean"></script>
   </body>
 </html>
