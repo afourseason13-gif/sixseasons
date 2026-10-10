@@ -18263,7 +18263,8 @@ body.index-page .dealer-merge {
   font-weight: 900;
 }
 
-.merge-dealer-dialog select {
+.merge-dealer-dialog select,
+.merge-dealer-dialog input {
   width: 100%;
   min-height: 44px;
   border: 1px solid #b9d8d2;
@@ -18271,6 +18272,10 @@ body.index-page .dealer-merge {
   background: #f8fffd;
   color: #0f172a;
   font-weight: 850;
+}
+
+.merge-dealer-dialog [hidden] {
+  display: none !important;
 }
 
 .merge-dealer-note {
