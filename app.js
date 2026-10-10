@@ -1230,7 +1230,8 @@ function renderAllCardBuyerPanel() {
       <div class="buyer-card-chips">
         ${group.records.map((record) => `
           <button class="buyer-card-chip" type="button" data-id="${escapeHtml(record.id)}" title="${escapeHtml(record.dealerName || "未知 Dealer")} · ${escapeHtml(record.status || "未设置")} · 点击修改 Buyer">
-            ${escapeHtml(record.cardNumber)}
+            <strong>${escapeHtml(record.cardNumber)}</strong>
+            <span>${escapeHtml(record.dealerName || "未知 Dealer")}</span>
           </button>
         `).join("")}
       </div>

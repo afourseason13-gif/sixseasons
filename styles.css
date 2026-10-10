@@ -18358,9 +18358,34 @@ body.index-page .dealer-title-line {
 }
 
 .buyer-card-chip {
+  display: grid;
+  gap: 2px;
+  min-height: 38px;
   text-align: center;
   text-overflow: clip;
   white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.buyer-card-chip strong,
+.buyer-card-chip span {
+  display: block;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.buyer-card-chip strong {
+  color: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.buyer-card-chip span {
+  color: #64748b;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 800;
   overflow-wrap: anywhere;
 }
 
