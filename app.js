@@ -423,6 +423,7 @@ function normalizeRecord(data, id = createId()) {
     warrantyDate: data.warrantyDate || "",
     warrantyDays: Number(data.warrantyDays || 0),
     status: data.status || firstStatus,
+    buyerName: (data.buyerName || "").trim(),
     notes: data.notes.trim(),
     updatedAt: now,
     createdAt: data.createdAt || now
@@ -688,6 +689,26 @@ function initIndexPage() {
     }
   });
   cardFinderButton.addEventListener("click", renderCardDealerFinder);
+  document.querySelector("#allCardBuyerList")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && event.target.matches(".all-card-buyer-input")) {
+      event.preventDefault();
+      event.target.blur();
+    }
+  });
+  document.querySelector("#allCardBuyerList")?.addEventListener("change", async (event) => {
+    const input = event.target.closest(".all-card-buyer-input");
+    if (!input) return;
+    const row = input.closest(".all-card-buyer-row");
+    const record = records.find((item) => item.id === row?.dataset.id);
+    if (!record) return;
+    const buyerName = input.value.trim();
+    if (buyerName === String(record.buyerName || "").trim()) return;
+    await saveRecord({
+      ...record,
+      buyerName,
+      updatedAt: new Date().toISOString()
+    });
+  });
   document.querySelector("#dailyPackageStatusList")?.addEventListener("click", async (event) => {
     const item = event.target.closest(".daily-package-record");
     if (!item) return;
@@ -1181,6 +1202,34 @@ function initGmailListTest() {
   });
 }
 
+function renderAllCardBuyerPanel() {
+  const list = document.querySelector("#allCardBuyerList");
+  const count = document.querySelector("#allCardBuyerCount");
+  const buyerOptions = document.querySelector("#buyerNameOptions");
+  if (!list || !count || !buyerOptions) return;
+
+  const cardRecords = records
+    .filter((record) => String(record.cardNumber || "").trim())
+    .sort((a, b) => String(a.cardNumber).localeCompare(String(b.cardNumber), "en", { numeric: true }));
+  const buyers = [...new Set(cardRecords.map((record) => String(record.buyerName || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "zh-CN"));
+
+  count.textContent = `${cardRecords.length} 张`;
+  buyerOptions.innerHTML = buyers.map((buyer) => `<option value="${escapeHtml(buyer)}"></option>`).join("");
+  list.innerHTML = cardRecords.length ? cardRecords.map((record) => `
+    <div class="all-card-buyer-row" data-id="${escapeHtml(record.id)}">
+      <div class="all-card-buyer-info">
+        <strong>${escapeHtml(record.cardNumber)}</strong>
+        <span>${escapeHtml(record.dealerName || "未知 Dealer")} · ${escapeHtml(record.status || "未设置")}</span>
+      </div>
+      <label>
+        <span>Buyer</span>
+        <input class="all-card-buyer-input" list="buyerNameOptions" value="${escapeHtml(record.buyerName || "")}" placeholder="输入 Buyer 名称" />
+      </label>
+    </div>
+  `).join("") : `<p class="all-card-buyer-empty">目前没有卡号资料</p>`;
+}
+
 function renderIndexPage() {
   const dealerList = document.querySelector("#dealerList");
   const emptyState = document.querySelector("#emptyState");
@@ -1262,6 +1311,7 @@ function renderIndexPage() {
   renderDailyPackageStatusPanel();
   renderDealerAnalytics(records);
   renderPendingCenter();
+  renderAllCardBuyerPanel();
 }
 
 function initDealerPage() {

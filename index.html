@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20261010-dealer-name-fit" />
+    <link rel="stylesheet" href="./styles.css?v=20261010-all-card-buyers" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -357,6 +357,18 @@
         </div>
       </section>
 
+      <section class="all-card-buyer-panel" id="allCardBuyerPanel" aria-label="全部卡号和 Buyer">
+        <div class="all-card-buyer-head">
+          <div>
+            <p class="eyebrow">ALL CARDS</p>
+            <h2>全部卡号</h2>
+          </div>
+          <strong id="allCardBuyerCount">0 张</strong>
+        </div>
+        <datalist id="buyerNameOptions"></datalist>
+        <div class="all-card-buyer-list" id="allCardBuyerList"></div>
+      </section>
+
     </main>
 
     <dialog class="merge-dealer-dialog" id="mergeDealerDialog">
@@ -387,6 +399,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20261010-dealer-merge-button"></script>
+    <script src="./app.js?v=20261010-all-card-buyers"></script>
   </body>
 </html>
