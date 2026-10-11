@@ -695,10 +695,13 @@ function initIndexPage() {
       .filter(Boolean);
     if (!targetRecords.length) return;
     const selected = buyerAssignSelect.value;
-    const buyerName = selected === "__new__"
-      ? buyerCustomName.value.trim()
+    const customBuyerName = buyerCustomName.value.trim();
+    const buyerName = customBuyerName
+      ? customBuyerName
+      : selected === "__new__"
+        ? ""
       : selected === "__unassigned__" ? "" : selected;
-    if (selected === "__new__" && !buyerName) {
+    if (selected === "__new__" && !customBuyerName) {
       buyerCustomName.focus();
       return;
     }
