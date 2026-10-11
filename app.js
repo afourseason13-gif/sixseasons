@@ -1907,9 +1907,23 @@ function renderDealerAnalytics(dealerRecords) {
     const group = recordStatusGroup(record);
     return group !== "active" && group !== "problem";
   });
+  const cardRecords = dealerRecords.filter((record) => String(record.cardNumber || "").trim());
   const total = Math.max(1, dealerRecords.length);
-  const locationCounts = { johor: 0, ipoh: 0, other: 0 };
-  for (const record of shippingRecords) locationCounts[analyticsLocationGroup(record)] += 1;
+  const buyerCounts = new Map();
+  for (const record of cardRecords) {
+    const buyerName = String(record.buyerName || "").trim();
+    const key = buyerName ? buyerName.toLocaleLowerCase() : "__unassigned__";
+    const current = buyerCounts.get(key) || { name: buyerName || "未分配", count: 0 };
+    current.count += 1;
+    buyerCounts.set(key, current);
+  }
+  const buyerRows = [...buyerCounts.entries()]
+    .sort(([keyA, itemA], [keyB, itemB]) => {
+      if (keyA === "__unassigned__") return 1;
+      if (keyB === "__unassigned__") return -1;
+      return itemB.count - itemA.count || itemA.name.localeCompare(itemB.name, "zh-CN");
+    })
+    .map(([key, item]) => ({ ...item, unassigned: key === "__unassigned__" }));
 
   const setText = (selector, value) => {
     const element = document.querySelector(selector);
@@ -1920,10 +1934,16 @@ function renderDealerAnalytics(dealerRecords) {
     if (element) element.style.width = `${Math.max(4, Math.round((count / total) * 100))}%`;
   };
 
-  setText("#analyticsShipmentTotal", shippingRecords.length);
-  setText("#analyticsJohor", locationCounts.johor);
-  setText("#analyticsIpoh", locationCounts.ipoh);
-  setText("#analyticsOther", locationCounts.other);
+  setText("#analyticsBuyerTotal", cardRecords.length);
+  const buyerMap = document.querySelector("#analyticsBuyerMap");
+  if (buyerMap) {
+    buyerMap.innerHTML = buyerRows.length ? buyerRows.map((item) => `
+      <div class="dispatch-node buyer-analytics-node${item.unassigned ? " is-unassigned" : ""}">
+        <span>${escapeHtml(item.name)}</span>
+        <strong>${item.count}</strong>
+      </div>
+    `).join("") : `<p class="buyer-analytics-empty">暂无 Buyer 资料</p>`;
+  }
   setText("#analyticsCardTotal", dealerRecords.length);
   setText("#analyticsActive", activeRecords.length);
   setText("#analyticsProblem", problemRecords.length);

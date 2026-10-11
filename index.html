@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20261010-buyer-dialog-clean" />
+    <link rel="stylesheet" href="./styles.css?v=20261011-buyer-analytics" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -289,21 +289,17 @@
           <div>
             <p class="eyebrow">SITE ANALYTICS</p>
             <h2>全站战况分析</h2>
-            <p>汇总所有 Dealer 的邮寄区域、过保/开保与问题状态。</p>
+            <p>汇总所有 Dealer 的 Buyer 分配、过保/开保与问题状态。</p>
           </div>
           <strong id="analyticsScore">0%</strong>
         </div>
         <div class="analytics-grid">
           <article class="analytics-card map-card">
             <div class="analytics-card-head">
-              <span>DISPATCH MAP</span>
-              <strong id="analyticsShipmentTotal">0</strong>
+              <span>BUYER CARDS</span>
+              <strong id="analyticsBuyerTotal">0</strong>
             </div>
-            <div class="dispatch-map">
-              <div class="dispatch-node johor-node"><span>JOHOR</span><strong id="analyticsJohor">0</strong></div>
-              <div class="dispatch-node ipoh-node"><span>IPOH</span><strong id="analyticsIpoh">0</strong></div>
-              <div class="dispatch-node other-node"><span>OTHER</span><strong id="analyticsOther">0</strong></div>
-            </div>
+            <div class="dispatch-map buyer-analytics-map" id="analyticsBuyerMap"></div>
           </article>
           <article class="analytics-card">
             <div class="analytics-card-head">
@@ -420,6 +416,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20261010-buyer-dialog-clean"></script>
+    <script src="./app.js?v=20261011-buyer-analytics"></script>
   </body>
 </html>
