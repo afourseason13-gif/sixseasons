@@ -200,6 +200,16 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function uniqueBuyerNames() {
+  const buyers = new Map();
+  for (const record of records) {
+    const name = String(record.buyerName || "").trim();
+    const key = name.toLocaleLowerCase();
+    if (name && !buyers.has(key)) buyers.set(key, name);
+  }
+  return [...buyers.values()].sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
 function normalizeStatusOptions(options) {
   const names = new Set();
   for (const option of options || []) {
@@ -645,8 +655,7 @@ function initIndexPage() {
     buyerAssignCard.textContent = isGroup
       ? `${currentBuyer || "未分配 Buyer"} · 共 ${targetRecords.length} 张卡`
       : `${targetRecords[0].cardNumber} · ${targetRecords[0].dealerName || "未知 Dealer"}`;
-    const buyers = [...new Set(records.map((item) => String(item.buyerName || "").trim()).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, "zh-CN"));
+    const buyers = uniqueBuyerNames();
     buyerAssignSelect.textContent = "";
     const choices = [
       { value: "__unassigned__", label: "未分配 Buyer" },
@@ -1690,6 +1699,52 @@ function editableCarrierSelect(record) {
   return select;
 }
 
+function editableBuyerControl(record) {
+  const wrap = document.createElement("label");
+  wrap.className = "tracking-buyer-control";
+
+  const label = document.createElement("span");
+  label.textContent = "Buyer";
+
+  const input = document.createElement("input");
+  const list = document.createElement("datalist");
+  const listId = `buyer-options-${String(record.id).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  list.id = listId;
+  input.className = "inline-edit buyer-name-input";
+  input.setAttribute("list", listId);
+  input.value = String(record.buyerName || "").trim();
+  input.placeholder = "选择 / 输入 Buyer";
+  let lastSaved = input.value;
+
+  for (const buyerName of uniqueBuyerNames()) {
+    const option = document.createElement("option");
+    option.value = buyerName;
+    list.append(option);
+  }
+
+  const saveBuyer = async () => {
+    const entered = input.value.trim();
+    const existingName = uniqueBuyerNames().find((name) => name.toLocaleLowerCase() === entered.toLocaleLowerCase());
+    const buyerName = existingName || entered;
+    input.value = buyerName;
+    if (buyerName === lastSaved) return;
+    lastSaved = buyerName;
+    await saveRecord({ ...record, buyerName, updatedAt: new Date().toISOString() });
+  };
+
+  input.addEventListener("change", saveBuyer);
+  input.addEventListener("blur", saveBuyer);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      input.blur();
+    }
+  });
+
+  wrap.append(label, input, list);
+  return wrap;
+}
+
 function statusClassName(status) {
   const source = String(status || "");
   if (source.includes("过保")) return "status-expired";
@@ -1824,7 +1879,7 @@ function renderTrackingCell(record) {
     await saveRecord(nextRecord);
   });
 
-  wrap.append(numberInput, status, meta, detail, checkButton, photoLink, manualSelect);
+  wrap.append(numberInput, editableBuyerControl(record), status, meta, detail, checkButton, photoLink, manualSelect);
   return wrap;
 }
 
@@ -2071,6 +2126,7 @@ function renderDealerPage(dealerName, fillForm) {
         record.trackingNumber,
         record.packageStatus,
         record.trackingMyDetail,
+        record.buyerName,
         record.tailNumber,
         record.warrantyDate,
         record.status,
