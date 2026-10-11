@@ -18698,3 +18698,25 @@ body.dealer-page .tracking-buyer-control .buyer-name-input {
     font-size: 12px !important;
   }
 }
+
+/* Keep Buyer dialog values readable on its white controls. */
+body.index-page .buyer-assign-dialog select,
+body.index-page .buyer-assign-dialog input {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+body.index-page .buyer-assign-dialog select option {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+body.index-page .buyer-assign-dialog input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+}
