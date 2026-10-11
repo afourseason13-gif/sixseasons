@@ -18720,3 +18720,35 @@ body.index-page .buyer-assign-dialog input::placeholder {
   -webkit-text-fill-color: #64748b !important;
   opacity: 1 !important;
 }
+
+.buyer-card-group-actions .buyer-count-normal,
+.buyer-card-group-actions .buyer-count-problem {
+  padding: 3px 7px !important;
+  border: 1px solid rgba(13, 148, 136, 0.2) !important;
+  border-radius: 999px !important;
+  background: #ccfbf1 !important;
+  color: #0f766e !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.buyer-card-group-actions .buyer-count-problem {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+}
+
+.buyer-card-group-actions .buyer-count-problem.has-problem {
+  border-color: rgba(220, 38, 38, 0.3) !important;
+  background: #ffe4e6 !important;
+  color: #b91c1c !important;
+}
+
+@media (max-width: 760px) {
+  .buyer-card-group-actions {
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+  }
+}

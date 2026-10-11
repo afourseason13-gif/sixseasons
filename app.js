@@ -1307,7 +1307,16 @@ function renderAllCardBuyerPanel() {
       if (keyB === "__unassigned__") return -1;
       return groupA.name.localeCompare(groupB.name, "zh-CN");
     })
-    .map(([, group]) => group);
+    .map(([, group]) => {
+      const normalRecords = group.records.filter((record) => recordStatusGroup(record) !== "problem");
+      const problemRecords = group.records.filter((record) => recordStatusGroup(record) === "problem");
+      return {
+        ...group,
+        normalCount: normalRecords.length,
+        problemCount: problemRecords.length,
+        records: [...normalRecords, ...problemRecords]
+      };
+    });
 
   count.textContent = `${cardRecords.length} 张`;
   list.innerHTML = buyerGroups.length ? buyerGroups.map((group) => `
@@ -1315,7 +1324,8 @@ function renderAllCardBuyerPanel() {
       <div class="buyer-card-group-head">
         <strong>${escapeHtml(group.name)}</strong>
         <div class="buyer-card-group-actions">
-          <span>${group.records.length} 张</span>
+          <span class="buyer-count-normal">正常 ${group.normalCount}</span>
+          <span class="buyer-count-problem${group.problemCount ? " has-problem" : ""}">问题 ${group.problemCount}</span>
           <button class="buyer-group-edit" type="button" data-buyer="${group.name === "未分配 Buyer" ? "" : escapeHtml(group.name)}" title="修改整组 Buyer">修改</button>
         </div>
       </div>
