@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SIXSEASONS Dealer 管理中心</title>
-    <link rel="stylesheet" href="./styles.css?v=20261011-buyer-analytics" />
+    <link rel="stylesheet" href="./styles.css?v=20261011-buyer-group-edit" />
   </head>
   <body class="index-page">
     <main class="app-shell">
@@ -390,7 +390,7 @@
         <div class="merge-dealer-head">
           <div>
             <p class="eyebrow">ASSIGN BUYER</p>
-            <h2>设置 Buyer</h2>
+            <h2 id="buyerAssignTitle">设置 Buyer</h2>
           </div>
           <button class="ghost" type="button" id="cancelBuyerAssign">关闭</button>
         </div>
@@ -403,7 +403,7 @@
           <span>新 Buyer 名称</span>
           <input id="buyerCustomName" placeholder="输入新的 Buyer" />
         </label>
-        <button class="primary" type="submit">保存 Buyer</button>
+        <button class="primary" type="submit" id="buyerAssignSubmit">保存 Buyer</button>
       </form>
     </dialog>
 
@@ -416,6 +416,6 @@
     </nav>
 
     <script src="./firebase-config.js"></script>
-    <script src="./app.js?v=20261011-buyer-analytics"></script>
+    <script src="./app.js?v=20261011-buyer-group-edit"></script>
   </body>
 </html>

@@ -593,13 +593,15 @@ function initIndexPage() {
   const cancelDealerMerge = document.querySelector("#cancelDealerMerge");
   const buyerAssignDialog = document.querySelector("#buyerAssignDialog");
   const buyerAssignForm = document.querySelector("#buyerAssignForm");
+  const buyerAssignTitle = document.querySelector("#buyerAssignTitle");
   const buyerAssignCard = document.querySelector("#buyerAssignCard");
   const buyerAssignSelect = document.querySelector("#buyerAssignSelect");
   const buyerCustomField = document.querySelector("#buyerCustomField");
   const buyerCustomName = document.querySelector("#buyerCustomName");
+  const buyerAssignSubmit = document.querySelector("#buyerAssignSubmit");
   const cancelBuyerAssign = document.querySelector("#cancelBuyerAssign");
   let mergeSourceName = "";
-  let buyerAssignRecordId = "";
+  let buyerAssignRecordIds = [];
 
   window.openDealerMerge = (sourceName) => {
     mergeSourceName = sourceName;
@@ -636,10 +638,13 @@ function initIndexPage() {
     if (isCustom) buyerCustomName.focus();
   };
 
-  window.openBuyerAssign = (record) => {
-    buyerAssignRecordId = record.id;
-    buyerAssignCard.textContent = `${record.cardNumber} · ${record.dealerName || "未知 Dealer"}`;
-    const currentBuyer = String(record.buyerName || "").trim();
+  const openBuyerAssignDialog = (targetRecords, currentBuyer, isGroup = false) => {
+    buyerAssignRecordIds = targetRecords.map((record) => record.id);
+    buyerAssignTitle.textContent = isGroup ? "修改整组 Buyer" : "设置 Buyer";
+    buyerAssignSubmit.textContent = isGroup ? `保存整组（${targetRecords.length} 张）` : "保存 Buyer";
+    buyerAssignCard.textContent = isGroup
+      ? `${currentBuyer || "未分配 Buyer"} · 共 ${targetRecords.length} 张卡`
+      : `${targetRecords[0].cardNumber} · ${targetRecords[0].dealerName || "未知 Dealer"}`;
     const buyers = [...new Set(records.map((item) => String(item.buyerName || "").trim()).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, "zh-CN"));
     buyerAssignSelect.textContent = "";
@@ -660,12 +665,26 @@ function initIndexPage() {
     buyerAssignDialog.showModal();
   };
 
+  window.openBuyerAssign = (record) => {
+    openBuyerAssignDialog([record], String(record.buyerName || "").trim());
+  };
+
+  window.openBuyerGroupAssign = (buyerName) => {
+    const normalizedBuyer = String(buyerName || "").trim().toLocaleLowerCase();
+    const targetRecords = records.filter((record) => String(record.cardNumber || "").trim()
+      && String(record.buyerName || "").trim().toLocaleLowerCase() === normalizedBuyer);
+    if (!targetRecords.length) return;
+    openBuyerAssignDialog(targetRecords, String(buyerName || "").trim(), true);
+  };
+
   buyerAssignSelect.addEventListener("change", toggleCustomBuyerField);
   cancelBuyerAssign.addEventListener("click", () => buyerAssignDialog.close());
   buyerAssignForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const record = records.find((item) => item.id === buyerAssignRecordId);
-    if (!record) return;
+    const targetRecords = buyerAssignRecordIds
+      .map((id) => records.find((item) => item.id === id))
+      .filter(Boolean);
+    if (!targetRecords.length) return;
     const selected = buyerAssignSelect.value;
     const buyerName = selected === "__new__"
       ? buyerCustomName.value.trim()
@@ -674,11 +693,12 @@ function initIndexPage() {
       buyerCustomName.focus();
       return;
     }
-    if (buyerName !== String(record.buyerName || "").trim()) {
-      await saveRecord({ ...record, buyerName, updatedAt: new Date().toISOString() });
-    }
+    const updatedAt = new Date().toISOString();
+    await Promise.all(targetRecords
+      .filter((record) => buyerName !== String(record.buyerName || "").trim())
+      .map((record) => saveRecord({ ...record, buyerName, updatedAt })));
     buyerAssignDialog.close();
-    buyerAssignRecordId = "";
+    buyerAssignRecordIds = [];
   });
 
   form.addEventListener("submit", async (event) => {
@@ -750,6 +770,11 @@ function initIndexPage() {
   });
   cardFinderButton.addEventListener("click", renderCardDealerFinder);
   document.querySelector("#allCardBuyerList")?.addEventListener("click", async (event) => {
+    const groupEdit = event.target.closest(".buyer-group-edit");
+    if (groupEdit) {
+      window.openBuyerGroupAssign(groupEdit.dataset.buyer || "");
+      return;
+    }
     const chip = event.target.closest(".buyer-card-chip");
     if (!chip) return;
     const record = records.find((item) => item.id === chip.dataset.id);
@@ -1277,7 +1302,10 @@ function renderAllCardBuyerPanel() {
     <section class="buyer-card-group${group.name === "未分配 Buyer" ? " is-unassigned" : ""}">
       <div class="buyer-card-group-head">
         <strong>${escapeHtml(group.name)}</strong>
-        <span>${group.records.length} 张</span>
+        <div class="buyer-card-group-actions">
+          <span>${group.records.length} 张</span>
+          <button class="buyer-group-edit" type="button" data-buyer="${group.name === "未分配 Buyer" ? "" : escapeHtml(group.name)}" title="修改整组 Buyer">修改</button>
+        </div>
       </div>
       <div class="buyer-card-chips">
         ${group.records.map((record) => `

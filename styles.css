@@ -18553,3 +18553,34 @@ body.index-page .buyer-assign-dialog .primary {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+.buyer-card-group-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.buyer-card-group-actions > span {
+  flex: 0 0 auto;
+}
+
+.buyer-group-edit {
+  min-width: 0 !important;
+  min-height: 24px !important;
+  padding: 3px 7px !important;
+  border: 1px solid rgba(13, 148, 136, 0.3) !important;
+  border-radius: 6px !important;
+  background: #ecfdf5 !important;
+  color: #0f766e !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.buyer-group-edit:hover,
+.buyer-group-edit:focus-visible {
+  border-color: #0d9488 !important;
+  background: #ccfbf1 !important;
+}
