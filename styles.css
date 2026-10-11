@@ -18584,3 +18584,66 @@ body.index-page .buyer-assign-dialog .primary {
   border-color: #0d9488 !important;
   background: #ccfbf1 !important;
 }
+
+/* Keep Buyer groups wide and shallow on desktop. */
+.all-card-buyer-list {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 7px !important;
+}
+
+.buyer-card-group {
+  display: grid !important;
+  grid-template-columns: minmax(130px, 180px) minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 10px !important;
+  padding: 8px 10px !important;
+}
+
+.buyer-card-group-head {
+  align-self: center !important;
+  margin-bottom: 0 !important;
+}
+
+.buyer-card-chips {
+  grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)) !important;
+  gap: 5px !important;
+}
+
+.buyer-card-chip {
+  min-height: 36px !important;
+}
+
+.buyer-card-chip.is-problem {
+  border-color: rgba(220, 38, 38, 0.48) !important;
+  background: #fff1f2 !important;
+  box-shadow: inset 3px 0 0 #ef4444 !important;
+}
+
+.buyer-card-chip.is-problem strong {
+  color: #b91c1c !important;
+}
+
+.buyer-card-chip.is-problem span {
+  color: #dc2626 !important;
+}
+
+.buyer-card-chip.is-problem:hover,
+.buyer-card-chip.is-problem:focus-visible {
+  border-color: #dc2626 !important;
+  background: #ffe4e6 !important;
+}
+
+@media (max-width: 760px) {
+  .buyer-card-group {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 7px !important;
+  }
+
+  .buyer-card-group-head {
+    align-self: auto !important;
+  }
+
+  .buyer-card-chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}

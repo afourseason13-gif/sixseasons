@@ -1309,7 +1309,7 @@ function renderAllCardBuyerPanel() {
       </div>
       <div class="buyer-card-chips">
         ${group.records.map((record) => `
-          <button class="buyer-card-chip" type="button" data-id="${escapeHtml(record.id)}" title="${escapeHtml(record.dealerName || "未知 Dealer")} · ${escapeHtml(record.status || "未设置")} · 点击修改 Buyer">
+          <button class="buyer-card-chip${recordStatusGroup(record) === "problem" ? " is-problem" : ""}" type="button" data-id="${escapeHtml(record.id)}" title="${escapeHtml(record.dealerName || "未知 Dealer")} · ${escapeHtml(record.status || "未设置")} · 点击修改 Buyer">
             <strong>${escapeHtml(record.cardNumber)}</strong>
             <span>${escapeHtml(record.dealerName || "未知 Dealer")}</span>
           </button>
