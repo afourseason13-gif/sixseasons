@@ -51,6 +51,7 @@ const malaysiaCouriers = [
   "MatDespatch",
   "Pickupp",
   "uParcel",
+  "Lalamove",
   "Nationwide Express",
   "TA-Q-BIN",
   "Airpak Express",
@@ -422,6 +423,7 @@ function normalizeRecord(data, id = createId()) {
     trackingNumber: (data.trackingNumber || "").trim(),
     trackingMoreCourierCode: (data.trackingMoreCourierCode || "").trim(),
     packageStatus: (data.packageStatus || "").trim(),
+    directDelivery: Boolean(data.directDelivery),
     lastTrackingNotifyStatus: (data.lastTrackingNotifyStatus || "").trim(),
     trackingMyDetail: (data.trackingMyDetail || "").trim(),
     trackingMyUrl: (data.trackingMyUrl || "").trim(),
@@ -1772,7 +1774,17 @@ function statusClassName(status) {
   return "status-default";
 }
 
+function isDirectDeliveryRecord(record) {
+  return Boolean(record.directDelivery)
+    || String(record.carrier || "").toLocaleLowerCase().includes("lalamove")
+    || String(record.packageStatus || "").includes("直送");
+}
+
 async function checkTrackingRecord(record) {
+  if (isDirectDeliveryRecord(record)) {
+    alert("Lalamove 直送不需要填写单号或查询快递。");
+    return;
+  }
   if (record.status !== "寄") {
     alert("只有状态为“寄”的记录需要检查快递。开保和其他状态已停止追踪。");
     return;
@@ -1809,11 +1821,13 @@ async function checkTrackingRecord(record) {
 function renderTrackingCell(record) {
   const wrap = document.createElement("div");
   wrap.className = "tracking-cell";
+  const directDelivery = isDirectDeliveryRecord(record);
 
   const numberInput = document.createElement("input");
   numberInput.className = "inline-edit tracking-number-input";
   numberInput.value = record.trackingNumber || "";
-  numberInput.placeholder = "完整单号";
+  numberInput.placeholder = directDelivery ? "直送无需单号" : "完整单号";
+  numberInput.disabled = directDelivery;
   numberInput.addEventListener("blur", () => saveRecordField(record, "trackingNumber", numberInput.value.trim()));
   numberInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -1822,13 +1836,40 @@ function renderTrackingCell(record) {
     }
   });
 
+  const directButton = document.createElement("button");
+  directButton.type = "button";
+  directButton.className = `ghost compact-button lalamove-direct-button${directDelivery ? " is-active" : ""}`;
+  directButton.textContent = directDelivery ? "✓ Lalamove 直送" : "Lalamove 直送";
+  directButton.addEventListener("click", async () => {
+    const nextDirectDelivery = !directDelivery;
+    await saveRecord({
+      ...record,
+      directDelivery: nextDirectDelivery,
+      carrier: nextDirectDelivery ? "Lalamove" : (record.carrier === "Lalamove" ? "其他" : record.carrier),
+      packageStatus: nextDirectDelivery
+        ? "Lalamove 直送"
+        : (String(record.packageStatus || "").includes("直送") ? "" : record.packageStatus),
+      trackingMyDetail: nextDirectDelivery
+        ? "Lalamove 直送，无需包裹单号"
+        : (String(record.trackingMyDetail || "").includes("Lalamove 直送") ? "" : record.trackingMyDetail),
+      trackingMyCheckedAt: nextDirectDelivery ? new Date().toISOString() : record.trackingMyCheckedAt,
+      updatedAt: new Date().toISOString()
+    });
+  });
+
+  const deliveryRow = document.createElement("div");
+  deliveryRow.className = "tracking-delivery-row";
+  deliveryRow.append(numberInput, directButton);
+
   const status = document.createElement("div");
   status.className = "tracking-status";
-  status.textContent = record.packageStatus || "未检查";
+  status.textContent = directDelivery ? "Lalamove 直送" : (record.packageStatus || "未检查");
 
   const meta = document.createElement("div");
   meta.className = "tracking-meta";
-  meta.textContent = record.trackingMyCheckedAt ? `检查: ${formatTime(record.trackingMyCheckedAt)}` : "今天新增不会检查";
+  meta.textContent = directDelivery
+    ? "直送不需要包裹单号"
+    : record.trackingMyCheckedAt ? `检查: ${formatTime(record.trackingMyCheckedAt)}` : "今天新增不会检查";
   if (record.trackingMyDetail) meta.title = record.trackingMyDetail;
 
   const detail = document.createElement("div");
@@ -1839,8 +1880,10 @@ function renderTrackingCell(record) {
   const checkButton = document.createElement("button");
   checkButton.type = "button";
   checkButton.className = "ghost compact-button tracking-check-button";
-  const trackingActive = record.status === "寄";
-  checkButton.textContent = trackingActive
+  const trackingActive = record.status === "寄" && !directDelivery;
+  checkButton.textContent = directDelivery
+    ? "直送无需查询"
+    : trackingActive
     ? (checkingTrackingRecords.has(record.id) ? "检查中" : "检查")
     : "已停止追踪";
   checkButton.disabled = !trackingActive || checkingTrackingRecords.has(record.id);
@@ -1892,7 +1935,7 @@ function renderTrackingCell(record) {
     await saveRecord(nextRecord);
   });
 
-  wrap.append(numberInput, editableBuyerControl(record), status, meta, detail, checkButton, photoLink, manualSelect);
+  wrap.append(deliveryRow, editableBuyerControl(record), status, meta, detail, checkButton, photoLink, manualSelect);
   return wrap;
 }
 

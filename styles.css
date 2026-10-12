@@ -18648,6 +18648,58 @@ body.index-page .buyer-assign-dialog .primary {
   }
 }
 
+body.dealer-page .tracking-delivery-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-column: 1 / -1 !important;
+  align-items: center !important;
+  gap: 5px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+body.dealer-page .tracking-delivery-row .tracking-number-input {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+body.dealer-page .lalamove-direct-button {
+  min-width: 92px !important;
+  min-height: 30px !important;
+  padding: 4px 8px !important;
+  border-color: rgba(245, 158, 11, 0.42) !important;
+  background: #fffbeb !important;
+  color: #92400e !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+}
+
+body.dealer-page .lalamove-direct-button.is-active {
+  border-color: #f59e0b !important;
+  background: #fef3c7 !important;
+  color: #78350f !important;
+  box-shadow: inset 3px 0 0 #f59e0b !important;
+}
+
+body.dealer-page .tracking-number-input:disabled {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 760px) {
+  body.dealer-page .tracking-delivery-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body.dealer-page .lalamove-direct-button {
+    width: 100% !important;
+    min-height: 34px !important;
+  }
+}
+
 /* Buyer assignment lives beside package tracking on Dealer records. */
 body.dealer-page .tracking-buyer-control {
   display: grid !important;
